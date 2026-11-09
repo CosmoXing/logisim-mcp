@@ -70,6 +70,25 @@ feat(netlist): 支持 Register 组件
 docs(skill): 补充 5.0 与 3.9 的引脚写法差异
 ```
 
+## 发布流程（维护者）
+
+版本号在**三处**必须一起改：`.codebuddy-plugin/plugin.json`、`server/server.py` 的兜底版本、`CHANGELOG.md` 的小节标题。
+`tools/check_release.py` 会校验这三处，不一致直接失败。
+
+```bash
+# 1. 改版本号 + 写 CHANGELOG 小节（## 1.2.0 — 一句话概括）
+python tools/check_release.py --build --notes dist/release-notes.md --strict
+# 2. 提交推 main，等 CI 绿
+# 3. 打 tag 触发 Release
+git tag -a v1.2.0 -m "logisim-mcp 1.2.0" && git push origin v1.2.0
+```
+
+`release.yml` 会依次：校验 tag 与清单版本一致 → 重新体检并打 zip → 把 CHANGELOG 里该版小节当作 Release 正文，
+附上 `dist/logisim-mcp-<版本>.zip`。
+
+手工重发（Actions → Run workflow）checkout 的是**该 tag 本身**，所以要求那个 tag 里已经包含当前的 `tools/`；
+早于 v1.1.0 的 tag 不认识 `--notes`，要改说明请直接编辑 Release 正文。
+
 ## 许可
 
 提交 PR 即表示同意以 [MIT](LICENSE) 许可发布你的贡献。

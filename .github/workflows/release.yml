@@ -14,6 +14,9 @@ permissions:
   contents: write
 
 jobs:
+  # 手工重发（workflow_dispatch）checkout 的是指定的 tag 本身，产物与 tag 保持一致；
+  # 因此要求该 tag 里已包含当前的 tools/ 与 .github/。更早的 tag 会因参数不认识而失败，
+  # 那种情况请直接编辑 Release 正文。
   release:
     runs-on: ubuntu-latest
     env:

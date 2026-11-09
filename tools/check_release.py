@@ -19,6 +19,17 @@ import re
 import subprocess
 import sys
 
+def _utf8_console():
+    """Windows 控制台默认不是 UTF-8，直接 print 中文会抛 UnicodeEncodeError。"""
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, OSError):
+            pass
+
+
+_utf8_console()
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FAIL, WARN = [], []
 

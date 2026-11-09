@@ -6,6 +6,15 @@ on:
   pull_request:
   workflow_dispatch:
 
+# Windows 控制台默认不是 UTF-8，脚本里的中文输出需要这两个变量
+env:
+  PYTHONUTF8: "1"
+  PYTHONIOENCODING: utf-8
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     name: ${{ matrix.os }} · py${{ matrix.python }}
@@ -14,7 +23,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-latest
+          # 3.9 在 ubuntu-24.04 上取不到预编译包，固定到 22.04
+          - os: ubuntu-22.04
             python: "3.9"
           - os: ubuntu-latest
             python: "3.12"

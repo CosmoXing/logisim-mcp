@@ -1,0 +1,5 @@
+{
+  "_comment": "复制本文件为 logisim.local.json 并按需填写；该文件已被 .gitignore 排除，不会进仓库。",
+  "jar": "C:/path/to/logisim-evolution-5.0.0-all.jar",
+  "launcher": ""
+}

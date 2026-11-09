@@ -1,0 +1,26 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# 构建产物
+dist/
+*.zip
+
+# 本机私有配置（jar / launcher 路径），不进仓库
+logisim.local.json
+
+# 备份与损坏文件
+*.bak
+*.bak-*
+*.corrupt
+
+# 编辑器 / 系统
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# 临时
+*.tmp

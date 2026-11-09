@@ -1,0 +1,30 @@
+name: 功能建议
+description: 新元件支持 / 新工具 / 文档改进
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: 想解决什么问题
+      description: 描述场景，而不是直接给方案
+    validations:
+      required: true
+
+  - type: dropdown
+    id: kind
+    attributes:
+      label: 类型
+      options:
+        - 支持新元件（寄存器 / 计数器 / 多路选择器…）
+        - 改进生成或布线
+        - 改进仿真语义
+        - 文档 / 示例
+        - 其他
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: 补充信息
+      description: 如果是新元件，请附它的端口行为与是否有现成 `.circ` 样例

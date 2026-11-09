@@ -1,0 +1,49 @@
+name: Bug 报告
+description: 生成的电路打不开 / 仿真与 Logisim 不一致 / 体检漏报误报
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢报告。请尽量提供**可复现的最小电路**，这决定排查速度。
+
+  - type: textarea
+    id: what
+    attributes:
+      label: 现象
+      description: 发生了什么？期望是什么？
+      placeholder: |
+        期望：circ_sim 跑 4 拍后 q1q0 = 00
+        实际：q1 一直是 0
+    validations:
+      required: true
+
+  - type: textarea
+    id: doctor
+    attributes:
+      label: 环境信息
+      description: 粘贴 `python server/server.py --doctor` 的输出
+      render: text
+    validations:
+      required: true
+
+  - type: input
+    id: logisim
+    attributes:
+      label: Logisim 版本
+      description: 工程头部 `<project source="...">` 里的值
+      placeholder: "5.0.0"
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: 复现方式
+      description: 附 `circ_build` 的 spec，或直接贴最小的 `.circ`
+      render: json
+
+  - type: textarea
+    id: output
+    attributes:
+      label: 工具输出
+      description: `circ_audit` / `circ_sim` / `circuit_truth_table` 的原文
+      render: text

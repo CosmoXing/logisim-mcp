@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "logisim": {
+      "type": "stdio",
+      "command": "python",
+      "args": [
+        "${CODEBUDDY_PLUGIN_ROOT}/server/server.py"
+      ],
+      "cwd": "${CODEBUDDY_PLUGIN_ROOT}",
+      "env": {
+        "PYTHONIOENCODING": "utf-8",
+        "PYTHONUTF8": "1"
+      },
+      "defer_loading": false
+    }
+  }
+}

@@ -1,0 +1,28 @@
+# 安全说明
+
+## 这个插件会做什么
+
+- 读写你指定的 `.circ` 文件；
+- 以子进程方式调用本机 `java -jar logisim-evolution-*.jar`（只跑无头模式：`-t table` / `-t stats` / `-w`）；
+- 读写自己的经验库（`knowledge.json`，可被 `LOGISIM_KB` 或插件数据目录重定向）；
+- 可选地注册本地插件市场、修改 `~/.workbuddy/mcp.json`（由 `tools/install.py` 完成，会先备份）。
+
+## 它不会做什么
+
+- 不联网。除 `install.py` 与你自己的引用外，没有任何网络请求。
+- 不上传 `.circ` 或经验库内容。
+- 不执行用户电路里的任何代码——`.circ` 是 XML 数据，本项目只解析节点与坐标。
+- 不读取与任务无关的目录。`server.py` 的 jar 搜索只遍历固定的几个候选目录（见 README）。
+
+## 使用上的注意
+
+- **生成的文件会在你的机器上被 Logisim 打开**。`.circ` 支持子电路引用与库组件，
+  不要打开来源不明的 `.circ`——这与"不要运行来源不明的程序"是同一类风险。
+- **`circ_build` 会写文件**到 spec 指定的路径。请只对你有权写入的目录使用。
+- **`install.py` 会改配置**。它只增删 `mcpServers.logisim` 与自己注册的市场条目，
+  写入前在同目录留 `<文件名>.bak-<时间戳>`，可用 `--uninstall` 完整撤销，`--dry-run` 预演。
+
+## 报告漏洞
+
+请**不要**开公开 issue。用邮箱或 GitHub 的私有漏洞报告（Security → Report a vulnerability）联系维护者，
+说明：影响版本、最小复现、可能的后果。我们会在确认后 7 天内回复处理计划。

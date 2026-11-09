@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: ${{ matrix.os }} · py${{ matrix.python }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            python: "3.9"
+          - os: ubuntu-latest
+            python: "3.12"
+          - os: windows-latest
+            python: "3.12"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      # 版本一致性 / 本机路径 / 语法 / 打包内容
+      - name: 发布检查
+        run: python tools/check_release.py
+
+      # 不依赖 Java：跑生成、体检、网表仿真与失败路径
+      - name: 端到端自检（跳过 Logisim 用例）
+        run: python tools/selftest.py --quick
+
+      - name: 示例电路体检
+        run: python examples/generate.py --check
+
+      - name: 确认分发包可构建
+        run: python tools/build_zip.py
+
+  windows-cmd:
+    name: Windows 启动器
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # 实际用 .cmd 拉起 MCP，发一次 initialize，验证 stdio 通路
+      - name: 通过 run-mcp.cmd 握手
+        shell: cmd
+        run: |
+          echo {"jsonrpc":"2.0","id":1,"method":"initialize","params":{}} > req.jsonl
+          type req.jsonl | bin\run-mcp.cmd > resp.jsonl
+          findstr /C:"protocolVersion" resp.jsonl

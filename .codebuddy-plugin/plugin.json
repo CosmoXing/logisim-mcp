@@ -1,0 +1,32 @@
+{
+  "name": "logisim-circuit",
+  "version": "1.1.0",
+  "description": "Logisim-evolution 数字电路设计插件：13 个 MCP 工具覆盖「查几何 → 声明式生成 → 静态体检 → 网表仿真 → Logisim 真值表复核 → 经验沉淀」全链路。布线器按 5.0 源码几何自动走线，不使用隧道；生成的文件可直接在 Logisim 里打开仿真。适用于门级作业、计数器/寄存器/加法器搭建、以及「不许用现成芯片」这类限制。",
+  "description_en": "Logisim-evolution circuit design plugin: 13 MCP tools covering geometry lookup, declarative generation with maze routing, static netlist audit, cycle-accurate simulation, Logisim truth-table cross-check, and a growing pitfall knowledge base.",
+  "author": {
+    "name": "logisim-circuit contributors"
+  },
+  "license": "MIT",
+  "keywords": [
+    "logisim",
+    "logisim-evolution",
+    "digital-circuit",
+    "circ",
+    "counter",
+    "flip-flop",
+    "truth-table",
+    "netlist",
+    "eda",
+    "电路",
+    "数字电路",
+    "计数器",
+    "真值表"
+  ],
+  "category": "eda",
+  "skills": [
+    "./skills/logisim-circuit-design"
+  ],
+  "workbuddy": {
+    "runtimeOwner": "agent-cli"
+  }
+}

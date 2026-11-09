@@ -229,6 +229,57 @@ def check_local_config_ignored():
         ok("本机配置已排除在版本控制外")
 
 
+def changelog_section(version):
+    """取出 CHANGELOG.md 里属于该版本的小节正文（不含标题行）。"""
+    path = os.path.join(ROOT, "CHANGELOG.md")
+    text = open(path, encoding="utf-8").read()
+    m = re.search(r"^##\s+%s\b[^\n]*\n" % re.escape(version), text, re.M)
+    if not m:
+        fail(f"CHANGELOG.md 里没有 {version} 小节（Release 说明会变空）")
+        return None
+    rest = text[m.end():]
+    end = re.search(r"^##\s+", rest, re.M)
+    body = (rest[: end.start()] if end else rest).strip()
+    if not body:
+        fail(f"CHANGELOG.md 的 {version} 小节是空的")
+        return None
+    ok(f"CHANGELOG 有 {version} 小节（{len(body)} 字）")
+    return body
+
+
+def write_notes(version, body, out_path):
+    """把更新说明写成 Release 正文。"""
+    text = "\n".join([
+        body,
+        "",
+        "---",
+        "",
+        "**安装**：下载下方 `logisim-mcp-%s.zip` 解压，运行 `python tools/install.py`；" % version,
+        "或直接克隆仓库后执行同一命令。",
+        "",
+        "**完整记录**：[CHANGELOG.md](https://github.com/{}/{}/blob/main/CHANGELOG.md)".format(
+            *repo_slug()),
+        "",
+    ])
+    os.makedirs(os.path.dirname(os.path.abspath(out_path)), exist_ok=True)
+    with open(out_path, "w", encoding="utf-8", newline="\n") as fh:
+        fh.write(text)
+    ok(f"已写 Release 说明: {os.path.relpath(out_path, ROOT)}")
+
+
+def repo_slug():
+    """从 git remote 推断 owner/repo，失败时给占位符。"""
+    try:
+        url = subprocess.check_output(
+            ["git", "-C", ROOT, "remote", "get-url", "origin"],
+            stderr=subprocess.DEVNULL, text=True,
+        ).strip()
+    except (OSError, subprocess.CalledProcessError):
+        return ("OWNER", "REPO")
+    m = re.search(r"[/:]([^/:]+)/([^/]+?)(?:\.git)?$", url)
+    return (m.group(1), m.group(2)) if m else ("OWNER", "REPO")
+
+
 def check_zip(version):
     out = os.path.join(ROOT, "dist", f"logisim-mcp-{version}.zip")
     if not os.path.isfile(out):
@@ -250,6 +301,7 @@ def check_zip(version):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--build", action="store_true", help="检查后生成 dist zip")
+    ap.add_argument("--notes", metavar="PATH", help="把本版 CHANGELOG 写成 Release 说明文件")
     ap.add_argument("--strict", action="store_true", help="警告也视为失败")
     args = ap.parse_args()
 
@@ -262,6 +314,10 @@ def main():
     check_secrets()
     check_cmd()
     check_local_config_ignored()
+    body = changelog_section(version) if version else None
+    if args.notes and body:
+        write_notes(version, body, os.path.join(ROOT, args.notes)
+                    if not os.path.isabs(args.notes) else args.notes)
 
     if args.build and version:
         rc = subprocess.call([sys.executable, os.path.join(ROOT, "tools", "build_zip.py")])

@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 已有 tag（如 v1.1.0）
+        description: "已有 tag（如 v1.1.0），留空则用当前分支"
         required: false
 
 permissions:
@@ -16,19 +16,41 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    env:
+      PYTHONUTF8: "1"
+      PYTHONIOENCODING: "utf-8"
+      TAG: ${{ inputs.tag || github.ref_name }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+          fetch-depth: 0
 
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
-      - name: 发布检查 + 生成 zip
-        run: python tools/check_release.py --build
+      - name: 校验 tag 与清单版本一致
+        run: |
+          python - <<'PY'
+          import json, os, sys
+          tag = os.environ["TAG"]
+          version = json.load(open(".codebuddy-plugin/plugin.json", encoding="utf-8"))["version"]
+          print(f"tag={tag}  manifest={version}")
+          if tag.startswith("v") and tag[1:] != version:
+              sys.exit(f"tag {tag} 与 plugin.json 的 {version} 不一致，先改版本号再打 tag")
+          PY
 
-      - name: 上传产物
+      - name: 发布检查 + 生成 zip + 更新说明
+        run: python tools/check_release.py --build --notes dist/release-notes.md --strict
+
+      - name: 发布
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ env.TAG }}
+          name: ${{ env.TAG }}
+          body_path: dist/release-notes.md
           files: dist/*.zip
-          generate_release_notes: true
           fail_on_unmatched_files: true
+          draft: false
+          prerelease: false

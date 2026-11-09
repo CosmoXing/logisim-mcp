@@ -3,7 +3,7 @@
 """把插件目录打成可分发 zip。
 
 用法：
-    python tools/build_zip.py                 # 输出到 dist/logisim-circuit-<version>.zip
+    python tools/build_zip.py                 # 输出到 dist/logisim-mcp-<version>.zip
     python tools/build_zip.py --out X.zip
 
 zip 内是插件根目录的内容（根上有 .codebuddy-plugin/ 与 .mcp.json），

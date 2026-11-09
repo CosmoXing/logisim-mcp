@@ -1,9 +1,8 @@
-# logisim-circuit
+# logisim-mcp
 
 > 把 Logisim-evolution 接进 AI 工作流的 MCP 插件：**查几何 → 声明式生成 → 静态体检 → 网表仿真 → Logisim 真值表复核**，全链路可验证，不用手算一个坐标。
 
-<!-- 公布仓库后把下面两处的 OWNER/REPO 换成实际地址即可 -->
-[![CI](https://github.com/OWNER/REPO/actions/workflows/ci.yml/badge.svg)](https://github.com/OWNER/REPO/actions/workflows/ci.yml)
+[![CI](https://github.com/CosmoXing/logisim-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/CosmoXing/logisim-mcp/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.8%2B-3776ab.svg)](https://www.python.org/)
 [![Logisim](https://img.shields.io/badge/logisim--evolution-3.9%20%7C%205.0-2f6f4e.svg)](https://github.com/logisim-evolution/logisim-evolution)
@@ -38,12 +37,12 @@ Logisim-evolution 是纯 Java Swing 桌面程序，没有任何脚本或网络�
 插件按 WorkBuddy / CodeBuddy 的插件规范打包（`.codebuddy-plugin/plugin.json` + `.mcp.json` + `skills/`）。
 
 ```bash
-git clone <仓库地址> logisim-circuit
-cd logisim-circuit
+git clone https://github.com/CosmoXing/logisim-mcp.git
+cd logisim-mcp
 python tools/install.py            # 注册本地市场 logisim-local
 ```
 
-然后在插件管理页安装 `logisim-circuit`，并到「自定义连接器」里对 `logisim` 点一次 **信任（Trust）**。
+然后在插件管理页安装 `logisim-mcp`，并到「自定义连接器」里对 `logisim` 点一次 **信任（Trust）**。
 
 不想注册市场，也可以只写 MCP 配置：
 
@@ -115,7 +114,7 @@ python tools/check_release.py        # 开源发布检查：版本一致 / 无�
 `--doctor` 输出示例：
 
 ```
-插件根目录 : .../logisim-circuit
+插件根目录 : .../logisim-mcp
 服务端版本 : logisim 1.1.0
 Python     : 3.12.4 (/usr/bin/python3)
 Java       : /usr/bin/java
@@ -123,7 +122,7 @@ Java       : /usr/bin/java
 经验库     : .../knowledge.json
   条目数   : 9
   可写     : 是
-插件清单   : logisim-circuit 1.1.0（skills=1）
+插件清单   : logisim-mcp 1.1.0（skills=1）
 生成/体检  : ok（悬空 0，冲突 0）
 网表仿真   : a=1,b=1 → y=1（应为 1）
 ```
@@ -249,7 +248,7 @@ python tools/sync_skill.py              # 对比插件技能与用户目录
 
 ## English
 
-`logisim-circuit` is an MCP plugin for **Logisim-evolution**: it generates `.circ` files from a declarative netlist
+`logisim-mcp` is an MCP plugin for **Logisim-evolution**: it generates `.circ` files from a declarative netlist
 (maze routing, no tunnels), audits connectivity before you open them, simulates them cycle-by-cycle
 (per-flip-flop edge detection, so ripple chains work), and cross-checks the result against Logisim's own
 truth-table engine. Pure standard-library Python; Java is optional.

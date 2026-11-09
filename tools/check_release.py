@@ -125,9 +125,9 @@ def check_version():
     # 文档里出现的 zip 名应为当前版本
     for rel in ("README.md",):
         text = open(os.path.join(ROOT, rel), encoding="utf-8").read()
-        for hit in re.findall(r"logisim-circuit-(\d+\.\d+\.\d+)\.zip", text):
+        for hit in re.findall(r"logisim-mcp-(\d+\.\d+\.\d+)\.zip", text):
             if hit != version:
-                warn(f"{rel} 里出现旧版本 zip 名: logisim-circuit-{hit}.zip")
+                warn(f"{rel} 里出现旧版本 zip 名: logisim-mcp-{hit}.zip")
 
     ok(f"版本一致性: {version}")
     return version
@@ -219,9 +219,9 @@ def check_local_config_ignored():
 
 
 def check_zip(version):
-    out = os.path.join(ROOT, "dist", f"logisim-circuit-{version}.zip")
+    out = os.path.join(ROOT, "dist", f"logisim-mcp-{version}.zip")
     if not os.path.isfile(out):
-        warn(f"dist 里没有 logisim-circuit-{version}.zip（用 --build 生成）")
+        warn(f"dist 里没有 logisim-mcp-{version}.zip（用 --build 生成）")
         return
     import zipfile
     names = zipfile.ZipFile(out).namelist()

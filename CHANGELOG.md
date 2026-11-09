@@ -43,8 +43,12 @@
 - 可移植性：jar 查找不再含任何机器专属目录，改为「`LOGISIM_JAR` → `logisim.local.json` →
   `runtime/` → 系统安装位置 → 当前目录」；新增 `logisim.local.example.json` 作为本地配置模板。
 
-**版本**
+**命名与版本**
 
+- 仓库、插件、分发 zip 统一为 `logisim-mcp`（早期内部代号 `logisim-circuit`），
+  技能名保留 `logisim-circuit-design`（它描述的是能力，不是产品）。
+- `tools/install.py` 改为从 `plugin.json` 读插件名，改名只需要动清单一处；
+  安装时会自动清理市场里同名插件的旧目录。
 - 清单与服务端版本统一为 `1.1.0`；服务端默认版本号同步提高（读不到 `plugin.json` 时的兜底）。
 
 ## 1.0.0 — 封装为插件

@@ -1,6 +1,6 @@
 @echo off
 rem ---------------------------------------------------------------
-rem logisim-circuit plugin - stdio launcher for Windows
+rem logisim-mcp plugin - stdio launcher for Windows
 rem   run-mcp.cmd             start MCP server (called by the client)
 rem   run-mcp.cmd --doctor    print environment diagnostics
 rem Interpreter order: LOGISIM_PYTHON > where python > where python3 > python

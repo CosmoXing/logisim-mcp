@@ -24,8 +24,17 @@ import shutil
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PLUGIN_NAME = "logisim-circuit"
 MARKET_NAME = "logisim-local"
+
+
+def plugin_name():
+    """插件名以 .codebuddy-plugin/plugin.json 为准，避免改名后这里忘记同步。"""
+    path = os.path.join(ROOT, ".codebuddy-plugin", "plugin.json")
+    try:
+        with open(path, encoding="utf-8") as fh:
+            return json.load(fh)["name"]
+    except (OSError, KeyError, ValueError) as exc:
+        raise SystemExit(f"读取插件清单失败: {exc}")
 
 EXCLUDE_DIRS = {"__pycache__", "dist", ".git", ".in_use"}
 EXCLUDE_EXT = {".pyc", ".pyo"}
@@ -108,9 +117,23 @@ def pin_python(installed_dir, dry):
 
 
 def install_marketplace(home, dry, pin):
+    name = plugin_name()
     market_dir = os.path.join(home, "plugins", "marketplaces", MARKET_NAME)
-    plugin_dir = os.path.join(market_dir, "plugins", PLUGIN_NAME)
+    plugin_dir = os.path.join(market_dir, "plugins", name)
     print("注册本地市场：")
+    plugins_dir = os.path.join(market_dir, "plugins")
+    if os.path.isdir(plugins_dir):
+        for stale in sorted(os.listdir(plugins_dir)):
+            if stale == name or stale.startswith("."):
+                continue
+            stale_path = os.path.join(plugins_dir, stale)
+            if os.path.isdir(stale_path) and os.path.isfile(
+                    os.path.join(stale_path, ".codebuddy-plugin", "plugin.json")):
+                if dry:
+                    print(f"  [dry-run] 将清理旧版本目录 {stale_path}")
+                else:
+                    shutil.rmtree(stale_path)
+                    print(f"  清理旧版本目录: {stale_path}")
     copy_plugin(plugin_dir, dry)
     if pin:
         pin_python(plugin_dir, dry)
@@ -118,13 +141,13 @@ def install_marketplace(home, dry, pin):
     manifest = load_json(os.path.join(ROOT, ".codebuddy-plugin", "plugin.json"), {})
     market = {
         "name": MARKET_NAME,
-        "description": "本地插件市场（由 logisim-circuit 的 install.py 创建）",
+        "description": "本地插件市场（由 logisim-mcp 的 install.py 创建）",
         "owner": {"name": "local"},
         "plugins": [{
-            "name": PLUGIN_NAME,
+            "name": name,
             "description": manifest.get("description", ""),
             "version": manifest.get("version", "0.0.0"),
-            "source": f"./plugins/{PLUGIN_NAME}",
+            "source": f"./plugins/{name}",
             "category": manifest.get("category", ""),
         }],
     }
@@ -137,7 +160,7 @@ def install_marketplace(home, dry, pin):
         "type": "directory",
         "source": {"source": "directory", "path": market_dir},
         "installLocation": market_dir,
-        "description": "本地插件市场（logisim-circuit）",
+        "description": "本地插件市场（logisim-mcp）",
         "lastUpdated": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z"),
         "autoUpdate": False,
         "isBuiltIn": False,
@@ -145,7 +168,7 @@ def install_marketplace(home, dry, pin):
     save_json(known_path, known, dry)
 
     print("\n下一步（必须手动做）：")
-    print("  1. 打开插件/连接器管理页，在市场列表里选 logisim-local，安装 logisim-circuit；")
+    print("  1. 打开插件/连接器管理页，在市场列表里选 logisim-local，安装 logisim-mcp；")
     print("  2. 到右上角「自定义连接器」入口，对 logisim 点一次「信任（Trust）」；")
     print("  3. 新会话里说「用 logisim 工具体检 xxx.circ」即可。")
 

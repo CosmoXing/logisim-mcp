@@ -20,7 +20,7 @@
 
 ```json
 {
-  "name": "logisim-circuit",
+  "name": "logisim-mcp",
   "version": "1.1.0",
   "description": "一句话说明（会显示在插件列表里）",
   "description_en": "English one-liner (optional)",
@@ -103,8 +103,8 @@ description: 什么时候该用这个技能（这段会被检索，写关键词�
   "description": "本地插件市场",
   "owner": { "name": "local" },
   "plugins": [
-    { "name": "logisim-circuit", "version": "1.1.0",
-      "source": "./plugins/logisim-circuit", "description": "..." }
+    { "name": "logisim-mcp", "version": "1.1.0",
+      "source": "./plugins/logisim-mcp", "description": "..." }
   ]
 }
 ```

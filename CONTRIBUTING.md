@@ -18,7 +18,7 @@
 
 ```bash
 git clone <仓库地址>
-cd logisim-circuit
+cd logisim-mcp
 python --version          # 3.8+
 python tools/selftest.py  # 应该 29/29 通过
 ```

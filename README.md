@@ -11,11 +11,15 @@
 
 ## 长什么样
 
-![CounterDue：两个 13 进制计数器单元 + 停止逻辑](docs/images/counter13-counterdue.png)
+**顶层** `main`：时钟进 `CounterDue`，右侧两位十六进制数码管 + 溢出 LED（时钟开着，正在走字）：
 
-`examples/counter13.circ` 的中间层：`cp` 同时打到两个 `Counter13`，左边的 `AND` / `NAND` 负责「到 `CC` 就停住、点亮 LED」，
-右侧 `OH` / `OL` 是两位十六进制输出。整个工程三层（`main` → `CounterDue` → `Counter13`），
+![顶层：两位数码管与溢出 LED](docs/images/counter13-main.png)
+
+**中间层** `CounterDue`：`cp` 同时打到两个 `Counter13`，左边的 `AND` / `NAND` 负责「到 `CC` 就停住、点亮 LED」，
+右侧 `OH` / `OL` 是两位输出。整个工程三层（`main` → `CounterDue` → `Counter13`），
 26 个门与触发器全部由一份网表生成，**没有一根隧道**。
+
+![中间层：两个计数器单元与停止逻辑](docs/images/counter13-counterdue.png)
 
 下面的数字不是手写的，是 `circ_sim` 一拍一拍推出来的原文：
 

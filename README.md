@@ -16,10 +16,16 @@
 ![顶层：两位数码管与溢出 LED](docs/images/counter13-main.png)
 
 **中间层** `CounterDue`：`cp` 同时打到两个 `Counter13`，左边的 `AND` / `NAND` 负责「到 `CC` 就停住、点亮 LED」，
-右侧 `OH` / `OL` 是两位输出。整个工程三层（`main` → `CounterDue` → `Counter13`），
-26 个门与触发器全部由一份网表生成，**没有一根隧道**。
+右侧 `OH` / `OL` 是两位输出。
 
 ![中间层：两个计数器单元与停止逻辑](docs/images/counter13-counterdue.png)
+
+**门级** `Counter13`（一位的内部）：4 个 D 触发器、每位一组异或/与门算次态、右上角分线器把 4 位
+并成总线，没有用到任何现成计数器件：
+
+![门级：一位 13 进制计数单元](docs/images/counter13-gates.png)
+
+整个工程三层（`main` → `CounterDue` → `Counter13`），26 个门与触发器全部由一份网表生成，**没有一根隧道**。
 
 下面的数字不是手写的，是 `circ_sim` 一拍一拍推出来的原文：
 

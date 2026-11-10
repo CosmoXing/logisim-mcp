@@ -132,6 +132,44 @@ open("demo.circ", "w", encoding="utf-8", newline="\n").write(
 布线交给 `scripts/router.py`（通道布线，避开共线重叠与端点压线）。**有失败就 `raise`，绝不写出文件**——
 断头导线轻则整列 `E`，重则加载时 `WireRepair` 卡死。
 
+### 5.1 v6 工具链：8 位总线级项目（推荐用于多比特/大规模电路）
+
+logisim_gen/router 是 4 位小电路时代的工具。8 位总线、几十个模块、2 万+ 导线的规模，
+用 `scripts/lib8.py` + `scripts/route8.py` + `scripts/sim.py`（原码乘法器项目沉淀，已在本插件目录独立验证）：
+
+```python
+import lib8, route8, sim
+from lib8 import Board, PINS
+
+b = Board("mul")
+b.pin((80, 160), "mult_op1", "input", 8)        # width 可省（默认 1）
+sp = b.splitter((300, 300), 8)                  # 8 位分线器，端口 (20, -40+10i)
+sp2 = b.splitter((300, 600), 8, "west")         # 朝向镜像：分线口在 (-20, ...)
+n1 = b.sub((800, 300), "neg8")                  # 子电路实例，返回 {引脚名: (x,y)}
+ff = b.dff((900, 700), "ff0")                   # D(-40,20) CLK(-40,0) Q(0,0) R(-10,30) S(-30,30)
+k0 = b.const((700, 700), "0x00", 8)             # 8 位常量 0（别再用 Ground 阵列拼）
+clk = b.clock((350, 320))                       # Clock 组件（Ctrl+K 只驱动它）
+b.z("net", p1, p2, track)                       # 确定性布线：独占通道 + 折线
+b.w("net", [p1, (x1,y1), p2])                   # 任意折线（逐段轴对齐自检）
+b.paste(other, dx, dy, "prefix", link={...})    # 子电路展平进当前板（丢引脚、并网）
+b.verify_nets(); b.verify_short()               # 连通性 + 电气短接检查
+open("out.circ", "w", encoding="utf-8", newline="\n").write(lib8.project([b]))
+
+res = sim.run("out.circ", "mul", "a[8] b[8] q[8] <set> <seq>", rows)
+sim.verify_alive(res, len(rows))                # 防假通过：通过数必须 == 行数
+```
+
+与 v5 的关键差异：
+
+- **布线前自检，不带病落盘**：跨网共线重叠、端点互压（双向）、T 型搭接、网络分裂、
+  穿元件体、压引脚、非 10px 网格——全部当场 `raise`（H1/H2）。
+- **通道必须在端口正确侧**（≥30px 边距）：反侧回折会短接相邻线，且输入网短接不显示 E。
+- **几何都有出处**：DFF 端口对源码 `AbstractFlipFlop` 逐个核过；8 位分线器、
+  4 入 2 出 / 3 入 1 出子电路实例、Clock、Constant、Hex Display 全部用本体实测。
+- **≥4 输入门不可用**：自家多输入间距公式只验证到 3 输入，4 输入拆两级 2 输入门（H3）。
+- **子电路引脚注册在 `PINS[name]`**：`(名字, x, y, facing)` 列表；实例端口按 y 排序 10px 密排。
+  顶层连线永远读 `b.sub()` 返回的坐标，不硬编码偏移（H6）。
+
 ```bash
 python scripts/verify.py table  fa.circ                 # 真值表
 python scripts/verify.py stats  demo.circ               # 元件统计
@@ -146,10 +184,22 @@ python scripts/verify.py vector main bcd4.vec demo_test.circ
 
 ### 时序逻辑（计数器、状态机）
 
-⚠️ **`-w`（`verify.py vector` / `circuit_test_vector`）每一行都从初始状态重新求值**，
-触发器状态传不到下一行。两级 D 触发器链的 `q1` 永远为 0——所以它**只能验组合逻辑**。
+⚠️ 默认情况下 `-w`（`verify.py vector` / `circuit_test_vector`）每一行都从初始状态重新求值，
+触发器状态传不到下一行。**但只要加 `<set>` / `<seq>` 两列，就变成真正的时序测试**：
+Logisim 按 `set` 分组、按 `seq` 递增执行，组内**保留电路状态**（`seq` 为 0 或缺省仍按组合处理）。
 
-两条正确做法：
+```
+d[8] clk r q[8] <set> <seq>
+0x00 0 1 0x00   1   1
+0x5a 0 0 0x00   1   2
+0x5a 1 0 0x5a   1   3
+```
+
+- `clk` 写成普通列、给 0/1，靠 0→1 那一行产生上升沿；别指望它自动打拍。
+- 期望值要**逐行写全**（这一版不认 `x`）；无关输出写 `<DC>`，高阻写 `<float>`。
+- 列名对不上时 Logisim 静默跳过，输出里没有 `expected` 行——这种"全过"是假的，先确认向量真的跑了。
+
+补充手段（建议保留，用于交叉复核）：
 
 1. **多拍网表仿真**（`circ_sim`）：逐拍给 `cp` 一个完整脉冲；每拍内**逐个触发器**比较各自 `CLK` 的前后值，
    只有 0→1 才采样 `D`（否则行波级联会算错）。
@@ -169,10 +219,16 @@ python scripts/verify.py vector main bcd4.vec demo_test.circ
 |---|---|---|
 | 输出全 `U` | 端口没接上 / 网络被漏掉 | 按 5.0 公式算；确认总线网真的生成了 |
 | **某一位 `E`，其余正常** | 竖线穿过触发器 `Q` 与 `~Q` | 端口列为禁入点 |
+| **个别位 `E`，换布局失败位漂移** | A* 布线 T 型搭接/共线重叠（H1） | 换确定性布线 lib8+route8 |
+| **clk/reset 有线没电，后半区不动** | 通道回折短接，输入网短接不显示 E（H2） | verify_nets + verify_short 自检 |
 | **分支"看着接上了"却没电** | 同网共线合并，端点变内点 | 错开 10px 走 T 型搭接 |
 | 输出 `E` +「位宽不兼容」 | 1 位接 4 位数码管 | 分线器补零凑 4 位 |
-| **时序"0 失配"但电路是错的** | `-w` 每行重置 / 列名对不上被跳过 | 改多拍仿真 + 组合镜像 |
+| **时序"0 失配"但电路是错的** | `-w` 每行重置 / 列数不匹配被静默跳过 | 加 `<set> <seq>` 列 + verify_alive 断言 |
+| **选择器不报错但逻辑反** | mux 语义是 `y = s ? b : a`，接反（H8） | 加探针引脚逐拍看中间寄存器 |
+| **正数用例全对、负数全错** | 求补控制端接了别人的符号位（H9） | 逐个核对多实例块的 s 端来源 |
+| **结果正好是真值的 2 倍** | 迭代少一次：装载占 1 拍（H10） | 终止条件 = 数据拍数 + 装载拍数 |
 | **触发器永远 `U`，清不掉** | `U` 沿 `Q→D` 自锁 | 仿真初值置 0；真机 `Ctrl+R` |
+| **展平后整块输出 `U`** | 源电路内部残留子电路实例（H6） | 先展平到纯门级再 paste |
 | 打开报「加载电路文件出错」 | 目录有 `.circ.autosave` | 删掉再开 |
 | 没有绘图工具条 | 3.9 文件缺 `<toolbar>` | 补 `lib="8"` 的 toolbar 块（5.0 可省） |
 | 电路贴左上角、引脚被面板挡 | 从 `(0,0)` 起画 | 整体 `translate(+120,+60)` |
@@ -187,8 +243,12 @@ python scripts/verify.py vector main bcd4.vec demo_test.circ
 
 做计数器、分频器、状态机这类时序电路时**先读它**，能省掉一整轮试错。
 
-## 9. 三条不要做
+## 9. 四条不要做
 
+- **不要用自己画的渲染图判断电路长什么样**。视觉检查一律**打开 Logisim 本体截图**：
+  自绘渲染器只能反映"你以为的几何"，元件外形、引脚朝向、总线粗细、`E`/`U` 红色标记、
+  组件重叠提示全都不在里面——照着渲染图改，改的是渲染器不是电路。
+  具体做法见 `references/verification.md` 第 5 节。
 - 不要用隧道（Tunnel）省事——多数作业明令禁止，且截图看不出真实结构。
 - 不要为省元件把多个功能塞进 5 入以上模块——端口会挤爆，且出错无提示。
 - 不要只在顶层验证：分层电路必须**每层都验**，否则错误定位成本高 10 倍。
@@ -202,8 +262,24 @@ python scripts/verify.py vector main bcd4.vec demo_test.circ
 | `references/dsl.md` | `circ_build` 的 DSL 完整参考：字段、端口名、自动布局、报错含义 |
 | `references/circ-format.md` | `.circ` XML 结构、库索引、组件属性、toolbar、版本差异 |
 | `references/verification.md` | CLI 参数、`.vec` 格式、用例设计、双工程策略、GUI 截图 |
-| `references/pitfalls.md` | 35 条实战坑：症状 / 根因 / 定位 / 解决 |
+| `references/pitfalls.md` | **51 条实战坑**：A-G 组（4 位规模）+ H 组（8 位总线/展平/Windows 环境） |
 | `scripts/logisim_gen.py` | XML 生成器：pin / gate / sub / splitter / display / wire / project |
-| `scripts/router.py` | 通道布线器：正交、避让、禁止共线重叠 |
+| `scripts/router.py` | 通道布线器：正交、避让、禁止共线重叠（4 位规模） |
 | `scripts/verify.py` | `-t table` / `-t stats` / `-w` 的封装（自动找 jar、GBK 解码） |
+| `scripts/lib8.py` | **8 位总线生成库**：Board / 门/DFF/分线器/子电路/Constant/Clock 几何 + project |
+| `scripts/route8.py` | **确定性布线**：z/w 折线 + 六项自检 + verify_nets/verify_short + paste/canonicalize |
+| `scripts/sim.py` | **向量测试封装**：`<set> <seq>` 时序、jar 自动探测、verify_alive 防假通过 |
+| `scripts/gui.py` | **GUI 自动化**：ctypes+PIL 找窗口/点击/送键/滚轮缩放/截图/启动载入（沙箱内可用） |
 | `assets/full-adder.circ` | 已知可用（真值表 8/8）的最小参考工程，5.0 格式 |
+
+### 测试向量的静默陷阱（务必自检）
+
+`-w` 的**行字段数必须等于列数**（`<set>`/`<seq>` 各算一列）。少写一个 `<DC>` 时 Logisim
+可能只打印「正在加载测试向量」就结束，或者把该行当**空通过**——`通过：N` 依然会出现，
+看起来全过，实际一行都没比对。
+
+自检办法（三选一，至少做一条）：
+
+- 输出里必须出现 `expected` 字样（失败行才打印，全过时看不到）→ 于是改用下一条；
+- 把某一行的期望值**故意写错**，确认它报 `失败：1`，再改回来；
+- 确认 `通过数 == 表格行数`，且首行表头字段数与每行字段数一致（写脚本断言）。

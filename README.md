@@ -9,6 +9,31 @@
 
 ---
 
+## 长什么样
+
+![CounterDue：两个 13 进制计数器单元 + 停止逻辑](docs/images/counter13-counterdue.png)
+
+`examples/counter13.circ` 的中间层：`cp` 同时打到两个 `Counter13`，左边的 `AND` / `NAND` 负责「到 `CC` 就停住、点亮 LED」，
+右侧 `OH` / `OL` 是两位十六进制输出。整个工程三层（`main` → `CounterDue` → `Counter13`），
+26 个门与触发器全部由一份网表生成，**没有一根隧道**。
+
+下面的数字不是手写的，是 `circ_sim` 一拍一拍推出来的原文：
+
+```text
+t      OH     OL    LED
+0    0000   0000      0      上电
+1    0000   0001      0
+12   0000   1100      0      低位到 C
+13   0001   0000      0      进位，低位归零
+…    …      …         …
+167  1100   1011      0
+168  1100   1100      1      两位都到 C：停住，LED 亮
+172  1100   1100      1      再打 4 拍也不动
+```
+
+> 为什么不用 Logisim 自带的测试向量验：`-w` 每行都从初始状态重新求值，触发器状态不会在行之间保持，
+> 时序电路只能靠 `circ_sim` 逐拍推——上面这张表就是这么来的。
+
 ## 它解决什么问题
 
 Logisim-evolution 是纯 Java Swing 桌面程序，没有任何脚本或网络接口。想用代码生成电路，只有两条老路，都不好用：
@@ -210,8 +235,8 @@ circ_sim    {"file":"/tmp/demo.circ","inputs":{"a":1,"b":1}}  # → y=1
 │   └── circuit_kit/                geometry / router / netlist / builder / audit / knowledge
 ├── skills/logisim-circuit-design/  随包技能：SKILL.md + 6 份参考 + 3 个脚本 + 示例电路
 ├── tools/                          selftest / build_zip / install / sync_skill / check_release
-├── docs/                           架构说明与插件规范
-└── examples/                       可直接打开的示例电路
+├── docs/                           架构说明、插件规范、截图
+└── examples/                       可直接打开的示例电路（含两位 13 进制计数器）
 ```
 
 ## 文档

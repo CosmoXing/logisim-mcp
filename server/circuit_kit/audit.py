@@ -86,7 +86,8 @@ def audit(path):
         elif k == "LED":
             body = (5, -12, 32, 12)
         elif k == "Hex Digit Display":
-            body = (5, -28, 62, 28)
+            # 5.0 源码：Bounds.create(-15, -60, 40, 60)，数据口在 (0,0)（底边）
+            body = (-15, -60, 25, 0)
         else:
             continue
         bodies.append((lf.get("path", "r"), (loc[0] + body[0], loc[1] + body[1],

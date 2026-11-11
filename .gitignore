@@ -11,6 +11,14 @@ dist/
 # 本机私有配置（jar / launcher 路径），不进仓库
 logisim.local.json
 
+# Java 外观桥构建产物
+server/java/build/
+runtime/bridge/*.jar
+runtime/bridge/build.json
+
+# 运行时经验库（用户数据，不进仓库）
+runtime/kb/
+
 # 备份与损坏文件
 *.bak
 *.bak-*

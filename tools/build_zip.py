@@ -32,10 +32,10 @@ _utf8_console()
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-EXCLUDE_DIRS = {"__pycache__", "dist", ".git", ".in_use", ".idea", ".vscode"}
+EXCLUDE_DIRS = {"__pycache__", "dist", ".git", ".in_use", ".idea", ".vscode", "build"}
 # 本机私有配置、备份、编辑器文件都不进分发包
 EXCLUDE_FILES = {".DS_Store", "Thumbs.db", "logisim.local.json"}
-EXCLUDE_EXT = {".pyc", ".pyo", ".zip"}
+EXCLUDE_EXT = {".pyc", ".pyo", ".zip", ".class"}
 
 
 def manifest():

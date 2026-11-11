@@ -8,7 +8,7 @@ MCP 客户端通过 stdio 发 JSON-RPC，服务端把请求翻译成"读 XML / �
 ## 分层
 
 ```
-server.py                 13 个工具的定义与分发；jar/java 探测；调用 Logisim CLI
+server.py                 14 个工具的定义与分发；jar/java 探测；调用 Logisim CLI
   └── circuit_kit/
         geometry.py       元件端口偏移与包围盒（生成侧唯一数据源）
         router.py         10px 网格 A* 布线 + 元件发射 + 线段合并 + .circ 输出
@@ -16,6 +16,9 @@ server.py                 13 个工具的定义与分发；jar/java 探测；调
         builder.py        声明式 DSL → 多电路工程（布局、位宽校验、子电路）
         audit.py          静态连接体检（悬空 / 多驱动 / 孤立 / 重叠）
         knowledge.py      经验库读写（原子写 + 结构自愈）
+        appearance.py     子电路外观 spec / 自动排版 / XML 兜底 / 连通性校验
+        logisim_bridge.py Java 桥会话管理（启动、复用、NDJSON 请求）
+  └── java/               logisim.bridge：在 Logisim JVM 内操作 CircuitAppearance
 ```
 
 ## 数据流

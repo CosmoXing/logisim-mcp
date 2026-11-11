@@ -7,8 +7,21 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 _BUNDLED = os.path.join(HERE, "knowledge.json")
 
 
+def _can_write(path):
+    try:
+        parent = os.path.dirname(os.path.abspath(path))
+        os.makedirs(parent, exist_ok=True)
+        probe = path + ".probe"
+        with open(probe, "w", encoding="utf-8") as fh:
+            fh.write("ok")
+        os.remove(probe)
+        return True
+    except OSError:
+        return False
+
+
 def _resolve_kb_path():
-    """经验库落盘位置：环境变量 > 插件数据目录 > 用户目录。
+    """经验库落盘位置：环境变量 > 插件数据目录 > 可写的用户目录。
 
     插件安装到 cache/只读目录后仍可写，升级也不会覆盖；随包 knowledge.json 只作种子。
     """
@@ -18,7 +31,17 @@ def _resolve_kb_path():
     data = os.environ.get("CODEBUDDY_PLUGIN_DATA", "").strip()
     if data:
         return os.path.join(data, "knowledge.json")
-    return os.path.join(os.path.expanduser("~"), ".logisim-mcp", "knowledge.json")
+    candidates = []
+    local = os.environ.get("LOCALAPPDATA", "").strip()
+    if local:
+        candidates.append(os.path.join(local, "logisim-mcp", "knowledge.json"))
+    candidates.append(os.path.join(os.path.expanduser("~"), ".logisim-mcp", "knowledge.json"))
+    candidates.append(os.path.join(HERE, "..", "..", "runtime", "kb", "knowledge.json"))
+    candidates.append(_BUNDLED)
+    for cand in candidates:
+        if _can_write(cand):
+            return os.path.normpath(cand)
+    return _BUNDLED
 
 
 KB_PATH = _resolve_kb_path()

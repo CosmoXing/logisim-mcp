@@ -43,14 +43,17 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 import xml.etree.ElementTree as ET
 from xml.sax.saxutils import escape as _xml_escape
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from circuit_kit import audit as kit_audit  # noqa: E402
+from circuit_kit import appearance as kit_app  # noqa: E402
 from circuit_kit import builder as kit_builder  # noqa: E402
 from circuit_kit import geometry as kit_geo  # noqa: E402
 from circuit_kit import knowledge as kit_kb  # noqa: E402
+from circuit_kit import logisim_bridge as kit_bridge  # noqa: E402
 from circuit_kit import netlist as kit_net  # noqa: E402
 
 SERVER_NAME = "logisim"
@@ -61,7 +64,7 @@ def _esc(value):
     return _xml_escape(str(value), {'"': "&quot;", "'": "&apos;"})
 
 
-def _plugin_version(default="1.1.0"):
+def _plugin_version(default="1.2.0"):
     """作为插件运行时，版本号取自 .codebuddy-plugin/plugin.json；单文件运行时用默认值。"""
     here = os.path.dirname(os.path.abspath(__file__))
     for rel in ("../.codebuddy-plugin/plugin.json", ".codebuddy-plugin/plugin.json"):
@@ -804,7 +807,251 @@ TOOLS = [
             "required": ["action"],
         },
     },
+    {
+        "name": "circ_appearance",
+        "description": (
+            "编辑子电路外观（Logisim 5.0 的 Edit Circuit Appearance）。"
+            "action=get 读取当前外观；auto 自动生成左入右出、带名称牌的整齐框体并应用；"
+            "apply 应用自定义 spec；preview 切到外观视图并截图；save 写回 .circ（带备份与校验）；"
+            "reset 恢复默认外观；close 关闭 Logisim 会话。"
+            "默认保留现有端口坐标，避免父电路导线脱开；spec 里的 pin 可用标签或 pin_at 指定。"
+            "需要 JDK 21+ 编译 Java 桥（tools/build_bridge.py）。"
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "action": {"type": "string",
+                           "enum": ["get", "auto", "apply", "preview", "save", "reset", "close", "status"]},
+                "file": {"type": "string", "description": ".circ 文件绝对路径"},
+                "circuit": {"type": "string", "description": "电路名，默认 main"},
+                "spec": {"type": "object", "description": "apply/preview 使用的外观 spec"},
+                "layout": {"type": "object", "description": "auto 的排版参数（pitch/margin/nameplate 等）"},
+                "mode": {"type": "string", "description": "auto/apply: gui（默认）或 xml 兜底"},
+                "dry_run": {"type": "boolean", "description": "auto 只返回 spec，不应用"},
+                "out": {"type": "string", "description": "preview 截图输出路径"},
+                "save": {"type": "boolean", "description": "close 时是否先保存，默认 false"},
+            },
+            "required": ["action", "file"],
+        },
+    },
 ]
+
+
+def _json_text(obj):
+    return json.dumps(obj, ensure_ascii=False, indent=2)
+
+
+def _appearance_ports(data, pins):
+    widths = {(p.get("label"), p.get("at")): int(p.get("width", 1) or 1) for p in pins}
+    by_at = {p.get("at"): p for p in pins}
+    out = []
+    for obj in data.get("objects") or []:
+        if obj.get("tag") != "circ-port":
+            continue
+        attrs = obj.get("attrs") or {}
+        at = attrs.get("pin")
+        label = obj.get("pin_label") or (by_at.get(at) or {}).get("label", "")
+        out.append({
+            "label": label,
+            "at": at,
+            "x": int(attrs.get("x", 0) or 0),
+            "y": int(attrs.get("y", 0) or 0),
+            "dir": "in" if attrs.get("dir", "in") == "in" else "out",
+            "width": widths.get((label, at), int((by_at.get(at) or {}).get("width", 1) or 1)),
+        })
+    return out
+
+
+def _backup(path):
+    dst = path + time.strftime(".bak-%Y%m%d-%H%M%S")
+    shutil.copy2(path, dst)
+    return dst
+
+
+def _verify_saved(path, circuit, pins, digest_before=None, require_digest=False):
+    data = kit_app.read_xml(path, circuit)
+    ports = [o for o in data.get("objects") or [] if o.get("tag") == "circ-port"]
+    load_ok, load_text = run_logisim(["-t", "stats", path], timeout=120)
+    report = {
+        "appearance": data.get("appearance"),
+        "ports": len(ports),
+        "expected_ports": len(pins),
+        "logisim_load": load_ok,
+        "audit": kit_audit.audit(path).get("verdict"),
+    }
+    ok = (report["appearance"] == "custom" and report["ports"] == len(pins) and load_ok)
+    if require_digest:
+        report["digest_unchanged"] = kit_app.layout_digest(path) == digest_before
+        ok = ok and report["digest_unchanged"]
+    else:
+        report["digest_unchanged"] = None
+    if not load_ok:
+        report["logisim_message"] = load_text[:200]
+    return ok, report
+
+
+def _circ_appearance(args):
+    action = args.get("action")
+    f = os.path.abspath(args["file"])
+    if not os.path.isfile(f):
+        return False, f"文件不存在: {f}"
+    try:
+        circuits, main = kit_net.parse(f)
+    except Exception as exc:
+        return False, f"解析 .circ 失败: {exc}"
+    circuit = args.get("circuit") or main
+    pins = kit_app.pins_from_file(f, circuit)
+    mode = (args.get("mode") or "gui").lower()
+
+    if action == "get":
+        sess = kit_bridge.peek_session(f)
+        if sess is not None:
+            try:
+                data = sess.send("appearance_get", {"circuit": circuit})
+                data["via"] = "gui"
+                return True, _json_text(data)
+            except kit_bridge.BridgeError:
+                pass
+        data = kit_app.read_xml(f, circuit)
+        data["pins"] = pins
+        data["via"] = "xml"
+        return True, _json_text(data)
+
+    if action == "status":
+        sess = kit_bridge.peek_session(f)
+        if sess is not None:
+            data = sess.send("status")
+            data["via"] = "gui"
+            return True, _json_text(data)
+        return True, _json_text({
+            "file": f, "circuit": circuit, "pins": len(pins),
+            "appearance": kit_app.read_xml(f, circuit).get("appearance"),
+            "bridge": "not running", "via": "xml",
+        })
+
+    if action in ("auto", "apply"):
+        if action == "auto":
+            if mode == "xml":
+                return False, ("auto 需要 GUI 桥读取现有端口坐标（默认外观不在 .circ 里）。"
+                               "请先运行 tools/build_bridge.py 并安装 JDK 21+。")
+            try:
+                sess = kit_bridge.get_session(f, JAVA, JAR)
+                live = sess.send("appearance_get", {"circuit": circuit})
+                current = _appearance_ports(live, pins)
+                old_anchor = (0, 0)
+                for obj in live.get("objects") or []:
+                    if obj.get("tag") == "circ-anchor":
+                        a = obj.get("attrs") or {}
+                        old_anchor = (int(a.get("x", 0) or 0), int(a.get("y", 0) or 0))
+                        break
+            except kit_bridge.BridgeError as exc:
+                return False, f"{exc.code}: {exc}\n{exc.hint}".strip()
+            spec = kit_app.auto_layout(pins, circuit, args.get("layout") or {},
+                                       current_ports=current)
+            layout_opt = spec.get("layout") or {}
+            if not layout_opt.get("preserve_port_positions", True):
+                new_anchor = layout_opt.get("anchor") or {}
+                spec["impact"] = kit_app.parent_impact(
+                    f, circuit, current, spec.get("ports") or [],
+                    old_anchor, (int(new_anchor.get("x", 0) or 0),
+                                 int(new_anchor.get("y", 0) or 0)))
+        else:
+            spec = args.get("spec")
+            if not isinstance(spec, dict):
+                return False, f"{action} 需要 spec 对象"
+            spec.setdefault("circuit", circuit)
+
+        check = dict(spec)
+        check["strict"] = bool((spec.get("layout") or {}).get("strict_ports", True))
+        errors = kit_app.validate(check, pins)
+        if errors:
+            return False, "外观 spec 校验失败：\n" + _json_text(errors)
+        if action == "auto" and args.get("dry_run"):
+            return True, _json_text({"via": "dry-run", "spec": spec})
+
+        try:
+            sess = kit_bridge.get_session(f, JAVA, JAR)
+            res = sess.send("appearance_apply", {"spec": spec})
+            res["via"] = "gui"
+            res["warnings"] = res.get("warnings", [])
+            if isinstance(spec.get("impact"), dict):
+                res["impact"] = spec["impact"]
+            return True, _json_text(res)
+        except kit_bridge.BridgeError as exc:
+            if mode != "xml":
+                return False, (f"{exc.code}: {exc}\n{exc.hint}\n"
+                               f"（需要 headless 兜底请传 mode=\"xml\"）").strip()
+            backup = _backup(f)
+            count = kit_app.write_xml(f, spec)
+            return True, _json_text({"via": "xml", "objects": count, "backup": backup})
+
+    if action == "preview":
+        try:
+            sess = kit_bridge.get_session(f, JAVA, JAR)
+            if isinstance(args.get("spec"), dict):
+                spec = args["spec"]
+                spec.setdefault("circuit", circuit)
+                sess.send("appearance_apply", {"spec": spec})
+            sess.send("select_circuit", {"circuit": circuit})
+            sess.send("show_view", {"view": "appearance"})
+            out = args.get("out") or (os.path.splitext(f)[0] + ".appearance.png")
+            res = sess.send("screenshot", {"out": os.path.abspath(out), "kind": "window"})
+            res["via"] = "gui"
+            return True, _json_text(res)
+        except kit_bridge.BridgeError as exc:
+            return False, f"{exc.code}: {exc}\n{exc.hint}".strip()
+
+    if action == "save":
+        sess = kit_bridge.peek_session(f)
+        if sess is not None:
+            backup = _backup(f)
+            try:
+                res = sess.send("save")
+            except kit_bridge.BridgeError as exc:
+                return False, f"{exc.code}: {exc}\n{exc.hint}".strip()
+            ok, report = _verify_saved(f, circuit, pins)
+            res.update({"backup": backup, "verify": report})
+            res["via"] = "gui"
+            return ok, _json_text(res)
+        spec = args.get("spec")
+        if not isinstance(spec, dict):
+            return False, "没有打开的 GUI 会话，也没有 spec；无法保存"
+        spec.setdefault("circuit", circuit)
+        digest = kit_app.layout_digest(f)
+        backup = _backup(f)
+        kit_app.write_xml(f, spec)
+        ok, report = _verify_saved(f, circuit, pins, digest, require_digest=True)
+        return ok, _json_text({"via": "xml", "backup": backup, "verify": report})
+
+    if action == "reset":
+        sess = kit_bridge.peek_session(f)
+        if sess is not None:
+            res = sess.send("appearance_reset",
+                            {"circuit": circuit, "mode": args.get("mode") or "logisim"})
+            res["via"] = "gui"
+            return True, _json_text(res)
+        root = ET.parse(f).getroot()
+        target = next((c for c in root.findall("circuit") if c.get("name") == circuit), None)
+        if target is None:
+            return False, f"电路 {circuit} 不存在"
+        for a in target.findall("a"):
+            if a.get("name") == "appearance":
+                a.set("val", "logisim_evolution")
+        old = target.find("appear")
+        if old is not None:
+            target.remove(old)
+        ET.indent(root, space="  ")
+        with open(f, "w", encoding="utf-8", newline="\n") as fh:
+            fh.write('<?xml version="1.0" encoding="UTF-8" standalone="no"?>\n')
+            fh.write(ET.tostring(root, encoding="unicode"))
+            fh.write("\n")
+        return True, _json_text({"via": "xml", "appearance": "logisim_evolution"})
+
+    if action == "close":
+        kit_bridge.close_session(f)
+        return True, "已关闭 Logisim 外观会话"
+
+    return False, f"未知 action {action}"
 
 
 def call_tool(name, args):
@@ -836,8 +1083,14 @@ def call_tool(name, args):
             "无头能力": caps,
             "原生MCP": "不支持（官方各版本都没有 MCP/网络接口，本桥接为外部封装）",
             "切换内核": "设置环境变量 LOGISIM_JAR 指向目标 jar 即可",
-            "扩展工具": ["circ_geometry", "circ_audit", "circ_sim", "circ_build", "circ_kb"],
+            "扩展工具": ["circ_geometry", "circ_audit", "circ_sim", "circ_build", "circ_kb",
+                         "circ_appearance"],
             "经验库": f"{len(kit_kb.list_pitfalls())} 条（用 circ_kb list 查看）",
+            "外观桥": {
+                "jar": (kit_bridge.BRIDGE_JAR if os.path.isfile(kit_bridge.BRIDGE_JAR)
+                        else "未构建（python tools/build_bridge.py）"),
+                "javac": shutil.which("javac") or "未找到（需要 JDK 21+）",
+            },
         }
         return True, json.dumps(info, ensure_ascii=False, indent=2)
 
@@ -997,6 +1250,9 @@ def call_tool(name, args):
                     ok = False
         return ok, head
 
+    if name == "circ_appearance":
+        return _circ_appearance(args)
+
     if name == "circ_kb":
         act = args.get("action")
         if act == "list":
@@ -1096,6 +1352,8 @@ def doctor():
     else:
         out.append("  jar 可用 : 否 → 设置 LOGISIM_JAR，或把 jar 放到 <plugin>/runtime/")
     out.append(f"其他内核   : {[j for j in find_all_jars() if os.path.abspath(j) != os.path.abspath(JAR)] or '无'}")
+    out.append(f"外观桥     : {kit_bridge.BRIDGE_JAR if os.path.isfile(kit_bridge.BRIDGE_JAR) else '未构建 → python tools/build_bridge.py'}")
+    out.append(f"  javac    : {shutil.which('javac') or '未找到（需要 JDK 21+）'}")
     out.append(f"经验库     : {kit_kb.KB_PATH}")
     pits = kit_kb.list_pitfalls()
     out.append(f"  条目数   : {len(pits)}")

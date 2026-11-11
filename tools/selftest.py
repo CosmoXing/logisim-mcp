@@ -144,8 +144,8 @@ def test_handshake():
     names = {t["name"] for t in tools}
     need = {"logisim_info", "circuit_summary", "circuit_truth_table", "circuit_verify",
             "circuit_test_vector", "circuit_stats", "circuit_build", "circuit_open_gui",
-            "circ_geometry", "circ_audit", "circ_sim", "circ_build", "circ_kb"}
-    ok &= check("tools/list 返回 13 个工具", len(tools) == 13, f"实际 {len(tools)}")
+            "circ_geometry", "circ_audit", "circ_sim", "circ_build", "circ_kb", "circ_appearance"}
+    ok &= check("tools/list 返回 14 个工具", len(tools) == 14, f"实际 {len(tools)}")
     ok &= check("工具名齐全", need <= names, f"缺 {sorted(need - names)}" if need - names else "")
     ok &= check("ping 有响应", "result" in by_id.get(p, {}))
     return ok
@@ -327,7 +327,32 @@ def test_regressions(tmp):
     return ok
 
 
-# ---------------------------------------------------------------- 6. 协议协商
+# ---------------------------------------------------------------- 6. 外观编辑（无 GUI）
+def test_appearance(tmp):
+    sys.path.insert(0, os.path.join(ROOT, "server"))
+    from circuit_kit import appearance as app  # noqa: E402
+
+    src = os.path.join(ROOT, "examples", "half_adder.circ")
+    target = os.path.join(tmp, "appearance.circ")
+    shutil.copyfile(src, target)
+    pins = app.pins_from_file(target, "main")
+    spec = app.auto_layout(pins, "main", {"preserve_port_positions": False})
+    errors = app.validate(spec, pins)
+    ok = check("auto_layout 覆盖全部引脚", not errors and len(spec["ports"]) == len(pins),
+               str(errors[:2]))
+    digest = app.layout_digest(target)
+    count = app.write_xml(target, spec)
+    data = app.read_xml(target, "main")
+    ports = [o for o in data.get("objects", []) if o.get("tag") == "circ-port"]
+    ok &= check("XML 外观写回", data.get("appearance") == "custom" and len(ports) == len(pins),
+                f"objects={count} ports={len(ports)}")
+    ok &= check("外观写回不动电气部分", app.layout_digest(target) == digest)
+    bad = app.validate({**spec, "ports": spec["ports"][:-1]}, pins)
+    ok &= check("缺端口被校验拦截", any(e["code"] == "E_MISSING_PORT" for e in bad), str(bad[:1]))
+    return ok
+
+
+# ---------------------------------------------------------------- 7. 协议协商
 def test_protocol():
     c = Client()
     i = c.call("initialize", {"protocolVersion": "2025-06-30",
@@ -386,6 +411,7 @@ def main():
         allok &= ok
         allok &= test_failures(tmp)
         allok &= test_regressions(tmp)
+        allok &= test_appearance(tmp)
         allok &= test_protocol()
         if quick:
             skip("Logisim 交叉复核", "--quick")

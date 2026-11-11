@@ -162,7 +162,7 @@ Java       : /usr/bin/java
 网表仿真   : a=1,b=1 → y=1（应为 1）
 ```
 
-## 工具一览（13 个）
+## 工具一览（14 个）
 
 | 工具 | 作用 |
 |---|---|
@@ -179,6 +179,7 @@ Java       : /usr/bin/java
 | **`circ_sim`** | 网表级多拍仿真，逐触发器检测时钟沿 |
 | **`circ_build`** | 声明式多电路生成，迷宫布线，不使用隧道 |
 | **`circ_kb`** | 经验库：list / search / add |
+| **`circ_appearance`** | 在运行中的 Logisim JVM 里编辑子电路外观：get / auto / apply / preview / save / reset / close |
 
 ## 60 秒例子
 
@@ -195,6 +196,24 @@ circ_sim    {"file":"/tmp/demo.circ","inputs":{"a":1,"b":1}}  # → y=1
 ```
 
 生成的文件可以直接用 Logisim 打开、仿真、截图。
+
+## 子电路外观编辑
+
+`circ_appearance` 在 Logisim 自己的 JVM 内调用 `CircuitAppearance`，界面实时刷新：
+
+```bash
+python tools/build_bridge.py          # 需要 JDK 21+，生成 runtime/bridge/logisim-bridge.jar
+```
+
+```json
+{"action":"auto",   "file":"D:/work/2.3.circ", "circuit":"mul"}
+{"action":"preview","file":"D:/work/2.3.circ", "circuit":"mul", "out":"D:/work/mul.png"}
+{"action":"save",   "file":"D:/work/2.3.circ", "circuit":"mul"}
+```
+
+默认保留现有端口坐标（避免父电路导线脱开），只重画框体/名称牌/标签；要均匀重排端口，传
+`"layout":{"preserve_port_positions":false}`，返回的 `impact` 会给出受影响的父电路导线数。
+详见 [`docs/APPEARANCE.md`](docs/APPEARANCE.md)。
 
 ## 架构
 

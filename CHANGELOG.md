@@ -1,7 +1,16 @@
 # 更新记录
 
-## 未发布
+## 1.2.0 — 子电路外观编辑
 
+- **新增** MCP 工具 `circ_appearance`：在 Logisim 自己的 JVM 里调用 `CircuitAppearance`，支持
+  `get / auto / apply / preview / save / reset / close`，界面实时刷新，保存前备份、保存后用
+  `-t stats` 重新加载校验。
+- **新增** Java 桥（`server/java/`，`tools/build_bridge.py` 编译为 `runtime/bridge/logisim-bridge.jar`）：
+  通过 127.0.0.1 NDJSON 控制，模型操作在 EDT 上执行，所有电路加写锁后修改外观。
+- **新增** `server/circuit_kit/appearance.py`：外观 spec、左入右出自动排版、10px 网格/端口覆盖/名称牌校验、
+  XML 兜底读写与父电路影响面统计。
+- **默认保端口**：`preserve_port_positions=true` 只重画框体与标签，避免父电路导线脱开；
+  重排模式会返回受影响的父电路与导线数。
 - **修正**十六进制数码管的包围盒：此前按 `62×56` 算，实际（5.0 源码 `HexDigit.setOffsetBounds`）是
   `Bounds.create(-15, -60, 40, 60)`——`loc` 在底边上。间距 50px 的两个数码管因此被 `circ_audit`
   误报「元件体重叠」，`geometry.md` 的数字也一起改对了。

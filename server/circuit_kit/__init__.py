@@ -7,8 +7,20 @@
   builder   声明式 JSON 规格 → 多电路工程
   audit     静态连接体检（悬空 / 多驱动 / 端口未接）
   knowledge 经验库（几何事实与踩坑记录），可持续追加
+  appearance 子电路外观 spec / 自动排版 / XML 读写 / 校验
+  logisim_bridge 与运行中的 Logisim JVM 通信（可选，需 JDK 编译桥）
 """
 
-from . import geometry, router, netlist, builder, audit, knowledge  # noqa: F401
+from . import (  # noqa: F401
+    geometry,
+    router,
+    netlist,
+    builder,
+    audit,
+    knowledge,
+    appearance,
+    logisim_bridge,
+)
 
-__all__ = ["geometry", "router", "netlist", "builder", "audit", "knowledge"]
+__all__ = ["geometry", "router", "netlist", "builder", "audit", "knowledge",
+           "appearance", "logisim_bridge"]

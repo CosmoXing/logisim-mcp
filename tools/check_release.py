@@ -51,6 +51,12 @@ REQUIRED = [
     "server/circuit_kit/audit.py",
     "server/circuit_kit/knowledge.py",
     "server/circuit_kit/knowledge.json",
+    "server/circuit_kit/appearance.py",
+    "server/circuit_kit/logisim_bridge.py",
+    "server/java/src/logisim/bridge/BridgeMain.java",
+    "server/java/src/logisim/bridge/LogisimAdapter.java",
+    "tools/build_bridge.py",
+    "docs/APPEARANCE.md",
     "skills/logisim-circuit-design/SKILL.md",
     "tools/selftest.py",
     "tools/build_zip.py",
@@ -84,7 +90,7 @@ SECRET_PATTERNS = [
 ]
 
 TEXT_EXT = {".md", ".py", ".json", ".cmd", ".sh", ".yml", ".yaml", ".circ", ".txt", ".toml"}
-SKIP_DIRS = {"__pycache__", "dist", ".git", ".github_ignore"}
+SKIP_DIRS = {"__pycache__", "dist", ".git", ".github_ignore", "build", "runtime"}
 
 
 def fail(msg):

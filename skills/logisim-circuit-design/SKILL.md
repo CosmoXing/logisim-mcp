@@ -9,7 +9,7 @@ description: 用代码生成、检查和验证 Logisim-evolution (.circ) 数字�
 
 | 路径 | 适合 | 入口 |
 |---|---|---|
-| **A. MCP 工具（推荐）** | 要交付、要可验证、连线复杂 | `circ_build` / `circ_audit` / `circ_sim` / `circuit_truth_table` |
+| **A. MCP 工具（推荐）** | 要交付、要可验证、连线复杂 | `circ_build` / `circ_audit` / `circ_sim` / `circuit_truth_table` / `circ_appearance` |
 | **B. 手写脚本** | 环境里没有 MCP、或只想微调一个文件 | `scripts/logisim_gen.py` + `scripts/router.py` + `scripts/verify.py` |
 
 两条路的几何常量、布线规则、踩坑记录是同一套。**先读第 1 节的版本前提**，这是最容易翻车的地方。
@@ -112,6 +112,23 @@ python server/server.py --doctor      # 插件：报依赖与自检
 | 时序 | `circ_sim`，用 `cycles` 跑满状态序列 |
 | 查几何 | `circ_geometry` |
 | 查历史坑 | `circ_kb search <关键词>` |
+
+### 4.4 子电路外观编辑
+
+`circ_appearance` 在运行中的 Logisim JVM 里调用 `CircuitAppearance`，GUI 实时刷新：
+
+```json
+{"action":"auto",   "file":"D:/work/2.3.circ", "circuit":"mul"}
+{"action":"preview","file":"D:/work/2.3.circ", "circuit":"mul"}
+{"action":"save",   "file":"D:/work/2.3.circ", "circuit":"mul"}
+```
+
+- 需要 JDK 21+：先 `python tools/build_bridge.py` 生成 `runtime/bridge/logisim-bridge.jar`。
+- `auto` 默认 `preserve_port_positions=true`，只重画框体/名称牌/标签，父电路导线不动；
+  要均匀重排端口，传 `"layout":{"preserve_port_positions":false}`，并检查返回的 `impact`。
+- 每个 Pin 必须恰好一个 `circ-port`；`pin` 重名时用 `pin_at`（Pin 的 `loc`）消歧。
+- `save` 前自动备份 `.bak-时间戳`；保存后用 `java -jar … -t stats` 确认 Logisim 能重新加载。
+- 详见 `references/appearance.md`。
 
 ## 5. 路径 B：手写脚本
 
@@ -262,6 +279,7 @@ d[8] clk r q[8] <set> <seq>
 | `references/dsl.md` | `circ_build` 的 DSL 完整参考：字段、端口名、自动布局、报错含义 |
 | `references/circ-format.md` | `.circ` XML 结构、库索引、组件属性、toolbar、版本差异 |
 | `references/verification.md` | CLI 参数、`.vec` 格式、用例设计、双工程策略、GUI 截图 |
+| `references/appearance.md` | 子电路外观：spec、自动排版、保端口/重排、保存校验 |
 | `references/pitfalls.md` | **51 条实战坑**：A-G 组（4 位规模）+ H 组（8 位总线/展平/Windows 环境） |
 | `scripts/logisim_gen.py` | XML 生成器：pin / gate / sub / splitter / display / wire / project |
 | `scripts/router.py` | 通道布线器：正交、避让、禁止共线重叠（4 位规模） |

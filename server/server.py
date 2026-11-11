@@ -44,6 +44,7 @@ import subprocess
 import sys
 import tempfile
 import xml.etree.ElementTree as ET
+from xml.sax.saxutils import escape as _xml_escape
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from circuit_kit import audit as kit_audit  # noqa: E402
@@ -53,6 +54,11 @@ from circuit_kit import knowledge as kit_kb  # noqa: E402
 from circuit_kit import netlist as kit_net  # noqa: E402
 
 SERVER_NAME = "logisim"
+
+
+def _esc(value):
+    """XML 属性转义（标签/引脚名里可能有 & < > " '）。"""
+    return _xml_escape(str(value), {'"': "&quot;", "'": "&apos;"})
 
 
 def _plugin_version(default="1.1.0"):
@@ -71,6 +77,7 @@ def _plugin_version(default="1.1.0"):
 
 SERVER_VERSION = _plugin_version()
 PROTOCOL_VERSION = "2024-11-05"
+SUPPORTED_PROTOCOLS = ("2024-11-05",)
 PLUGIN_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 LOGISIM_HOME_HINT = os.environ.get("LOGISIM_HOME", "")
@@ -226,7 +233,7 @@ def run_logisim(args, timeout=180, headless=True):
     cmd += ["-jar", JAR, *args]
     try:
         proc = subprocess.run(
-            cmd, capture_output=True, timeout=timeout, cwd=os.path.dirname(JAR) or None
+            cmd, capture_output=True, timeout=timeout
         )
     except subprocess.TimeoutExpired:
         return False, f"Logisim 执行超时（{timeout}s）"
@@ -365,7 +372,14 @@ def verify_table(file_path, vectors):
 
     表头按信号名比对，位宽后缀（5.0.0 的 a[4]）会被忽略，所以 3.9 / 4.x / 5.x 都能用。
     """
-    rows, raw = truth_table(file_path)
+    file_path = os.path.abspath(file_path)
+    if not os.path.isfile(file_path):
+        return False, f"文件不存在: {file_path}"
+    n = input_pin_count(file_path)
+    if n > 16:
+        return False, (f"主电路有 {n} 个输入引脚，真值表会有 2^{n} = {2 ** n} 行，已拒绝执行；"
+                       f"请输入更少的激励组合，或先用 circuit_truth_table 抽样核对")
+    rows, raw = truth_table(file_path, max_rows=0)
     if rows is None:
         return False, raw
     header = rows[0]
@@ -398,6 +412,9 @@ def verify_table(file_path, vectors):
 # 原生测试向量（5.0+）
 # --------------------------------------------------------------------------
 def run_test_vector(file_path, circuit_name, vectors):
+    file_path = os.path.abspath(file_path)
+    if not os.path.isfile(file_path):
+        return False, f"文件不存在: {file_path}"
     ver = version_text()
     m = re.match(r"(\d+)", ver or "")
     major = int(m.group(1)) if m else 0
@@ -433,8 +450,8 @@ def run_test_vector(file_path, circuit_name, vectors):
             fh.write("\n".join(lines) + "\n")
         _, out = run_logisim(["-w", circuit_name, vec_path, file_path], timeout=120, headless=False)
         clean = "\n".join(ln for ln in out.splitlines() if ln.strip())
-        failed_m = re.search(r"失败：(\d+)", clean)
-        passed_m = re.search(r"通过：(\d+)", clean)
+        failed_m = re.search(r"(?:失败|Failed?)\s*[:：]?\s*(\d+)", clean, re.I)
+        passed_m = re.search(r"(?:通过|Passed?)\s*[:：]?\s*(\d+)", clean, re.I)
         if failed_m and passed_m:
             failed, passed = int(failed_m.group(1)), int(passed_m.group(1))
             return failed == 0, f"通过 {passed} / 失败 {failed}\n\n{clean}"
@@ -536,7 +553,7 @@ def build_circuit(spec):
     def tunnel(x, y, label, facing="east"):
         comps.append(
             f'    <comp lib="0" loc="({x},{y})" name="Tunnel">'
-            f'<a name="facing" val="{facing}"/><a name="label" val="{label}"/></comp>'
+            f'<a name="facing" val="{facing}"/><a name="label" val="{_esc(label)}"/></comp>'
         )
 
     # 连接全部走命名隧道（Tunnel 按标签互通），彻底绕开布线几何陷阱：
@@ -545,7 +562,7 @@ def build_circuit(spec):
         py = ymap[str(name)]
         comps.append(
             f'    <comp lib="0" loc="(40,{py})" name="Pin">'
-            f'<a name="facing" val="east"/><a name="label" val="{name}"/></comp>'
+            f'<a name="facing" val="east"/><a name="label" val="{_esc(name)}"/></comp>'
         )
         tunnel(90, py, str(name))
         wire(40, py, 90, py)
@@ -573,7 +590,7 @@ def build_circuit(spec):
         comps.append(
             f'    <comp lib="0" loc="({out_x},{oy})" name="Pin">'
             f'<a name="facing" val="west"/><a name="output" val="true"/>'
-            f'<a name="label" val="{o["name"]}"/></comp>'
+            f'<a name="label" val="{_esc(o["name"])}"/></comp>'
         )
         tunnel(out_x - 60, oy, src)
         wire(out_x - 60, oy, out_x, oy)
@@ -585,11 +602,11 @@ def build_circuit(spec):
             '<project source="3.9.0" version="1.0">',
             '  <lib desc="#Wiring" name="0"/>',
             '  <lib desc="#Gates" name="1"/>',
-            f'  <main name="{cname}"/>',
+            f'  <main name="{_esc(cname)}"/>',
             "  <options/>",
             "  <mappings/>",
-            f'  <circuit name="{cname}">',
-            f'    <a name="circuit" val="{cname}"/>',
+            f'  <circuit name="{_esc(cname)}">',
+            f'    <a name="circuit" val="{_esc(cname)}"/>',
             *comps,
             *wires,
             "  </circuit>",
@@ -806,7 +823,7 @@ def call_tool(name, args):
         except Exception:
             pass
         if major >= 5:
-            caps.append("-w 原生测试向量（支持时序电路）")
+            caps.append("-w 原生测试向量（只能验组合逻辑：每行都从初始状态重算）")
         else:
             caps.append("-w 需要 5.0+，当前版本不支持")
         info = {
@@ -825,13 +842,13 @@ def call_tool(name, args):
         return True, json.dumps(info, ensure_ascii=False, indent=2)
 
     if name == "circuit_summary":
-        f = args["file"]
+        f = os.path.abspath(args["file"])
         if not os.path.isfile(f):
             return False, f"文件不存在: {f}"
         return True, dump_summary(parse_circuit(f), f)
 
     if name == "circuit_truth_table":
-        f = args["file"]
+        f = os.path.abspath(args["file"])
         if not os.path.isfile(f):
             return False, f"文件不存在: {f}"
         n = input_pin_count(f)
@@ -855,7 +872,8 @@ def call_tool(name, args):
         return run_test_vector(args["file"], args.get("circuit_name", "main"), args["vectors"])
 
     if name == "circuit_stats":
-        ok, txt = run_logisim(["-t", "stats", args["file"]])
+        f = os.path.abspath(args["file"])
+        ok, txt = run_logisim(["-t", "stats", f])
         if not ok:
             return False, txt
         lines = ["数量\t唯一\t元件\t类别"]
@@ -897,17 +915,18 @@ def call_tool(name, args):
         return True, json.dumps(kit_geo.describe(args.get("component")), ensure_ascii=False, indent=2)
 
     if name == "circ_audit":
-        f = args["file"]
+        f = os.path.abspath(args["file"])
         if not os.path.isfile(f):
             return False, f"文件不存在: {f}"
         rep = kit_audit.audit(f)
         head = f"体检结论: {rep['verdict']}  电路={rep['circuits']} 网络={rep['nets']} 端口={rep['ports']}"
-        return True, head + "\n" + json.dumps(
+        detail = json.dumps(
             {k: v for k, v in rep.items() if k not in ("file", "circuits", "nets", "ports", "verdict")},
             ensure_ascii=False, indent=2)
+        return rep.get("verdict") in ("ok", "unsupported"), head + "\n" + detail
 
     if name == "circ_sim":
-        f = args["file"]
+        f = os.path.abspath(args["file"])
         if not os.path.isfile(f):
             return False, f"文件不存在: {f}"
         circuits, main = kit_net.parse(f)
@@ -915,8 +934,12 @@ def call_tool(name, args):
             sim = kit_net.Sim(circuits, main)
         except kit_net.UnsupportedComponent as exc:
             return False, f"{exc}\n（请改用 circuit_truth_table 或删除不支持的元件后再仿真）"
-        snaps = sim.run(args.get("inputs") or {}, int(args.get("cycles", 0)),
-                        clock=args.get("clock"))
+        clock = args.get("clock")
+        if clock and not sim.bind_clock(clock):
+            avail = sorted(lbl for (path, lbl) in sim.pin_at if path == "r")
+            return False, f"找不到时钟信号 {clock}；根层引脚有: {avail}"
+        cycles = int(args.get("cycles", 0))
+        snaps = sim.run(args.get("inputs") or {}, cycles)
         watch = args.get("watch") or []
         rows = []
         for i, s in enumerate(snaps):
@@ -936,16 +959,23 @@ def call_tool(name, args):
         out = ["\t".join(cols)]
         for r in rows:
             out.append("\t".join(str(r.get(c, "")) for c in cols))
-        return True, f"共 {len(rows)} 拍（t=0 为上电初始态）\n" + "\n".join(out)
+        note = ""
+        if cycles and sim.clk_net is None:
+            note = (f"\n警告: 未找到时钟（Clock 组件或名为 cp/clk/clock/ck 的引脚），"
+                    f"{cycles} 拍内不会有触发器被推进")
+        return True, f"共 {len(rows)} 拍（t=0 为上电初始态）\n" + "\n".join(out) + note
 
     if name == "circ_build":
-        spec = args["spec"]
+        spec = dict(args["spec"])
+        if spec.get("file"):
+            spec["file"] = os.path.abspath(spec["file"])
         try:
             text, stats = kit_builder.build(spec, write=bool(args.get("write", True)))
         except kit_builder.BuildError as exc:
             return False, f"生成失败: {exc}"
         out = spec.get("file")
         head = f"已生成 {out}\n" + json.dumps(stats, ensure_ascii=False)
+        ok = True
         if out and os.path.isfile(out):
             rep = kit_audit.audit(out)
             if rep.get("verdict") == "unsupported":
@@ -954,6 +984,8 @@ def call_tool(name, args):
                 head += (f"\n体检: {rep['verdict']}（悬空 {len(rep['floating'])}，"
                          f"冲突 {len(rep['conflict'])}，孤立 {len(rep['dangling'])}，"
                          f"重叠 {len(rep['body_overlap'])}）")
+                if rep.get("verdict") == "problems":
+                    ok = False
         if args.get("verify") and out and os.path.isfile(out):
             rows, raw = truth_table(out, max_rows=512)
             if rows is None:
@@ -961,7 +993,9 @@ def call_tool(name, args):
             else:
                 bad = sum(1 for r in rows[1:] for c in r if any(ch in "EU" for ch in c))
                 head += f"\n真值表复核: {'通过，无 E/U' if bad == 0 else f'发现 {bad} 个 E/U 单元'}"
-        return True, head
+                if bad:
+                    ok = False
+        return ok, head
 
     if name == "circ_kb":
         act = args.get("action")
@@ -990,41 +1024,41 @@ def send(obj):
     sys.stdout.flush()
 
 
-def respond(mid, result=None, error=None):
-    msg = {"jsonrpc": "2.0", "id": mid}
-    if error is not None:
-        msg["error"] = error
-    else:
-        msg["result"] = result
-    send(msg)
+def _result(mid, result):
+    return {"jsonrpc": "2.0", "id": mid, "result": result}
 
 
-def handle(msg):
+def _error(mid, code, message, data=None):
+    err = {"code": code, "message": message}
+    if data is not None:
+        err["data"] = data
+    return {"jsonrpc": "2.0", "id": mid, "error": err}
+
+
+def dispatch(msg):
+    """处理一条 JSON-RPC 消息，返回响应对象；通知返回 None。"""
+    if not isinstance(msg, dict):
+        return _error(None, -32600, "Invalid Request")
     method = msg.get("method")
     mid = msg.get("id")
 
     if method == "initialize":
         requested = (msg.get("params") or {}).get("protocolVersion")
-        respond(
-            mid,
-            {
-                "protocolVersion": requested or PROTOCOL_VERSION,
-                "capabilities": {"tools": {"listChanged": False}},
-                "serverInfo": {"name": SERVER_NAME, "version": SERVER_VERSION},
-            },
-        )
-        return
+        version = requested if requested in SUPPORTED_PROTOCOLS else PROTOCOL_VERSION
+        return _result(mid, {
+            "protocolVersion": version,
+            "capabilities": {"tools": {"listChanged": False}},
+            "serverInfo": {"name": SERVER_NAME, "version": SERVER_VERSION},
+        })
 
     if method in ("notifications/initialized", "initialized"):
-        return
+        return None
 
     if method == "ping":
-        respond(mid, {})
-        return
+        return _result(mid, {}) if mid is not None else None
 
     if method == "tools/list":
-        respond(mid, {"tools": TOOLS})
-        return
+        return _result(mid, {"tools": TOOLS})
 
     if method == "tools/call":
         params = msg.get("params") or {}
@@ -1034,14 +1068,17 @@ def handle(msg):
             ok, text = call_tool(name, args)
         except Exception as exc:  # 工具内部异常也要回成 MCP 结果，不能让客户端挂住
             ok, text = False, f"{type(exc).__name__}: {exc}"
-        respond(
-            mid,
-            {"content": [{"type": "text", "text": text}], "isError": not ok},
-        )
-        return
+        return _result(mid, {"content": [{"type": "text", "text": text}], "isError": not ok})
 
     if mid is not None:
-        respond(mid, error={"code": -32601, "message": f"Method not found: {method}"})
+        return _error(mid, -32601, f"Method not found: {method}")
+    return None
+
+
+def handle(msg):
+    resp = dispatch(msg)
+    if resp is not None:
+        send(resp)
 
 
 def doctor():
@@ -1063,11 +1100,12 @@ def doctor():
     pits = kit_kb.list_pitfalls()
     out.append(f"  条目数   : {len(pits)}")
     try:
-        kit_kb.add_pitfall("doctor 探针", "验证知识库可写", "doctor", pid="_doctor_probe")
-        from circuit_kit import knowledge as _kb
-        data = _kb._load()
-        data["pitfalls"] = [x for x in data["pitfalls"] if x.get("id") != "_doctor_probe"]
-        _kb._save(data)
+        parent = os.path.dirname(os.path.abspath(kit_kb.KB_PATH))
+        os.makedirs(parent, exist_ok=True)
+        probe = kit_kb.KB_PATH + ".probe"
+        with open(probe, "w", encoding="utf-8") as fh:
+            fh.write("ok")
+        os.remove(probe)
         out.append("  可写     : 是")
     except Exception as exc:
         out.append(f"  可写     : 否（{exc}）")
@@ -1118,10 +1156,23 @@ def main():
             continue
         try:
             msg = json.loads(line)
-        except json.JSONDecodeError:
+        except json.JSONDecodeError as exc:
+            send(_error(None, -32700, "Parse error", str(exc)))
             continue
         try:
-            handle(msg)
+            if isinstance(msg, list):
+                out = []
+                for item in msg:
+                    try:
+                        resp = dispatch(item)
+                    except Exception as exc:
+                        resp = _error(None, -32603, f"Internal error: {exc}")
+                    if resp is not None:
+                        out.append(resp)
+                if out:
+                    send(out)
+            else:
+                handle(msg)
         except Exception as exc:
             print(f"[{SERVER_NAME}] error: {exc}", file=sys.stderr, flush=True)
 

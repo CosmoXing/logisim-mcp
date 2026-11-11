@@ -47,7 +47,7 @@ CI 会在 Ubuntu（3.9 / 3.12）和 Windows（3.12）上跑 `--quick`。**不要
 1. `server/circuit_kit/geometry.py`：加端口偏移与包围盒（**两处独立实现**：
    `geometry.py` 供生成用，`netlist.py` 的 `_ports()` 供解析用，两处都要改）。
 2. `server/circuit_kit/router.py`：加发射函数（如果需要新外观）。
-3. `server/circuit_kit/builder.py`：加入 `SPECIAL` 集合与 `_port_map` / `_dir_of` / `_port_width`。
+3. `server/circuit_kit/builder.py`：加入 `SPECIAL` 集合，并补 `_dir_of` / `_port_width` 与 `Board` 里对应的发射方法。
 4. `server/circuit_kit/netlist.py`：加入 `SUPPORTED`、`_ports`、`_widths`、`_settle` 的行为。
 5. `server/circuit_kit/audit.py`：补包围盒（否则重叠检测不到）。
 6. `server/circuit_kit/knowledge.json` + `geometry.md`：记录实测到的端口表。

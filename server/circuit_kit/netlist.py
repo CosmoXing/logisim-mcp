@@ -28,6 +28,8 @@ def gate_ports(kind, inputs):
 
 DFF_PORTS = {"D": (-40, 20), "CLK": (-40, 0), "Q": (0, 0), "NQ": (0, 20),
              "R": (-10, 30), "S": (-30, 30)}
+TFF_PORTS = {"T": (-40, 20), "CLK": (-40, 0), "Q": (0, 0), "NQ": (0, 20),
+             "R": (-10, 30), "S": (-30, 30)}
 
 
 def splitter_ports(fanout):
@@ -107,7 +109,10 @@ def parse(path):
             b = [int(v) for v in w.get("to").strip("()").split(",")]
             circ.wires.append((a[0], a[1], b[0], b[1]))
         circuits[circ.name] = circ
-    return circuits, root.find("main").get("name")
+    main = root.find("main")
+    if main is None or not main.get("name"):
+        raise ValueError(".circ 缺少 <main name=\"...\"/> 元素，无法确定顶层电路")
+    return circuits, main.get("name")
 
 
 class DSU:
@@ -141,9 +146,12 @@ PORT_WIDTH = {}
 
 SUPPORTED = {
     "Pin", "Splitter", "Tunnel", "Clock", "LED", "Ground", "Constant",
-    "Hex Digit Display", "D Flip-Flop", "T Flip-Flop",
+    "Hex Digit Display", "D Flip-Flop", "T Flip-Flop", "Text",
     "AND Gate", "OR Gate", "NOT Gate", "NAND Gate", "NOR Gate", "XOR Gate", "XNOR Gate",
 }
+
+# 纯注释元件：没有电气端口，.circ 里可能不带 lib 属性
+ANNOTATIONS = {"Text", "Label", "Anchor"}
 
 
 class UnsupportedComponent(RuntimeError):
@@ -176,6 +184,9 @@ class Sim:
         self.val = {}
         self.ff = {i: 0 for i, lf in enumerate(self.leaves)
                    if lf["kind"] in ("D Flip-Flop", "T Flip-Flop")}
+        self.ff_trigger = {i: str(lf["attrs"].get("trigger", "rising")).lower()
+                           for i, lf in enumerate(self.leaves)
+                           if lf["kind"] in ("D Flip-Flop", "T Flip-Flop")}
         # 时钟网：优先 Clock 组件，其次名字像时钟的根层引脚
         self.clk_net = None
         self.clk_drive = None
@@ -219,6 +230,8 @@ class Sim:
             pts.add((s[2], s[3]))
         pin_out = {}
         for c in circ.comps:
+            if c.lib is None and c.name in ANNOTATIONS and c.name not in self.circuits:
+                continue
             if c.lib is None:      # 子电路实例：端口由子电路引脚位置推导
                 child = self.circuits.get(c.name)
                 if child is None:
@@ -248,6 +261,8 @@ class Sim:
             for q in points[1:]:
                 self.dsu.union(points[0], q)
         for c in circ.comps:
+            if c.lib is None and c.name in ANNOTATIONS and c.name not in self.circuits:
+                continue
             if c.lib is None:
                 child = self.circuits.get(c.name)
                 if child is None:
@@ -278,12 +293,12 @@ class Sim:
             default_inputs = 1 if kind == "NOT" else 2
             return gate_ports(kind, int(c.attrs.get("inputs", default_inputs)))
         if n in ("D Flip-Flop", "T Flip-Flop"):
-            return DFF_PORTS
+            return DFF_PORTS if n == "D Flip-Flop" else TFF_PORTS
         if n == "Splitter":
             return splitter_ports(int(c.attrs.get("fanout", 2)))
         if n == "Tunnel":
             return {"p": (0, 0)}
-        if n in ("Clock", "LED", "Ground", "Constant", "Hex Digit Display"):
+        if n in ("Clock", "LED", "Ground", "Constant", "Hex Digit Display", "Probe"):
             return {"p": (0, 0)}
         if n in SUPPORTED:
             return {}
@@ -298,7 +313,8 @@ class Sim:
             return {"p": 4}
         if n == "Splitter":
             f = int(c.attrs.get("fanout", 2))
-            d = {"in": f}
+            incoming = int(c.attrs.get("incoming", f))
+            d = {"in": incoming}
             for i in range(f):
                 d[f"b{i}"] = 1
             return d
@@ -307,6 +323,8 @@ class Sim:
         if n == "Constant":
             return {"p": int(c.attrs.get("width", 1))}
         if n == "Tunnel":
+            return {"p": 1}
+        if n == "Probe":
             return {"p": 1}
         return {}
 
@@ -323,7 +341,7 @@ class Sim:
         if clock:
             self.bind_clock(clock)
         self.clk_drive = 0
-        self._settle(inputs)
+        self._settle_stable(inputs)
         snaps = [self._snap()]
         for _ in range(cycles):
             self._pulse(inputs)
@@ -333,6 +351,47 @@ class Sim:
     def _is_clk_net(self, net):
         return self.clk_net is not None and net == self.clk_net
 
+    def _settle_stable(self, inputs):
+        """先收敛组合逻辑，再处理异步复位/置位；状态变了就重新收敛。"""
+        for _ in range(16):
+            self._settle(inputs)
+            if not self._apply_async():
+                return
+        raise RuntimeError("异步复位/置位未收敛（反馈自激）")
+
+    def _apply_async(self):
+        changed = False
+        for i, lf in enumerate(self.leaves):
+            if lf["kind"] not in ("D Flip-Flop", "T Flip-Flop"):
+                continue
+            r = self._bit(self._get(lf["nets"].get("R")))
+            s = self._bit(self._get(lf["nets"].get("S")))
+            if r == 1 and s != 1 and self.ff[i] != 0:
+                self.ff[i] = 0
+                changed = True
+            elif s == 1 and r != 1 and self.ff[i] != 1:
+                self.ff[i] = 1
+                changed = True
+        return changed
+
+    @staticmethod
+    def _pin_bits(value, width):
+        """输入引脚取值 → 位宽对应的位元组（bit0 在前）。整数低位对齐，字符串 MSB 在前。"""
+        width = max(1, int(width))
+        if isinstance(value, (list, tuple)):
+            bits = [1 if x in (1, "1", True) else 0 for x in value]
+        elif isinstance(value, str) and value.strip() and all(ch in "01" for ch in value.strip()):
+            bits = [int(ch) for ch in reversed(value.strip())]
+        else:
+            try:
+                n = int(value)
+            except (TypeError, ValueError):
+                n = 0
+            bits = [(n >> b) & 1 for b in range(width)]
+        if len(bits) < width:
+            bits += [0] * (width - len(bits))
+        return tuple(bits[:width])
+
     def _settle(self, inputs):
         for _ in range(300):
             new = {}
@@ -341,9 +400,10 @@ class Sim:
                 if kind == "Pin":
                     k = lf["attrs"].get("type") or ("output" if lf["attrs"].get("output") in ("true", "1") else "input")
                     if k == "input" and lf.get("path") == "r" and not self._is_clk_net(nets["p"]):
-                        self._write(new, nets["p"], (inputs.get(lf["attrs"].get("label", ""), 0),))
+                        raw = inputs.get(lf["attrs"].get("label", ""), 0)
+                        self._write(new, nets["p"], self._pin_bits(raw, lf["w"].get("p", 1)))
                     continue
-                if kind in ("Clock", "Tunnel"):
+                if kind in ("Clock", "Tunnel", "Text", "Probe"):
                     continue
                 if kind == "Ground":
                     self._write(new, nets["p"], (0,))
@@ -357,34 +417,27 @@ class Sim:
                     self._write(new, nets["p"], tuple((raw >> b) & 1 for b in range(w)))
                     continue
                 if kind == "Splitter":
-                    f = int(lf["attrs"].get("fanout", 2))
-                    if self.split_mode.get(i) == "split":
-                        bus = self._get(nets["in"])
-                        if bus and len(bus) == f:
-                            for b in range(f):
-                                self._write(new, nets[f"b{b}"], (bus[b],))
-                        else:
-                            for b in range(f):
-                                self._write(new, nets[f"b{b}"], ("U",))
-                    else:
-                        bits = []
-                        for b in range(f):
-                            v = self._get(nets[f"b{b}"])
-                            bits.append(v[0] if v else "U")
-                        self._write(new, nets["in"], tuple(bits))
+                    self._eval_splitter(new, i, lf)
                     continue
                 if kind.endswith("Gate"):
                     g = kind.split()[0]
-                    a = self._bit(self._get(nets["a"]))
-                    if g == "NOT":
-                        self._write(new, nets["out"], (0 if a == 1 else (1 if a == 0 else "E"),))
-                    else:
-                        b = self._bit(self._get(nets["b"]))
-                        self._write(new, nets["out"], (self._gate(g, a, b),))
+                    vals = [self._bit(self._get(nets[p])) for p in "abcdefgh" if p in nets]
+                    self._write(new, nets["out"], (self._gate(g, vals),))
                     continue
                 if kind in ("D Flip-Flop", "T Flip-Flop"):
-                    self._write(new, nets["Q"], (self.ff[i],))
-                    self._write(new, nets["NQ"], (1 - self.ff[i],))
+                    r = self._bit(self._get(nets.get("R")))
+                    s = self._bit(self._get(nets.get("S")))
+                    if r == 1 and s == 1:
+                        q = nq = "E"
+                    elif r == 1:
+                        q, nq = 0, 1
+                    elif s == 1:
+                        q, nq = 1, 0
+                    else:
+                        q = self.ff[i]
+                        nq = 1 - q
+                    self._write(new, nets["Q"], (q,))
+                    self._write(new, nets["NQ"], (nq,))
                     continue
             if self.clk_net is not None and self.clk_drive is not None:
                 new[self.clk_net] = (self.clk_drive,)
@@ -393,6 +446,35 @@ class Sim:
             if not changed:
                 return
         raise RuntimeError("组合逻辑未收敛（振荡）")
+
+    def _eval_splitter(self, new, i, lf):
+        """分线器：尊重 bit0..bitN 映射与 incoming 位宽（默认恒等映射）。"""
+        nets, attrs = lf["nets"], lf["attrs"]
+        f = int(attrs.get("fanout", 2))
+        incoming = int(attrs.get("incoming", f))
+        bit_map = [int(attrs.get(f"bit{b}", b)) for b in range(f)]
+        if self.split_mode.get(i) == "split":
+            bus = self._get(nets["in"])
+            if bus and len(bus) == incoming:
+                for b in range(f):
+                    src = bit_map[b]
+                    self._write(new, nets[f"b{b}"], (bus[src] if 0 <= src < incoming else "U",))
+            else:
+                for b in range(f):
+                    self._write(new, nets[f"b{b}"], ("U",))
+            return
+        bus = ["U"] * incoming
+        for b in range(f):
+            v = self._get(nets[f"b{b}"])
+            if not v:
+                continue
+            dst = bit_map[b]
+            if 0 <= dst < incoming:
+                if bus[dst] != "U" and bus[dst] != v[0]:
+                    bus[dst] = "E"
+                else:
+                    bus[dst] = v[0]
+        self._write(new, nets["in"], tuple(bus))
 
     @staticmethod
     def _write(new, net, val):
@@ -408,18 +490,28 @@ class Sim:
                 out[i] = self._bit(self._get(lf["nets"]["CLK"]))
         return out
 
+    def _is_edge(self, i, old, new):
+        if self.ff_trigger.get(i, "rising") == "falling":
+            return old == 1 and new == 0
+        return old == 0 and new == 1
+
     def _pulse(self, inputs):
-        """一个完整时钟脉冲；逐触发器检测各自 CLK 的上升沿（支持异步级联）。"""
+        """一个完整时钟脉冲；逐触发器按各自 trigger 检测沿（支持异步级联）。"""
+        for i, lf in enumerate(self.leaves):
+            trig = self.ff_trigger.get(i)
+            if trig is not None and trig not in ("rising", "falling"):
+                raise RuntimeError(
+                    f"暂不支持触发器触发方式「{trig}」@ {lf['loc']}；只支持 rising / falling 边沿")
         self.clk_drive = 0
-        self._settle(inputs)
+        self._settle_stable(inputs)
         last = self._clk_state()
 
         self.clk_drive = 1
-        self._settle(inputs)
+        self._settle_stable(inputs)
 
         for _ in range(64):
             cur = self._clk_state()
-            fired = [i for i in cur if last.get(i) == 0 and cur[i] == 1]
+            fired = [i for i in cur if self._is_edge(i, last.get(i), cur[i])]
             if not fired:
                 break
             for i in fired:
@@ -428,14 +520,14 @@ class Sim:
                     d = self._bit(self._get(lf["nets"]["D"]))
                     self.ff[i] = 1 if d == 1 else 0
                 else:
-                    t = self._bit(self._get(lf["nets"]["D"]))
+                    t = self._bit(self._get(lf["nets"]["T"]))
                     if t == 1:
                         self.ff[i] ^= 1
-            self._settle(inputs)
+            self._settle_stable(inputs)
             last = cur
 
         self.clk_drive = 0
-        self._settle(inputs)
+        self._settle_stable(inputs)
 
     def _get(self, net):
         return self.val.get(net)
@@ -445,15 +537,35 @@ class Sim:
         return "U" if v is None else v[0]
 
     @staticmethod
-    def _gate(g, a, b):
-        if "E" in (a, b):
-            return "E"
-        if "U" in (a, b):
+    def _gate(g, vals):
+        if not vals:
             return "U"
-        x, y = a == 1, b == 1
-        r = {"AND": x and y, "NAND": not (x and y), "OR": x or y,
-             "NOR": not (x or y), "XOR": x != y, "XNOR": x == y}[g]
-        return 1 if r else 0
+        if any(v == "E" for v in vals):
+            return "E"
+        if g == "NOT":
+            return "U" if vals[0] == "U" else (0 if vals[0] == 1 else 1)
+        unknown = any(v == "U" for v in vals)
+        if g in ("AND", "NAND"):
+            if any(v == 0 for v in vals):
+                r = 0
+            elif unknown:
+                return "U"
+            else:
+                r = 1
+        elif g in ("OR", "NOR"):
+            if any(v == 1 for v in vals):
+                r = 1
+            elif unknown:
+                return "U"
+            else:
+                r = 0
+        else:
+            if unknown:
+                return "U"
+            r = sum(1 for v in vals if v == 1) % 2
+        if g in ("NAND", "NOR", "XNOR"):
+            r = 1 - r
+        return r
 
     def _snap(self):
         out = {}
@@ -467,16 +579,3 @@ class Sim:
             elif lf["kind"] == "LED":
                 out["led"] = self.val.get(lf["nets"]["p"], ("U",))
         return out
-
-    # -------- 诊断：列出可疑网络（未驱动 / 多驱动）
-    def diagnose(self):
-        drivers = {}
-        for i, lf in enumerate(self.leaves):
-            for k, n in lf["nets"].items():
-                if k in ("out", "Q", "NQ", "p", "b0", "b1", "b2", "b3", "in"):
-                    continue
-            for k in ("out", "Q", "NQ"):
-                if k in lf["nets"]:
-                    drivers.setdefault(lf["nets"][k], []).append(lf["kind"])
-        bad = {k: v for k, v in drivers.items() if len(set(v)) > 1}
-        return bad

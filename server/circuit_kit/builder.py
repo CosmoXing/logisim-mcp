@@ -29,6 +29,12 @@ class BuildError(Exception):
     pass
 
 
+def _check_grid(x, y, what):
+    if int(x) % 10 or int(y) % 10:
+        raise BuildError(f"{what} 坐标 ({int(x)},{int(y)}) 不在 10px 网格上；"
+                         f"Logisim 按 10px 对齐，导线会接不上端口")
+
+
 def _norm_pins(circ):
     """给每个引脚分配坐标：输入在左列、输出在右列（可显式给 at）。"""
     pins = []
@@ -45,26 +51,11 @@ def _norm_pins(circ):
             x, y = p.get("at") or [120, 200 + 80 * i]
             facing, kind = "east", "input"
             i += 1
+        if p.get("at"):
+            _check_grid(x, y, f"引脚 {label}")
         pins.append({"label": label, "dir": "output" if kind == "output" else "input",
                      "x": x, "y": y, "facing": facing, "width": int(p.get("width", 1))})
     return pins
-
-
-def _port_map(comp, child_pins):
-    t = comp["_type"]
-    if t in GATE_TYPES:
-        return geometry.gate_ports(t, int(comp.get("inputs", 1 if t == "NOT" else 2)))[0]
-    if t in ("DFF", "TFF"):
-        return geometry.DFF_PORTS
-    if t == "SPLITTER4":
-        return geometry.splitter_ports(4)[0]
-    if t in ("CLOCK", "LED", "DISPLAY", "GROUND"):
-        return {"p": (0, 0)}
-    if t in ("PIN",):
-        return {"p": (0, 0)}
-    # 子电路
-    _, ports = geometry.sub_geometry([(p["label"], p["x"], p["y"], p["facing"]) for p in child_pins])
-    return ports
 
 
 def _port_width(port, comp, child_pins, pin_width=1):
@@ -183,6 +174,33 @@ def build(spec, write=True):
 
         by_id = {c["id"]: c for c in comps}
         nets = circ.get("nets", [])
+
+        # 多驱动先报：同一网络只能有一个输出，否则 Logisim 直接显示 E
+        pin_dirs = {p["label"]: p["dir"] for p in pins}
+        for net in nets:
+            nname = str(net.get("name") or "?")
+            drivers = []
+            for ref in net.get("connect", []):
+                ref = str(ref)
+                if ref.startswith("pin:"):
+                    if pin_dirs.get(ref[4:]) == "input":
+                        drivers.append(ref)
+                    continue
+                if "." not in ref:
+                    continue
+                cid, port = ref.split(".", 1)
+                comp = by_id.get(cid)
+                if comp is None or comp["_type"] == "SPLITTER4":
+                    continue          # 不存在的元件留给后面的解析报错；分线器方向由接线决定
+                try:
+                    if _dir_of(port, comp, comp.get("_child_pins", [])) == "out":
+                        drivers.append(ref)
+                except BuildError:
+                    continue
+            if len(drivers) > 1:
+                raise BuildError(f"网络 {nname} 有 {len(drivers)} 个驱动源：{drivers}；"
+                                 f"一根网络只能有一个输出（多驱动在 Logisim 里会显示 E）")
+
         cache = {}
         depths = {}
         for comp in comps:
@@ -195,6 +213,7 @@ def build(spec, write=True):
         for comp in comps:
             if comp.get("at"):
                 comp["_x"], comp["_y"] = int(comp["at"][0]), int(comp["at"][1])
+                _check_grid(comp["_x"], comp["_y"], f"元件 {comp['id']}")
                 occupied.add((comp["_x"], comp["_y"]))
                 continue
             t = comp["_type"]

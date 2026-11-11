@@ -8,10 +8,9 @@ _BUNDLED = os.path.join(HERE, "knowledge.json")
 
 
 def _resolve_kb_path():
-    """经验库落盘位置：环境变量 > 插件数据目录 > 模块同级。
+    """经验库落盘位置：环境变量 > 插件数据目录 > 用户目录。
 
-    插件安装到 cache 目录后仍可写，但升级会覆盖；因此作为插件运行时优先写入
-    ${CODEBUDDY_PLUGIN_DATA}（升级不丢），再用随包 knowledge.json 做种子。
+    插件安装到 cache/只读目录后仍可写，升级也不会覆盖；随包 knowledge.json 只作种子。
     """
     env = os.environ.get("LOGISIM_KB", "").strip()
     if env:
@@ -19,7 +18,7 @@ def _resolve_kb_path():
     data = os.environ.get("CODEBUDDY_PLUGIN_DATA", "").strip()
     if data:
         return os.path.join(data, "knowledge.json")
-    return _BUNDLED
+    return os.path.join(os.path.expanduser("~"), ".logisim-mcp", "knowledge.json")
 
 
 KB_PATH = _resolve_kb_path()

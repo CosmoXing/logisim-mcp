@@ -8,8 +8,14 @@
 """
 
 import heapq
+from xml.sax.saxutils import escape as _xml_escape
 
 GRID = 10
+
+
+def _esc(value):
+    """XML 属性转义：标签里出现 & < > " ' 时不能直接拼进文档。"""
+    return _xml_escape(str(value), {'"': "&quot;", "'": "&apos;"})
 
 WIRE_LIB = "0"
 GATE_LIB = "1"
@@ -43,6 +49,12 @@ def _gate_geom(kind, inputs):
 def _dff_geom():
     return dict(body=(-40, -10, 0, 30),
                 ports={"D": (-40, 20), "CLK": (-40, 0), "Q": (0, 0), "NQ": (0, 20),
+                       "R": (-10, 30), "S": (-30, 30)})
+
+
+def _tff_geom():
+    return dict(body=(-40, -10, 0, 30),
+                ports={"T": (-40, 20), "CLK": (-40, 0), "Q": (0, 0), "NQ": (0, 20),
                        "R": (-10, 30), "S": (-30, 30)})
 
 
@@ -123,7 +135,7 @@ class Board:
         """子电路实例。pins 为子电路内部引脚列表 [(label,x,y,facing)]。"""
         body, ports = sub_geom(pins)
         x, y = loc
-        xml = f'    <comp loc="({x},{y})" name="{name}"></comp>\n'
+        xml = f'    <comp loc="({x},{y})" name="{_esc(name)}"></comp>\n'
         self.bodies.append((x + body[0], y + body[1], x + body[2], y + body[3]))
         pts = {k: (x + dx, y + dy) for k, (dx, dy) in ports.items()}
         for p in pts.values():
@@ -138,7 +150,7 @@ class Board:
         w = f'<a name="width" val="{width}"/>' if width != 1 else ""
         xml = (f'    <comp lib="{WIRE_LIB}" loc="({x},{y})" name="Pin">'
                f'<a name="type" val="{kind}"/><a name="facing" val="{face}"/>{w}'
-               f'<a name="label" val="{label}"/></comp>\n')
+               f'<a name="label" val="{_esc(label)}"/></comp>\n')
         self.comps.append(xml)
         self.all_ports.add((x // GRID, y // GRID))
         self._blocked_cache = None
@@ -156,14 +168,14 @@ class Board:
         geom = _dff_geom()
         xml = (f'    <comp lib="{MEM_LIB}" loc="({loc[0]},{loc[1]})" name="D Flip-Flop">'
                f'<a name="trigger" val="rising"/><a name="appearance" val="classic"/>'
-               f'<a name="label" val="{label}"/></comp>\n')
+               f'<a name="label" val="{_esc(label)}"/></comp>\n')
         return self._add(xml, loc, geom)
 
     def tff(self, loc, label):
-        geom = _dff_geom()
+        geom = _tff_geom()
         xml = (f'    <comp lib="{MEM_LIB}" loc="({loc[0]},{loc[1]})" name="T Flip-Flop">'
                f'<a name="trigger" val="rising"/><a name="appearance" val="classic"/>'
-               f'<a name="label" val="{label}"/></comp>\n')
+               f'<a name="label" val="{_esc(label)}"/></comp>\n')
         return self._add(xml, loc, geom)
 
     def splitter4(self, loc):
@@ -202,7 +214,7 @@ class Board:
     def display(self, loc, label):
         x, y = loc
         xml = (f'    <comp lib="{IO_LIB}" loc="({x},{y})" name="Hex Digit Display">'
-               f'<a name="label" val="{label}"/></comp>\n')
+               f'<a name="label" val="{_esc(label)}"/></comp>\n')
         self.comps.append(xml)
         self.all_ports.add((x // GRID, y // GRID))
         self.bodies.append((x + 5, y - 28, x + 62, y + 28))
@@ -337,7 +349,8 @@ class Board:
                     continue
                 seen.add(key)
                 body += f'    <wire from="({key[0]},{key[1]})" to="({key[2]},{key[3]})"/>\n'
-        return f'  <circuit name="{self.name}">\n    <a name="circuit" val="{self.name}"/>\n{body}  </circuit>\n'
+        return (f'  <circuit name="{_esc(self.name)}">\n'
+                f'    <a name="circuit" val="{_esc(self.name)}"/>\n{body}  </circuit>\n')
 
 
 def _merge_collinear(segs):
@@ -384,7 +397,7 @@ def project(circuits):
     head += f'  <lib desc="#Memory" name="{MEM_LIB}"/>\n'
     head += f'  <lib desc="#I/O" name="{IO_LIB}"/>\n'
     head += f'  <lib desc="#Base" name="{BASE_LIB}"/>\n'
-    head += f'  <main name="{circuits[0][0]}"/>\n'
+    head += f'  <main name="{_esc(circuits[0][0])}"/>\n'
     head += "  <options/>\n"
     head += '  <mappings>\n    <tool lib="8" name="Poke Tool" map="Button2"/>\n'
     head += '    <tool lib="8" name="Menu Tool" map="Button3"/>\n  </mappings>\n'

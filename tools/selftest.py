@@ -221,7 +221,123 @@ def test_failures(tmp):
     return ok
 
 
-# ---------------------------------------------------------------- 5. Logisim
+# ---------------------------------------------------------------- 5. 回归：仿真/生成缺陷
+def test_regressions(tmp):
+    """固定住曾经会静默出错的路径：多输入门、单输入门、异步复位、总线、转义、网格、多驱动。"""
+    c = Client()
+
+    and3 = {"file": os.path.join(tmp, "and3.circ"), "circuits": [{
+        "name": "main",
+        "pins": [{"label": "a", "dir": "in"}, {"label": "b", "dir": "in"},
+                 {"label": "c", "dir": "in"}, {"label": "y", "dir": "out"}],
+        "components": [{"id": "g1", "type": "AND", "inputs": 3}],
+        "nets": [{"name": "na", "connect": ["pin:a", "g1.a"]},
+                 {"name": "nb", "connect": ["pin:b", "g1.b"]},
+                 {"name": "nc", "connect": ["pin:c", "g1.c"]},
+                 {"name": "ny", "connect": ["g1.out", "pin:y"]}]}]}
+    c.tool("circ_build", {"spec": and3})
+    s3 = c.tool("circ_sim", {"file": and3["file"], "inputs": {"a": 1, "b": 1, "c": 0}, "watch": ["y"]})
+
+    and1 = {"file": os.path.join(tmp, "and1.circ"), "circuits": [{
+        "name": "main",
+        "pins": [{"label": "a", "dir": "in"}, {"label": "y", "dir": "out"}],
+        "components": [{"id": "g1", "type": "AND", "inputs": 1}],
+        "nets": [{"name": "na", "connect": ["pin:a", "g1.a"]},
+                 {"name": "ny", "connect": ["g1.out", "pin:y"]}]}]}
+    c.tool("circ_build", {"spec": and1})
+    s1 = c.tool("circ_sim", {"file": and1["file"], "inputs": {"a": 1}, "watch": ["y"]})
+
+    dff = {"file": os.path.join(tmp, "dff_r.circ"), "circuits": [{
+        "name": "main",
+        "pins": [{"label": "D", "dir": "in"}, {"label": "R", "dir": "in"},
+                 {"label": "cp", "dir": "in"}, {"label": "Q", "dir": "out"}],
+        "components": [{"id": "d1", "type": "DFF"}],
+        "nets": [{"name": "nD", "connect": ["pin:D", "d1.D"]},
+                 {"name": "nR", "connect": ["pin:R", "d1.R"]},
+                 {"name": "nC", "connect": ["pin:cp", "d1.CLK"]},
+                 {"name": "nQ", "connect": ["d1.Q", "pin:Q"]}]}]}
+    c.tool("circ_build", {"spec": dff})
+    sr = c.tool("circ_sim", {"file": dff["file"], "inputs": {"D": 1, "R": 1},
+                             "cycles": 1, "watch": ["Q"]})
+
+    bus = {"file": os.path.join(tmp, "bus4.circ"), "circuits": [{
+        "name": "main",
+        "pins": [{"label": "bus", "dir": "in", "width": 4},
+                 {"label": "y0", "dir": "out"}, {"label": "y1", "dir": "out"},
+                 {"label": "y2", "dir": "out"}, {"label": "y3", "dir": "out"}],
+        "components": [{"id": "s1", "type": "SPLITTER4"}],
+        "nets": [{"name": "nbus", "connect": ["pin:bus", "s1.in"]},
+                 {"name": "n0", "connect": ["s1.b0", "pin:y0"]},
+                 {"name": "n1", "connect": ["s1.b1", "pin:y1"]},
+                 {"name": "n2", "connect": ["s1.b2", "pin:y2"]},
+                 {"name": "n3", "connect": ["s1.b3", "pin:y3"]}]}]}
+    c.tool("circ_build", {"spec": bus})
+    sb = c.tool("circ_sim", {"file": bus["file"], "inputs": {"bus": 5}, "watch": ["y0", "y1", "y2", "y3"]})
+
+    esc = {"file": os.path.join(tmp, "esc.circ"), "circuits": [{
+        "name": "main",
+        "pins": [{"label": "a&b", "dir": "in"}, {"label": "y", "dir": "out"}],
+        "components": [{"id": "g1", "type": "NOT"}],
+        "nets": [{"name": "na", "connect": ["pin:a&b", "g1.a"]},
+                 {"name": "ny", "connect": ["g1.out", "pin:y"]}]}]}
+    be = c.tool("circ_build", {"spec": esc})
+
+    grid = {"file": os.path.join(tmp, "grid.circ"), "circuits": [{
+        "name": "main",
+        "pins": [{"label": "a", "dir": "in", "at": [405, 303]}, {"label": "y", "dir": "out"}],
+        "components": [{"id": "g1", "type": "NOT"}],
+        "nets": [{"name": "na", "connect": ["pin:a", "g1.a"]},
+                 {"name": "ny", "connect": ["g1.out", "pin:y"]}]}]}
+    bg = c.tool("circ_build", {"spec": grid})
+
+    multi = {"file": os.path.join(tmp, "multi.circ"), "circuits": [{
+        "name": "main",
+        "pins": [{"label": "a", "dir": "in"}, {"label": "y", "dir": "out"}],
+        "components": [{"id": "g1", "type": "NOT"}, {"id": "g2", "type": "NOT"}],
+        "nets": [{"name": "na", "connect": ["pin:a", "g1.a"]},
+                 {"name": "nz", "connect": ["pin:a", "g2.a"]},
+                 {"name": "ny", "connect": ["g1.out", "g2.out", "pin:y"]}]}]}
+    bm = c.tool("circ_build", {"spec": multi})
+
+    dangling = {"file": os.path.join(tmp, "dangling.circ"), "circuits": [{
+        "name": "main",
+        "pins": [{"label": "a", "dir": "in"}, {"label": "y", "dir": "out"}],
+        "components": [{"id": "g1", "type": "NOT"}],
+        "nets": [{"name": "ny", "connect": ["g1.out", "pin:y"]}]}]}
+    bd = c.tool("circ_build", {"spec": dangling})
+
+    by_id, _ = c.run(timeout=120)
+    ok = True
+    t3 = text_of(by_id.get(s3))
+    ok &= check("3 输入门算全部输入", "y" in t3 and "\t0" in t3, t3.replace("\n", " ")[:80])
+    t1 = text_of(by_id.get(s1))
+    ok &= check("单输入门不再 KeyError", "y" in t1 and "\t1" in t1, t1.replace("\n", " ")[:80])
+    tr = text_of(by_id.get(sr))
+    ok &= check("触发器异步 R 生效", "Traceback" not in tr and "KeyError" not in tr
+                and tr.splitlines()[-1].split("\t")[-1] == "0", tr.replace("\n", " ")[:90])
+    tb = text_of(by_id.get(sb))
+    last = tb.splitlines()[-1] if tb else ""
+    ok &= check("4 位总线输入正确拆分", last.endswith("1\t0\t1\t0"), last[:80])
+    ok &= check("XML 特殊字符已转义", "体检: ok" in text_of(by_id.get(be)), text_of(by_id.get(be))[:90])
+    ok &= check("非网格坐标被拒", "网格" in text_of(by_id.get(bg)), text_of(by_id.get(bg))[:90])
+    ok &= check("多驱动被拒", "驱动源" in text_of(by_id.get(bm)), text_of(by_id.get(bm))[:90])
+    msg = by_id.get(bd) or {}
+    ok &= check("体检 problems 标记为错误", bool(msg.get("result", {}).get("isError")),
+                text_of(msg)[:90])
+    return ok
+
+
+# ---------------------------------------------------------------- 6. 协议协商
+def test_protocol():
+    c = Client()
+    i = c.call("initialize", {"protocolVersion": "2025-06-30",
+                              "clientInfo": {"name": "selftest", "version": "1"}})
+    by_id, _ = c.run(timeout=60)
+    ver = (by_id.get(i) or {}).get("result", {}).get("protocolVersion")
+    return check("不支持的协议版本回落到 2024-11-05", ver == "2024-11-05", str(ver))
+
+
+# ---------------------------------------------------------------- 7. Logisim
 def test_logisim(tmp, circ):
     if not shutil.which("java") and not os.environ.get("JAVA_HOME"):
         skip("Logisim 交叉复核", "本机没有 java")
@@ -269,6 +385,8 @@ def main():
         ok, circ = test_pipeline(tmp)
         allok &= ok
         allok &= test_failures(tmp)
+        allok &= test_regressions(tmp)
+        allok &= test_protocol()
         if quick:
             skip("Logisim 交叉复核", "--quick")
         else:

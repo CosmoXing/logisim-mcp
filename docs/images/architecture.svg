@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="800" viewBox="0 0 920 800" role="img"
+     aria-label="logisim-mcp 架构：MCP 客户端、circuit_kit、外部进程与 Logisim JVM 内的 Java 桥">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#5b6570"/>
+    </marker>
+    <style>
+      .box      { fill:#ffffff; stroke:#5b6570; stroke-width:1.4; }
+      .box-lead { fill:#eef3f8; stroke:#3c4a57; stroke-width:1.6; }
+      .box-jvm  { fill:#fbf7ee; stroke:#9a7b45; stroke-width:1.6; }
+      .part     { fill:#ffffff; stroke:#7d8892; stroke-width:1.2; }
+      .t        { font-family:"Segoe UI","Microsoft YaHei","PingFang SC",sans-serif; fill:#1f2933; }
+      .mono     { font-family:"Cascadia Code",Consolas,"Courier New",monospace; fill:#1f2933; }
+      .muted    { fill:#6b7684; }
+      .h1       { font-size:15px; font-weight:600; }
+      .h2       { font-size:13px; font-weight:600; letter-spacing:.3px; }
+      .body     { font-size:13px; }
+      .small    { font-size:11.5px; }
+      .flow     { stroke:#5b6570; stroke-width:1.5; fill:none; marker-end:url(#arrow); }
+      .rule     { stroke:#c9d2db; stroke-width:1; }
+    </style>
+  </defs>
+
+  <rect x="0" y="0" width="920" height="800" fill="#ffffff"/>
+
+  <!-- MCP 客户端 -->
+  <rect class="box-lead" x="190" y="24" width="540" height="56" rx="10"/>
+  <text class="t h1" x="460" y="46" text-anchor="middle">MCP 客户端</text>
+  <text class="t small muted" x="460" y="65" text-anchor="middle">server.py · stdio JSON-RPC · 14 tools</text>
+
+  <!-- 分支箭头 -->
+  <path class="flow" d="M300,80 L300,144"/>
+  <path class="flow" d="M620,80 L620,144"/>
+
+  <!-- circuit_kit -->
+  <rect class="box" x="80" y="150" width="420" height="272" rx="10"/>
+  <text class="t h2" x="104" y="176">circuit_kit（纯 Python）</text>
+  <line class="rule" x1="96" y1="188" x2="484" y2="188"/>
+  <text class="t mono body" x="104" y="215">geometry</text>
+  <text class="t body muted" x="238" y="215">端口几何（按 5.0 源码）</text>
+  <text class="t mono body" x="104" y="245">router</text>
+  <text class="t body muted" x="238" y="245">迷宫布线，端口与元件体避让</text>
+  <text class="t mono body" x="104" y="275">netlist</text>
+  <text class="t body muted" x="238" y="275">解析 + 多拍仿真（逐触发器看沿）</text>
+  <text class="t mono body" x="104" y="305">builder</text>
+  <text class="t body muted" x="238" y="305">声明式 DSL → 工程</text>
+  <text class="t mono body" x="104" y="335">audit</text>
+  <text class="t body muted" x="238" y="335">静态体检：悬空 / 冲突 / 重叠</text>
+  <text class="t mono body" x="104" y="365">knowledge</text>
+  <text class="t body muted" x="238" y="365">实测经验库</text>
+  <text class="t mono body" x="104" y="395">logisim_bridge</text>
+  <text class="t body muted" x="238" y="395">Java 桥会话（启动 / 握手 / 超时）</text>
+
+  <!-- 外部进程 -->
+  <rect class="box" x="540" y="150" width="330" height="104" rx="10"/>
+  <text class="t h2" x="564" y="176">外部进程（只读校验）</text>
+  <line class="rule" x1="556" y1="188" x2="854" y2="188"/>
+  <text class="t mono small" x="564" y="212">java -jar … -t table</text>
+  <text class="t mono small" x="564" y="234">java -jar … -w</text>
+  <text class="t small muted" x="540" y="278">与 circuit_kit 共用同一套 5.0 端口公式</text>
+
+  <!-- 到 JVM 的通道 -->
+  <path class="flow" d="M290,422 L290,524"/>
+  <text class="t small muted" x="304" y="470">127.0.0.1 · 随机端口 · token · 一行一个 JSON</text>
+
+  <!-- Logisim JVM -->
+  <rect class="box-jvm" x="80" y="530" width="790" height="204" rx="12"/>
+  <text class="t h2" x="104" y="558">Logisim 自己的 JVM（GUI 进程，桥在进程内）</text>
+
+  <rect class="part" x="105" y="574" width="150" height="50" rx="8"/>
+  <text class="t mono small" x="180" y="604" text-anchor="middle">BridgeMain</text>
+  <path class="flow" d="M255,599 L281,599"/>
+
+  <rect class="part" x="285" y="574" width="160" height="50" rx="8"/>
+  <text class="t mono small" x="365" y="604" text-anchor="middle">BridgeServer</text>
+  <path class="flow" d="M445,599 L471,599"/>
+
+  <rect class="part" x="475" y="574" width="130" height="50" rx="8"/>
+  <text class="t mono small" x="540" y="604" text-anchor="middle">Commands</text>
+  <path class="flow" d="M605,599 L631,599"/>
+
+  <rect class="part" x="635" y="574" width="170" height="50" rx="8"/>
+  <text class="t mono small" x="720" y="604" text-anchor="middle">LogisimAdapter</text>
+
+  <text class="t mono small" x="105" y="656">CircuitAppearance · Frame · LogisimFile.write · Projects.getOpenProjects()</text>
+  <text class="t small muted" x="105" y="680">EDT 调度（FutureTask + invokeLater）· 事务锁住所有 circuit · 保存后 -t stats 复验</text>
+  <text class="t small muted" x="105" y="706">截图：canvas（只画布）/ window（含侧栏）· close 后进程退出，不留后台 Java</text>
+
+  <!-- 底部说明 -->
+  <text class="t small muted" x="460" y="772" text-anchor="middle">Java 桥是可选通道：无 JDK / 未编译 / 启动失败时自动降级 mode="xml"，其余 13 个工具不受影响</text>
+</svg>

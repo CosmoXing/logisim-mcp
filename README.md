@@ -319,28 +319,7 @@ java -Dfile.encoding=UTF-8 \
 
 ## 架构
 
-```
-            ┌──────────────────────────────────────────────┐
- MCP 客户端  │  server.py  (stdio JSON-RPC, 14 tools)       │
-            └───────┬───────────────────────────┬──────────┘
-                    │                           │
-        ┌───────────▼──────────┐    ┌───────────▼───────────┐
-        │ circuit_kit          │    │ 外部进程               │
-        │  geometry  端口几何   │    │  java -jar … -t table  │
-        │  router    A* 布线    │    │  java -jar … -w        │
-        │  netlist   解析+仿真  │    └───────────────────────┘
-        │  builder   DSL→工程   │
-        │  audit     静态体检   │    ← 端口公式与 5.0 源码对齐
-        │  knowledge 经验库     │
-        │  logisim_bridge 会话  │
-        └───────────┬──────────┘
-                    │ 127.0.0.1 + token，一行一个 JSON
-        ┌───────────▼────────────────────────────────────────┐
-        │ Logisim 自己的 JVM                                  │
-        │  BridgeMain → BridgeServer → Commands → Adapter     │
-        │  CircuitAppearance / Frame / LogisimFile.write      │
-        └────────────────────────────────────────────────────┘
-```
+![架构：MCP 客户端 → circuit_kit / 外部进程 → Logisim JVM 内的 Java 桥](docs/images/architecture.svg)
 
 关键设计：`geometry.py`（生成侧）、`router.py`（布线）与 `netlist.py`（解析侧）都按 5.0 源码实现端口公式。
 三处目前是同源拷贝，改几何常量必须同步；只改一处会让生成、体检、仿真对不上。

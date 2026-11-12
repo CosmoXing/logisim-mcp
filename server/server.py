@@ -433,6 +433,14 @@ def run_test_vector(file_path, circuit_name, vectors):
     names = [p["label"] for p in circ["pins"]]
     if not names:
         return False, "该电路没有引脚"
+    widths = {p["label"]: int(p.get("width") or 1) for p in circ["pins"]}
+
+    def fmt_value(n, v):
+        """多位引脚必须写成 0x 十六进制，否则 Logisim 报 Unexpected character。"""
+        if isinstance(v, str):
+            return v
+        w = widths.get(n, 1)
+        return f"0x{int(v):x}" if w > 1 else str(int(v))
 
     lines = [" ".join(names)]
     for i, vec in enumerate(vectors, 1):
@@ -445,7 +453,7 @@ def run_test_vector(file_path, circuit_name, vectors):
         missing = [n for n in names if n not in flat]
         if missing:
             return False, f"第 {i} 条向量缺少信号 {missing}（电路引脚: {names}）"
-        lines.append(" ".join(str(flat[n]) for n in names))
+        lines.append(" ".join(fmt_value(n, flat[n]) for n in names))
 
     fd, vec_path = tempfile.mkstemp(prefix="lse_", suffix=".vec")
     try:

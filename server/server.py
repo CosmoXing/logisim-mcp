@@ -815,6 +815,12 @@ TOOLS = [
             "apply 应用自定义 spec；preview 切到外观视图并截图；save 写回 .circ（带备份与校验）；"
             "reset 恢复默认外观；close 关闭 Logisim 会话。"
             "默认保留现有端口坐标，避免父电路导线脱开；spec 里的 pin 可用标签或 pin_at 指定。"
+            "注意：一旦移动端口，父电路导线不会自动跟随，必须在父电路（通常是 main）里打开"
+            "Logisim 截图确认每个引脚仍连着线并完成重布，不能只用 circ_audit/circ_sim 代替。"
+            "重排子电路内部（紧凑布局）时：circ-port 的 x/y 是符号坐标、pin 才是内部 Pin 坐标，"
+            "移动内部 Pin 只需同步 pin；不要整块替换 circuit（会丢 a/appear）；lib 编号照抄原文件"
+            "（触发器 lib=2，写成 4 会报「库4中缺少组件」）；改完用 Logisim 自身 -w 测试向量"
+            "（含 <set><seq>）对保存前 .bak 逐行 diff，0 差异才算通过。"
             "需要 JDK 21+ 编译 Java 桥（tools/build_bridge.py）。"
         ),
         "inputSchema": {

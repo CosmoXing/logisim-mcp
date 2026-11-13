@@ -9,9 +9,18 @@ import com.cburch.logisim.circuit.CircuitTransaction;
 import com.cburch.logisim.circuit.appear.AppearancePort;
 import com.cburch.logisim.circuit.appear.AppearanceSvgReader;
 import com.cburch.logisim.circuit.appear.CircuitAppearance;
+import com.cburch.logisim.comp.Component;
+import com.cburch.logisim.comp.ComponentFactory;
+import com.cburch.logisim.comp.EndData;
+import com.cburch.logisim.data.Attribute;
+import com.cburch.logisim.data.AttributeSet;
 import com.cburch.logisim.data.BitWidth;
+import com.cburch.logisim.data.Bounds;
 import com.cburch.logisim.data.Location;
 import com.cburch.logisim.file.LogisimFile;
+import com.cburch.logisim.tools.AddTool;
+import com.cburch.logisim.tools.Library;
+import com.cburch.logisim.tools.Tool;
 import com.cburch.logisim.gui.main.Canvas;
 import com.cburch.logisim.gui.main.Frame;
 import com.cburch.logisim.instance.Instance;
@@ -738,5 +747,179 @@ public final class LogisimAdapter {
   @SuppressWarnings("unchecked")
   private static List<Object> listOrEmpty(Object v) {
     return v instanceof List ? (List<Object>) v : new ArrayList<>();
+  }
+
+  // ------------------------------------------------------------ 元件探测
+  /** 列出工程已加载的库及其中的元件，用来确定 .circ 里 lib 编号对应的库。 */
+  public Map<String, Object> probeLibraries() {
+    Project project = awaitProject();
+    return Edt.run(
+        () -> {
+          List<Object> out = new ArrayList<>();
+          int idx = 0;
+          for (Library lib : project.getLogisimFile().getLibraries()) {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("index", idx++);
+            m.put("name", lib.getName());
+            m.put("display", lib.getDisplayName());
+            List<Object> comps = new ArrayList<>();
+            for (Tool tool : lib.getTools()) {
+              ComponentFactory cf = factoryOf(tool);
+              if (cf == null) continue;
+              Map<String, Object> c = new LinkedHashMap<>();
+              c.put("name", cf.getName());
+              c.put("display", String.valueOf(cf.getDisplayName()));
+              comps.add(c);
+            }
+            m.put("components", comps);
+            out.add(m);
+          }
+          Map<String, Object> projectLib = new LinkedHashMap<>();
+          projectLib.put("index", -1);
+          projectLib.put("name", "project");
+          projectLib.put("display", "本工程子电路");
+          List<Object> own = new ArrayList<>();
+          for (Tool tool : project.getLogisimFile().getTools()) {
+            ComponentFactory cf = factoryOf(tool);
+            if (cf == null) continue;
+            Map<String, Object> c = new LinkedHashMap<>();
+            c.put("name", cf.getName());
+            c.put("display", String.valueOf(cf.getDisplayName()));
+            own.add(c);
+          }
+          projectLib.put("components", own);
+          out.add(projectLib);
+          Map<String, Object> res = new LinkedHashMap<>();
+          res.put("libraries", out);
+          return res;
+        },
+        15000);
+  }
+
+  /**
+   * 探测单个元件的几何：包围盒、端口坐标（相对元件 loc）、端口位宽与方向、属性表。
+   *
+   * <p>params: name（元件名，忽略大小写）、lib（可选，库名或显示名）、attrs（可选，属性名→字符串值）。
+   */
+  public Map<String, Object> probeComponent(
+      String name, String libName, Map<String, Object> attrValues) {
+    Project project = awaitProject();
+    return Edt.run(
+        () -> {
+          ComponentFactory factory = null;
+          String foundLib = null;
+          int foundIndex = -1;
+          int idx = 0;
+          for (Library lib : project.getLogisimFile().getLibraries()) {
+            boolean libMatch =
+                libName == null
+                    || libName.isBlank()
+                    || libName.equalsIgnoreCase(lib.getName())
+                    || libName.equalsIgnoreCase(lib.getDisplayName());
+            if (libMatch) {
+              for (Tool tool : lib.getTools()) {
+                ComponentFactory cf = factoryOf(tool);
+                if (cf != null && cf.getName().equalsIgnoreCase(name)) {
+                  factory = cf;
+                  foundLib = lib.getName();
+                  foundIndex = idx;
+                  break;
+                }
+              }
+            }
+            idx++;
+            if (factory != null) break;
+          }
+          boolean wantProject =
+              libName == null
+                  || libName.isBlank()
+                  || libName.equalsIgnoreCase("project")
+                  || libName.equalsIgnoreCase("本工程子电路");
+          if (factory == null && wantProject) {
+            for (Tool tool : project.getLogisimFile().getTools()) {
+              ComponentFactory cf = factoryOf(tool);
+              if (cf != null && cf.getName().equalsIgnoreCase(name)) {
+                factory = cf;
+                foundLib = "project";
+                foundIndex = -1;
+                break;
+              }
+            }
+          }
+          if (factory == null) {
+            throw new BridgeException(
+                "E_NO_COMPONENT",
+                "已加载的库里找不到元件 " + name,
+                "先用 probe_libraries 看可用元件名",
+                null);
+          }
+          AttributeSet attrs = factory.createAttributeSet();
+          if (attrValues != null) {
+            for (Map.Entry<String, Object> e : attrValues.entrySet()) {
+              Attribute<?> attr = attrs.getAttribute(e.getKey());
+              if (attr == null) continue;
+              applyAttribute(attrs, attr, String.valueOf(e.getValue()));
+            }
+          }
+          Bounds b = factory.getOffsetBounds(attrs);
+          Component comp = factory.createComponent(Location.create(0, 0, false), attrs);
+          List<Object> ends = new ArrayList<>();
+          for (EndData end : comp.getEnds()) {
+            Location loc = end.getLocation();
+            Map<String, Object> em = new LinkedHashMap<>();
+            em.put("x", loc.getX());
+            em.put("y", loc.getY());
+            em.put("w", end.getWidth().getWidth());
+            em.put("input", end.isInput());
+            em.put("output", end.isOutput());
+            ends.add(em);
+          }
+          List<Object> attributeList = new ArrayList<>();
+          for (Attribute<?> attr : attrs.getAttributes()) {
+            Map<String, Object> am = new LinkedHashMap<>();
+            am.put("name", attr.getName());
+            Object v = attrs.getValue(attr);
+            am.put("value", v == null ? null : attr.toStandardString(unchecked(v)));
+            attributeList.add(am);
+          }
+          Map<String, Object> res = new LinkedHashMap<>();
+          res.put("name", factory.getName());
+          res.put("lib", foundLib);
+          res.put("lib_index", foundIndex);
+          Map<String, Object> bm = new LinkedHashMap<>();
+          bm.put("x", b.getX());
+          bm.put("y", b.getY());
+          bm.put("w", b.getWidth());
+          bm.put("h", b.getHeight());
+          res.put("bounds", bm);
+          res.put("ends", ends);
+          res.put("attributes", attributeList);
+          return res;
+        },
+        15000);
+  }
+
+  /** 内置元件的库工具是 AddTool（懒加载包装），需要取出真正的 ComponentFactory。 */
+  private static ComponentFactory factoryOf(Tool tool) {
+    if (tool instanceof ComponentFactory cf) return cf;
+    if (tool instanceof AddTool add) {
+      try {
+        return add.getFactory();
+      } catch (Exception e) {
+        return null;
+      }
+    }
+    return null;
+  }
+
+  @SuppressWarnings("unchecked")
+  private static <V> void applyAttribute(AttributeSet set, Attribute<?> attr, String raw) {
+    Attribute<V> typed = (Attribute<V>) attr;
+    set.setValue(typed, typed.parse(raw));
+  }
+
+  @SuppressWarnings("unchecked")
+  private static <V> V unchecked(Object value) {
+    return (V) value;
   }
 }

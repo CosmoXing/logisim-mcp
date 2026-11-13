@@ -57,6 +57,18 @@ public final class Commands {
         String target = str(params, "file", null);
         return adapter.save(target == null ? null : new File(target));
       }
+      case "probe_libraries" -> {
+        return adapter.probeLibraries();
+      }
+      case "probe_component" -> {
+        String name = str(params, "name", null);
+        if (name == null || name.isBlank()) {
+          throw new BridgeException("E_BAD_PARAM", "缺少 name（元件名，如 Register）", "", null);
+        }
+        Object raw = params.get("attrs");
+        Map<String, Object> attrs = raw instanceof Map ? Json.obj(raw) : Map.of();
+        return adapter.probeComponent(name, str(params, "lib", null), attrs);
+      }
       case "close" -> {
         Map<String, Object> out = map("closing", true);
         out.put("save", Json.b(params.get("save"), false));
@@ -65,7 +77,8 @@ public final class Commands {
       default -> throw new BridgeException(
           "E_UNKNOWN_CMD", "未知命令 " + cmd,
           "支持 ping/status/list_circuits/select_circuit/show_view/appearance_get/"
-              + "appearance_apply/appearance_reset/screenshot/save/close",
+              + "appearance_apply/appearance_reset/screenshot/save/probe_libraries/"
+              + "probe_component/close",
           null);
     }
   }

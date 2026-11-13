@@ -1,5 +1,18 @@
 # 更新记录
 
+## 1.3.0 — 32×32 寄存器堆：全实体布线 + 元件探测
+
+- **新增** Java 桥命令 `probe_libraries` / `probe_component`：向运行中的 Logisim 询问任意元件的
+  包围盒、端口偏移与位宽，补齐 5.0 的 Register / Decoder / MUX 2:1·4:1·8:1 / Comparator /
+  Constant / Pin / Splitter 正反朝向数据。
+- **经验库新增 9 条坑（H20–H28）**：空 `<toolbar/>` 导致工具条消失、10px 断口与整网连通性、
+  译码器底部 sel/en、分线器朝向与 b0 位序、外观 `pin=` 两套坐标、探针假 `U`、
+  复位释放与时钟沿同拍、引脚 40px 间距、子电路旁路冗余。
+- **几何表新增** `register32 / decoder / mux / comparator / constant / pin / splitter`。
+- **规则**：禁止隧道写死到所有层级；交付自检必须包含**整网连通性**（并查集），
+  只验证“端口碰到线”不算过。
+- **修正** 生成的 `.circ` 补全 `<toolbar>`，否则打开后顶部没有 Poke/Edit/Wiring/Text 工具。
+
 ## 1.2.0 — 子电路外观编辑
 
 - **新增** MCP 工具 `circ_appearance`：在 Logisim 自己的 JVM 里调用 `CircuitAppearance`，支持

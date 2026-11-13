@@ -13,7 +13,7 @@
 
 - [ ] `python tools/check_release.py` 通过
 - [ ] `python tools/selftest.py` 通过（无 Java 环境可 `--quick`）
-- [ ] 新增能力有对应的 selftest 用例，且**至少覆盖一条失败路径**
+- [ ] 新增能力有对应的 selftest 用例，且至少覆盖一条失败路径
 - [ ] 若修改了端口几何，`geometry.py` 与 `netlist.py` 两处都改了
 - [ ] 若发现新坑，已写进 `knowledge.json` 或 `references/pitfalls.md`
 - [ ] 没有提交 `dist/`、`__pycache__`、`logisim.local.json`

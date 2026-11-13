@@ -35,8 +35,8 @@
 - `<main name="...">` 决定打开文件时先显示哪个电路。想做「一打开就看到结果」的演示文件，就把 `<main>` 指向那个电路。
 - 子电路只要在同文件里有 `<circuit name="X">` 定义，实例用 `<comp loc=... name="X">` 引用，无需 lib。
 - 元件顺序无关；导线可以写在元件前也可以后。
-- `<options/>` 可以为空。**toolbar 不能写在 options 里**，必须在 `<project>` 下直接作为子节点。
-- 没有 `<toolbar>` 的文件打开后没有绘图工具条（工具条配置是**逐文件保存**的，不是全局设置）。`<tool>` 必须带 `lib="8"`（#Base），否则报「在库中找不到该工具」。
+- `<options/>` 可以为空。toolbar 不能写在 options 里，必须在 `<project>` 下直接作为子节点。
+- 没有 `<toolbar>` 的文件打开后没有绘图工具条（工具条配置是逐文件保存的，不是全局设置）。`<tool>` 必须带 `lib="8"`（#Base），否则报「在库中找不到该工具」。
 
 ## 2. 库索引（实测）
 
@@ -44,10 +44,10 @@
 |---|---|---|
 | `0` | #Wiring | Pin / Splitter / Constant / Power / Ground / Tunnel / Probe |
 | `1` | #Gates | `AND Gate` / `OR Gate` / `NOT Gate` / `XOR Gate` / `NAND Gate` / `NOR Gate` / `XNOR Gate` |
-| `5` | #I/O | **`Hex Digit Display`** / Button / LED / 7-Segment |
+| `5` | #I/O | `Hex Digit Display` / Button / LED / 7-Segment |
 | `8` | #Base | 工具和基础件（toolbar 里的 tool 用这个库） |
 
-> 其它库（Plexers / Arithmetic / Memory / TTL）的索引未实测。**可靠做法**：在 GUI 里手动放一个该组件、保存一次，读回文件看它写了什么 lib 数字和组件名，然后照着写。不要猜。
+> 其它库（Plexers / Arithmetic / Memory / TTL）的索引未实测。可靠做法：在 GUI 里手动放一个该组件、保存一次，读回文件看它写了什么 lib 数字和组件名，然后照着写。不要猜。
 
 ## 3. 组件写法
 
@@ -93,10 +93,10 @@
 
 要点：
 
-- `value` 属性按**十六进制**解析，写 `a` 表示 10；生成时用 `f"{v:x}"`。
-- 组件名写错（如 `HexDigit`）时，Logisim **静默丢弃**该元件，它所在的整条网络变成 `E`，不报具体错误。遇到「莫名其妙全 E」先查组件名。
+- `value` 属性按十六进制解析，写 `a` 表示 10；生成时用 `f"{v:x}"`。
+- 组件名写错（如 `HexDigit`）时，Logisim 静默丢弃该元件，它所在的整条网络变成 `E`，不报具体错误。遇到「莫名其妙全 E」先查组件名。
 - `Hex Digit Display` 的数据口固定 4 位；写 `width="1"` 不会生效，只会造成「位宽不兼容」。
-- 3.9 的老文件用 `<a name="output" val="true"/>`，5.0 仍能读，但**子电路外观计算**里不可靠（端口位置会错），新写一律用 `type`。
+- 3.9 的老文件用 `<a name="output" val="true"/>`，5.0 仍能读，但子电路外观计算里不可靠（端口位置会错），新写一律用 `type`。
 
 ## 4. autosave 陷阱
 

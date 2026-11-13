@@ -18,9 +18,9 @@ python server/server.py --doctor                 # 先确认 jar 找到了
 
 ## 怎么用
 
-**看**：用 Logisim 打开任意 `.circ`，按 `Ctrl+R` 复位，点引脚或启用时钟仿真。
+看：用 Logisim 打开任意 `.circ`，按 `Ctrl+R` 复位，点引脚或启用时钟仿真。
 
-**重新生成**：
+重新生成：
 
 ```bash
 python examples/generate.py           # 重新生成并体检

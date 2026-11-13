@@ -2,81 +2,81 @@
 
 ## 未发布 — 网表支持寄存器/复用器/译码器/比较器；体检补连通性与位宽
 
-- **网表支持** `Multiplexer` / `Decoder` / `Register` / `Comparator`：按 5.0 实测端口建模；
+- 网表支持 `Multiplexer` / `Decoder` / `Register` / `Comparator`：按 5.0 实测端口建模；
   寄存器支持 clk 边沿 + en + 异步 clr，比较器支持 unsigned / twosComplement。
-- **子电路端口** 读取 `<appear>` 的 `circ-port` 符号坐标：自定义外观不再按经典布局错位
+- 子电路端口 读取 `<appear>` 的 `circ-port` 符号坐标：自定义外观不再按经典布局错位
   （H15「跨电路串名」与 H24 的根因）。
-- **审计**：新增位宽冲突、断头线（10px 断口）检查；遇到不认识的元件返回 `partial` + 清单，
+- 审计：新增位宽冲突、断头线（10px 断口）检查；遇到不认识的元件返回 `partial` + 清单，
   MCP 不再把它当作成功。
-- **几何** `circ_geometry` 支持 register / mux / decoder / comparator / constant / pin /
+- 几何 `circ_geometry` 支持 register / mux / decoder / comparator / constant / pin /
   splitter 等，修正分线器公式（east 为 `-10*(n-k)`，`incoming` 缺省恒为 2，并支持
   `appear=left/center/right`）；多路选择器/译码器补 `facing=west` 与 `enable` 变体。
-- **新增** `circ_probe`：把 Java 桥的 `probe_libraries` / `probe_component` 暴露成 MCP 工具。
-- **经验库** `_SEED` 改为直接读取随包 `knowledge.json`，加载时把缺失条目并回运行时副本，
+- 新增 `circ_probe`：把 Java 桥的 `probe_libraries` / `probe_component` 暴露成 MCP 工具。
+- 经验库 `_SEED` 改为直接读取随包 `knowledge.json`，加载时把缺失条目并回运行时副本，
   消除内联副本漂移；`circ_kb add` 只写运行时副本，要发布需手动搬进仓库 JSON。
 
 ## 1.3.0 — 32×32 寄存器堆：全实体布线 + 元件探测
 
-- **新增** Java 桥命令 `probe_libraries` / `probe_component`：向运行中的 Logisim 询问任意元件的
+- 新增 Java 桥命令 `probe_libraries` / `probe_component`：向运行中的 Logisim 询问任意元件的
   包围盒、端口偏移与位宽，补齐 5.0 的 Register / Decoder / MUX 2:1·4:1·8:1 / Comparator /
   Constant / Pin / Splitter 正反朝向数据。
-- **经验库新增 9 条坑（H20–H28）**：空 `<toolbar/>` 导致工具条消失、10px 断口与整网连通性、
+- 经验库新增 9 条坑（H20–H28）：空 `<toolbar/>` 导致工具条消失、10px 断口与整网连通性、
   译码器底部 sel/en、分线器朝向与 b0 位序、外观 `pin=` 两套坐标、探针假 `U`、
   复位释放与时钟沿同拍、引脚 40px 间距、子电路旁路冗余。
-- **几何表新增** `register32 / decoder / mux / comparator / constant / pin / splitter`。
-- **规则**：禁止隧道写死到所有层级；交付自检必须包含**整网连通性**（并查集），
+- 几何表新增 `register32 / decoder / mux / comparator / constant / pin / splitter`。
+- 规则：禁止隧道写死到所有层级；交付自检必须包含整网连通性（并查集），
   只验证“端口碰到线”不算过。
-- **修正** 生成的 `.circ` 补全 `<toolbar>`，否则打开后顶部没有 Poke/Edit/Wiring/Text 工具。
+- 修正 生成的 `.circ` 补全 `<toolbar>`，否则打开后顶部没有 Poke/Edit/Wiring/Text 工具。
 
 ## 1.2.0 — 子电路外观编辑
 
-- **新增** MCP 工具 `circ_appearance`：在 Logisim 自己的 JVM 里调用 `CircuitAppearance`，支持
+- 新增 MCP 工具 `circ_appearance`：在 Logisim 自己的 JVM 里调用 `CircuitAppearance`，支持
   `get / auto / apply / preview / save / reset / close`，界面实时刷新，保存前备份、保存后用
   `-t stats` 重新加载校验。
-- **新增** Java 桥（`server/java/`，`tools/build_bridge.py` 编译为 `runtime/bridge/logisim-bridge.jar`）：
+- 新增 Java 桥（`server/java/`，`tools/build_bridge.py` 编译为 `runtime/bridge/logisim-bridge.jar`）：
   通过 127.0.0.1 NDJSON 控制，模型操作在 EDT 上执行，所有电路加写锁后修改外观。
-- **新增** `server/circuit_kit/appearance.py`：外观 spec、左入右出自动排版、10px 网格/端口覆盖/名称牌校验、
+- 新增 `server/circuit_kit/appearance.py`：外观 spec、左入右出自动排版、10px 网格/端口覆盖/名称牌校验、
   XML 兜底读写与父电路影响面统计。
-- **默认保端口**：`preserve_port_positions=true` 只重画框体与标签，避免父电路导线脱开；
+- 默认保端口：`preserve_port_positions=true` 只重画框体与标签，避免父电路导线脱开；
   重排模式会返回受影响的父电路与导线数。
-- **修正**十六进制数码管的包围盒：此前按 `62×56` 算，实际（5.0 源码 `HexDigit.setOffsetBounds`）是
+- 修正十六进制数码管的包围盒：此前按 `62×56` 算，实际（5.0 源码 `HexDigit.setOffsetBounds`）是
   `Bounds.create(-15, -60, 40, 60)`——`loc` 在底边上。间距 50px 的两个数码管因此被 `circ_audit`
   误报「元件体重叠」，`geometry.md` 的数字也一起改对了。
-- **新增** `examples/counter13.circ`：两位 13 进制计数器，三层结构、不使用隧道，26 个门与触发器全部由网表生成。
-- **文档** README 增加电路截图与 `circ_sim` 的逐拍输出。
+- 新增 `examples/counter13.circ`：两位 13 进制计数器，三层结构、不使用隧道，26 个门与触发器全部由网表生成。
+- 文档 README 增加电路截图与 `circ_sim` 的逐拍输出。
 
 ## 1.1.0 — 技能并入插件，准备开源
 
-1.0.0 里插件只带了一个精简技能（三份参考）。这一版把它补成**自包含、可单独使用**的完整技能，
+1.0.0 里插件只带了一个精简技能（三份参考）。这一版把它补成自包含、可单独使用的完整技能，
 并确立「插件技能 = 唯一事实来源，用户目录只是安装副本」。
 
-**技能补齐为 11 个文件**
+技能补齐为 11 个文件
 
-- `SKILL.md` 重写为**双路径**：路径 A 用 MCP 工具（`circ_build` → `circ_audit` → `circ_sim` → 真值表复核），
+- `SKILL.md` 重写为双路径：路径 A 用 MCP 工具（`circ_build` → `circ_audit` → `circ_sim` → 真值表复核），
   路径 B 用随包脚本手写 XML；两条路共用同一套几何常量、布线规则与坑表。
 - 新增 `references/circ-format.md`、`references/verification.md`（原先只在用户技能目录里）。
 - 新增 `scripts/logisim_gen.py`、`scripts/router.py`、`scripts/verify.py`——装完插件即可离线写电路，不依赖 MCP。
 - 新增 `assets/full-adder.circ`（5.0 格式，真值表 8/8 的已知可用样例）。
 
-**内容合并（消除两份漂移）**
+内容合并（消除两份漂移）
 
 - 两份 `pitfalls.md` 合一：插件精简版的 3 条独有内容（引脚 `type` 写成 `in`/`out`、NOT 的 −30 特例、
-  真值表输入爆炸）并入总表，现为 **38 条**。
+  真值表输入爆炸）并入总表，现为 38 条。
 - `geometry.md` 以含 3.9/5.0 对照表的版本为准，并补上 Clock / LED / Constant / Tunnel 的端口表。
 - `verification.md` 的「MCP 桥接」一节改写为插件版 13 工具；新增「时序电路的验证」一节，
   明确 `-w` 只能验组合；交付清单改为「`circ_audit` ok + 组合无 E/U + 时序跑满序列」。
 
-**工具**
+工具
 
 - 新增 `tools/sync_skill.py`：插件为源、`~/.workbuddy/skills/` 为目标，默认只对比，
   `--apply` 才写入（覆盖前留 `.bak`），`--prune` 才删多余文件，`--to-plugin` 可反向。
 
-**能力**
+能力
 
 - `circ_build` 新增 `GROUND` 元件：数码管数据口固定 4 位时，用它将未使用的高位拉低，
   否则未连接位会显示成 `U`（屏上是乱码）。
 
-**开源准备**
+开源准备
 
 - 新增 `tools/check_release.py`：版本三处一致（清单 / 服务端兜底 / CHANGELOG）、
   无本机路径与个人信息、JSON 与 Python 语法、`.cmd` 必须纯 ASCII、分发包内容干净。
@@ -88,7 +88,7 @@
 - 可移植性：jar 查找不再含任何机器专属目录，改为「`LOGISIM_JAR` → `logisim.local.json` →
   `runtime/` → 系统安装位置 → 当前目录」；新增 `logisim.local.example.json` 作为本地配置模板。
 
-**命名与版本**
+命名与版本
 
 - 仓库、插件、分发 zip 统一为 `logisim-mcp`（早期内部代号 `logisim-circuit`），
   技能名保留 `logisim-circuit-design`（它描述的是能力，不是产品）。
@@ -100,7 +100,7 @@
 
 首个插件版本。把此前散落在 `logisim_mcp/` 的能力整合成标准插件包，并补齐分发所需的一切。
 
-**新增**
+新增
 
 - 标准插件结构：`.codebuddy-plugin/plugin.json` + `.mcp.json` + `skills/`，可用 `${CODEBUDDY_PLUGIN_ROOT}` 占位符安装到任意路径。
 - 随插件分发技能 `logisim-circuit-design`：`SKILL.md` + 三份 references（几何 / DSL / 坑表）。
@@ -110,7 +110,7 @@
 - `tools/build_zip.py`：打成可分发的 zip（排除 `__pycache__`、`.in_use` 等）。
 - `tools/install.py`：注册本地 directory 市场或直接写入 `~/.workbuddy/mcp.json`，改配置前自动备份。
 
-**改进**
+改进
 
 - jar 查找顺序扩展：`LOGISIM_JAR` → `<插件>/runtime/` → 插件数据目录 → `Program Files` → `LOCALAPPDATA` → `~/.logisim` → `D:/app` → 当前目录。
 - java 查找扩展：`PATH` → `JAVA_HOME` → 常见 JDK 厂商目录 → `<插件>/runtime/jre/`。

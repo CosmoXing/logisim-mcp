@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""插件级端到端自检：清单 → stdio 握手 → 13 工具 → 生成/体检/仿真 → Logisim 交叉复核。
+"""插件级端到端自检：清单 → stdio 握手 → 15 工具 → 生成/体检/仿真 → Logisim 交叉复核。
 
 用法：
     python tools/selftest.py            # 全跑
@@ -144,8 +144,9 @@ def test_handshake():
     names = {t["name"] for t in tools}
     need = {"logisim_info", "circuit_summary", "circuit_truth_table", "circuit_verify",
             "circuit_test_vector", "circuit_stats", "circuit_build", "circuit_open_gui",
-            "circ_geometry", "circ_audit", "circ_sim", "circ_build", "circ_kb", "circ_appearance"}
-    ok &= check("tools/list 返回 14 个工具", len(tools) == 14, f"实际 {len(tools)}")
+            "circ_geometry", "circ_probe", "circ_audit", "circ_sim", "circ_build", "circ_kb",
+            "circ_appearance"}
+    ok &= check("tools/list 返回 15 个工具", len(tools) == 15, f"实际 {len(tools)}")
     ok &= check("工具名齐全", need <= names, f"缺 {sorted(need - names)}" if need - names else "")
     ok &= check("ping 有响应", "result" in by_id.get(p, {}))
     return ok

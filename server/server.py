@@ -734,19 +734,44 @@ TOOLS = [
     {
         "name": "circ_geometry",
         "description": (
-            "查询元件的真实端口偏移与包围盒（数据来自 v5.0.0 源码，已实测复核）。"
-            "画线前先查，避免用错 30px。component 可选 gate/and/nand/xor/dff/splitter/sub，留空返回全表。"
+            "查询元件真实端口偏移与包围盒（v5.0 probe_component 实测，数据源 knowledge.json）。"
+            "component 支持 gate/and[2]/or/not/nand/xor/xnor、dff/tff、splitter[4][west]、"
+            "mux[4|4:1]、decoder[3]、register[32]、comparator[3]、pin/constant/tunnel/clock/led/ground/sub；"
+            "留空返回全表。select 表示选择位宽（n 位 → 2^n 路），width 表示数据位宽。"
         ),
         "inputSchema": {
             "type": "object",
-            "properties": {"component": {"type": "string", "description": "元件名，可省略"}},
+            "properties": {
+                "component": {"type": "string", "description": "元件名，可省略"},
+                "select": {"type": "integer", "description": "mux/decoder 的选择位宽（可选）"},
+                "width": {"type": "integer", "description": "register/comparator/mux 的数据位宽（可选）"},
+            },
+        },
+    },
+    {
+        "name": "circ_probe",
+        "description": (
+            "用 Logisim 自身的 Java 桥探测任意元件的真实几何：包围盒、端口坐标/位宽、属性表。"
+            "component 留空则列出所有已加载库与元件名。首次调用会打开 Logisim GUI 会话（可复用）。"
+            "circ_geometry 只覆盖常用元件，TTL/算术库等冷门元件用这个。"
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "file": {"type": "string", "description": ".circ 文件绝对路径（用于加载库）"},
+                "component": {"type": "string", "description": "元件名，如 Register/Comparator；留空列库"},
+                "lib": {"type": "string", "description": "库名/显示名（可选，重名时用）"},
+                "attrs": {"type": "object", "description": "属性覆盖，如 {\"select\":\"3\",\"width\":\"32\"}"},
+            },
+            "required": ["file"],
         },
     },
     {
         "name": "circ_audit",
         "description": (
-            "静态连接体检：解析 .circ 重建网表，报告悬空网络（有读无驱动）、多驱动冲突、"
-            "孤立端口、元件体重叠。不依赖仿真，能在 '跑出 E' 之前定位断线/短路。"
+            "静态连接体检：解析 .circ 重建网表（支持寄存器/多路选择器/译码器/比较器），报告"
+            "悬空网络、多驱动冲突、孤立端口、位宽冲突、10px 断口、元件体重叠。"
+            "遇到不认识的元件时给出部分结果并标 partial，不再当作成功。"
         ),
         "inputSchema": {
             "type": "object",
@@ -799,8 +824,9 @@ TOOLS = [
     {
         "name": "circ_kb",
         "description": (
-            "经验库：action=list 列出已知坑；action=search 按关键词查；action=add 追加一条新经验（title/detail/evidence）。"
-            "后续发现新的几何/连通性/工具行为，直接 add 进去，下次会话可直接查。"
+            "经验库：action=list 列出已知坑；action=search 按关键词查；action=add 追加一条新经验"
+            "（title/detail/evidence）。add 只写入运行时副本（LOCALAPPDATA 或 runtime/kb），"
+            "不会改仓库里的 server/circuit_kit/knowledge.json；要随仓库发布，需手动把条目搬进该文件。"
         ),
         "inputSchema": {
             "type": "object",
@@ -1097,8 +1123,8 @@ def call_tool(name, args):
             "无头能力": caps,
             "原生MCP": "不支持（官方各版本都没有 MCP/网络接口，本桥接为外部封装）",
             "切换内核": "设置环境变量 LOGISIM_JAR 指向目标 jar 即可",
-            "扩展工具": ["circ_geometry", "circ_audit", "circ_sim", "circ_build", "circ_kb",
-                         "circ_appearance"],
+            "扩展工具": ["circ_geometry", "circ_probe", "circ_audit", "circ_sim", "circ_build",
+                         "circ_kb", "circ_appearance"],
             "经验库": f"{len(kit_kb.list_pitfalls())} 条（用 circ_kb list 查看）",
             "外观桥": {
                 "jar": (kit_bridge.BRIDGE_JAR if os.path.isfile(kit_bridge.BRIDGE_JAR)
@@ -1179,7 +1205,27 @@ def call_tool(name, args):
         return True, f"已用 java -jar 打开: {f}{note}"
 
     if name == "circ_geometry":
-        return True, json.dumps(kit_geo.describe(args.get("component")), ensure_ascii=False, indent=2)
+        res = kit_geo.describe(args.get("component"), args.get("select"), args.get("width"))
+        return not (isinstance(res, dict) and res.get("error")), \
+            json.dumps(res, ensure_ascii=False, indent=2)
+
+    if name == "circ_probe":
+        f = os.path.abspath(args["file"])
+        if not os.path.isfile(f):
+            return False, f"文件不存在: {f}"
+        try:
+            sess = kit_bridge.get_session(f, JAVA, JAR)
+            comp = str(args.get("component") or "").strip()
+            if not comp:
+                return True, _json_text(sess.send("probe_libraries"))
+            res = sess.send("probe_component", {
+                "name": comp,
+                "lib": args.get("lib"),
+                "attrs": args.get("attrs") or {},
+            })
+            return True, _json_text(res)
+        except kit_bridge.BridgeError as exc:
+            return False, f"{exc.code}: {exc}\n{exc.hint}".strip()
 
     if name == "circ_audit":
         f = os.path.abspath(args["file"])
@@ -1187,10 +1233,14 @@ def call_tool(name, args):
             return False, f"文件不存在: {f}"
         rep = kit_audit.audit(f)
         head = f"体检结论: {rep['verdict']}  电路={rep['circuits']} 网络={rep['nets']} 端口={rep['ports']}"
+        if rep.get("unsupported"):
+            names = [f"{u['component']}(lib={u['lib']})" for u in rep["unsupported"]]
+            head += "\n警告: 以下元件不在网表支持范围内，结论只覆盖其余部分: " + \
+                    "、".join(names[:8]) + ("…" if len(names) > 8 else "")
         detail = json.dumps(
             {k: v for k, v in rep.items() if k not in ("file", "circuits", "nets", "ports", "verdict")},
             ensure_ascii=False, indent=2)
-        return rep.get("verdict") in ("ok", "unsupported"), head + "\n" + detail
+        return rep.get("verdict") == "ok", head + "\n" + detail
 
     if name == "circ_sim":
         f = os.path.abspath(args["file"])
@@ -1245,11 +1295,14 @@ def call_tool(name, args):
         ok = True
         if out and os.path.isfile(out):
             rep = kit_audit.audit(out)
-            if rep.get("verdict") == "unsupported":
-                head += f"\n体检: 跳过（{rep.get('unsupported')}）"
+            if rep.get("verdict") == "partial":
+                head += f"\n体检: 部分覆盖（{rep.get('unsupported')}）"
+                ok = False
             else:
                 head += (f"\n体检: {rep['verdict']}（悬空 {len(rep['floating'])}，"
                          f"冲突 {len(rep['conflict'])}，孤立 {len(rep['dangling'])}，"
+                         f"位宽 {len(rep.get('width_conflict') or [])}，"
+                         f"断头线 {len(rep.get('dangling_wire') or [])}，"
                          f"重叠 {len(rep['body_overlap'])}）")
                 if rep.get("verdict") == "problems":
                     ok = False

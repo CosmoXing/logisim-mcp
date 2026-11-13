@@ -1,8 +1,12 @@
-"""元件几何查询：把端口偏移/包围盒统一成一份可查询的数据。"""
+"""元件几何查询：把端口偏移/包围盒统一成一份可查询的数据。
+
+权威来源：logisim-evolution 5.0 probe_component 实测（见 knowledge.json 的 geometry）。
+"""
 
 import math
+import re
 
-from . import knowledge
+from . import knowledge, netlist
 
 GATE_WIDTH = {"AND": 50, "OR": 50, "NAND": 60, "NOR": 60, "XOR": 60, "XNOR": 70, "NOT": 30}
 
@@ -32,11 +36,13 @@ DFF_PORTS = {"D": (-40, 20), "CLK": (-40, 0), "Q": (0, 0), "NQ": (0, 20), "R": (
 DFF_BODY = (-40, -10, 0, 30)
 
 
-def splitter_ports(fanout=4):
-    pts = {"in": (0, 0)}
-    for i in range(fanout):
-        pts[f"b{i}"] = (20, -20 + 10 * i)
-    return pts, (0, -20, 20, 20)
+def splitter_ports(fanout=4, facing="east", appear="left"):
+    return netlist.splitter_ports(fanout, facing, appear), \
+        netlist.splitter_body(fanout, facing, appear)
+
+
+def splitter_body(fanout=4, facing="east", appear="left"):
+    return netlist.splitter_body(fanout, facing, appear)
 
 
 def _r10(v):
@@ -79,24 +85,147 @@ def sub_geometry(pins):
     return (-ax, -ay, -ax + width, -ay + height), ports
 
 
-def describe(component=None):
-    """给 MCP 用的几何说明；component 为空返回全表。"""
+def _ports_json(pts, widths=None):
+    return {k: list(v) for k, v in pts.items()}, widths or {}
+
+
+def describe(component=None, select=None, width=None):
+    """给 MCP 用的几何说明；component 为空返回全表。
+
+    component 支持：gate/and[2]/or/not/nand/nor/xor/xnor、dff/tff、splitter[4][/west]、
+    mux[4|4:1]、decoder[3]、register[32]、comparator[3]、pin、constant、tunnel、clock、
+    led、ground、sub。未知名字返回提示，可改用 circ_probe 走 Java 桥实测。
+    """
     table = knowledge.geometry_table()
     if not component:
         return table
-    c = component.lower()
-    if c in ("and", "or", "nand", "nor", "xor", "xnor", "not", "gate"):
-        if c == "gate":
-            return {"widths": GATE_WIDTH, "rule": table["gate"]["formula"],
-                    "ports_2in": gate_ports("AND", 2)[0], "body_2in": gate_ports("AND", 2)[1]}
-        pts, body = gate_ports(c.upper(), 2)
-        return {"kind": c.upper(), "width": gate_width(c.upper()), "ports_2in": pts, "body": body}
-    if c in ("dff", "d", "flipflop", "d flip-flop"):
-        return {"ports": DFF_PORTS, "body": DFF_BODY,
+    raw = str(component).strip()
+    key = re.sub(r"[\s_\-]+", "", raw.lower())
+
+    def trailing(default=None):
+        m = re.search(r"(\d+)$", key)
+        return int(m.group(1)) if m else default
+
+    def kb(name):
+        return table.get(name)
+
+    gates = {"and", "or", "not", "nand", "nor", "xor", "xnor"}
+    gate = next((g for g in gates if key.startswith(g)), None)
+    if key == "gate" or (gate and (key == gate or key[len(gate):].isdigit())):
+        if key == "gate":
+            return {"widths": GATE_WIDTH, "rule": (kb("gate") or {}).get("formula", ""),
+                    "ports_2in": gate_ports("AND", 2)[0], "body_2in": gate_ports("AND", 2)[1],
+                    "kb": kb("gate")}
+        inputs = trailing(1 if gate == "not" else 2)
+        if not 1 <= inputs <= 8:
+            return {"error": f"{raw} 的输入数只支持 1~8"}
+        pts, body = gate_ports(gate.upper(), inputs)
+        return {"kind": gate.upper(), "inputs": inputs, "ports": pts, "body": body,
+                "width": GATE_WIDTH[gate.upper()], "kb": kb("gate")}
+
+    if key in ("dff", "d", "dflipflop", "flipflop"):
+        return {"kind": "D Flip-Flop", "ports": DFF_PORTS, "body": DFF_BODY,
                 "note": "classic 外观；上升沿由 trigger=rising 控制；R/S 悬空不影响"}
-    if c in ("splitter", "splitter4"):
-        pts, body = splitter_ports(4)
-        return {"ports": pts, "body": body, "note": "合并侧在 loc，分线侧 bit0 在最上"}
-    if c in ("sub", "subcircuit"):
-        return {"rule": table["subcircuit"]["formula"]}
-    return {"error": f"未知元件 {component}", "可选": ["gate", "and", "nand", "xor", "dff", "splitter", "sub"]}
+    if key in ("tff", "t", "tflipflop"):
+        return {"kind": "T Flip-Flop", "ports": netlist.TFF_PORTS, "body": DFF_BODY,
+                "note": "端口与 D 触发器同构，T 替代 D"}
+
+    if key.startswith("split"):
+        fanout = trailing(4)
+        facing = "west" if "west" in key else "east"
+        appear = "center" if "center" in key else ("right" if "right" in key else "left")
+        pts, body = splitter_ports(fanout, facing, appear)
+        geo = kb("splitter") or {}
+        return {"kind": "Splitter", "fanout": fanout, "facing": facing, "appear": appear,
+                "ports": {k: list(v) for k, v in pts.items()}, "body": list(body),
+                "port_widths": {"in": "incoming", **{f"b{i}": 1 for i in range(fanout)}},
+                "note": geo.get("_note", ""),
+                "kb": geo.get(facing)}
+
+    if key.startswith(("multiplex", "mux")):
+        n = select
+        if n is None:
+            ch = re.search(r"(\d+)\s*:", raw)
+            if ch:
+                n = max(1, (int(ch.group(1)) - 1).bit_length())
+            else:
+                ch = trailing(2)
+                n = max(1, (ch - 1).bit_length())
+        n = max(1, min(int(n), 6))
+        w = int(width) if width else 1
+        facing = "west" if "west" in key else "east"
+        enable = "enable" in key
+        pts = netlist.mux_ports(n, facing, enable)
+        widths = {k: (w if k.startswith("in") or k == "out" else n) for k in pts}
+        if "enable" in pts:
+            widths["enable"] = 1
+        geo = kb("mux") or {}
+        return {"kind": "Multiplexer", "select": n, "channels": 1 << n, "width": w,
+                "facing": facing, "enable": enable,
+                "ports": {k: list(v) for k, v in pts.items()}, "port_widths": widths,
+                "body": list(netlist.mux_body(n, facing)),
+                "note": geo.get("_note", ""), "kb": geo.get(f"{1 << n}:1")}
+
+    if key.startswith("dec") or key.startswith("decoder"):
+        n = int(select) if select else trailing(2)
+        n = max(1, min(n, 8))
+        facing = "west" if "west" in key else "east"
+        enabled = "noenable" not in key
+        pts = netlist.decoder_ports(n, facing, enabled)
+        widths = {k: (n if k == "sel" else 1) for k in pts}
+        geo = kb("decoder") or {}
+        return {"kind": "Decoder", "select": n, "outputs": 1 << n,
+                "facing": facing, "enable": enabled,
+                "ports": {k: list(v) for k, v in pts.items()}, "port_widths": widths,
+                "body": list(netlist.decoder_body(n, facing)),
+                "note": geo.get("_note", ""), "kb": geo}
+
+    if key.startswith("reg"):
+        w = int(width) if width else trailing(1)
+        geo = kb("register32") or {}
+        return {"kind": "Register", "width": w,
+                "ports": {k: list(v) for k, v in netlist.REGISTER_PORTS.items()},
+                "port_widths": {"D": w, "Q": w, "en": 1, "clk": 1, "clr": 1},
+                "body": list(netlist.REGISTER_BODY),
+                "note": geo.get("_note", "") + "；width 只影响端口位宽，不影响坐标",
+                "kb": geo}
+
+    if key.startswith(("comparator", "compare", "cmp")):
+        w = int(width) if width else trailing(1)
+        return {"kind": "Comparator", "width": w,
+                "ports": {k: list(v) for k, v in netlist.COMPARATOR_PORTS.items()},
+                "port_widths": {"a": w, "b": w, "gt": 1, "eq": 1, "lt": 1},
+                "body": list(netlist.COMPARATOR_BODY),
+                "note": (kb("comparator") or {}).get("_note", ""),
+                "kb": kb("comparator")}
+
+    if key.startswith("pin"):
+        geo = kb("pin") or {}
+        facing = "west" if "west" in key else "east"
+        return {"kind": "Pin", "facing": facing, "ports": {"p": [0, 0]},
+                "body": list((geo.get(facing) or {}).get("body") or [-50, -10, 50, 20]),
+                "note": (geo.get("_note") or "端口就是 loc；标签画在框外侧，x 太小时会被面板挡住")}
+
+    if key.startswith("const"):
+        geo = kb("constant") or {}
+        return {"kind": "Constant", "ports": geo.get("ports", {"out": [0, 0]}),
+                "body": geo.get("body"), "port_widths": {"out": "width 属性"}}
+
+    if key.startswith("tunnel"):
+        return {"kind": "Tunnel", "ports": {"p": [0, 0]}, "note": "同名隧道在**同一层电路**内互通"}
+    if key.startswith("clock"):
+        return {"kind": "Clock", "ports": {"p": [0, 0]}, "body": [5, -15, 35, 15]}
+    if key.startswith("led"):
+        return {"kind": "LED", "ports": {"p": [0, 0]}, "body": [5, -12, 32, 12]}
+    if key.startswith("ground"):
+        return {"kind": "Ground", "ports": {"p": [0, 0]}, "port_widths": {"p": 1}}
+    if key.startswith("sub"):
+        return {"rule": (kb("subcircuit") or {}).get("formula", "")}
+
+    if key in table:
+        return table[key]
+    return {"error": f"未知元件 {component}",
+            "可选": ["gate", "and", "or", "nand", "xor", "dff", "tff", "splitter",
+                     "mux", "decoder", "register", "comparator", "pin", "constant",
+                     "tunnel", "clock", "led", "ground", "sub"],
+            "hint": "任意元件（含 TTL/算术库）可用 circ_probe 让 Logisim 自己报几何"}

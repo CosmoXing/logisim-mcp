@@ -61,11 +61,11 @@ Logisim-evolution 是纯 Java Swing 桌面程序，没有任何脚本或网络�
 | 能力 | 说明 |
 |---|---|
 | **声明式生成** | 写网表（`pins` / `components` / `nets`），自动布局 + A* 布线；**不使用隧道**，符合多数课程作业限制 |
-| **静态体检** | 落盘后重建网表，报悬空 / 多驱动冲突 / 孤立端口 / 元件体重叠，定位到网络名与坐标 |
-| **多拍仿真** | 逐拍推进，**逐触发器检测各自的时钟沿**——同步与行波级联都算得对 |
+| **静态体检** | 落盘后重建网表，报悬空 / 多驱动冲突 / 孤立端口 / 位宽冲突 / 断头线 / 元件体重叠，定位到网络名与坐标 |
+| **多拍仿真** | 逐拍推进，**逐触发器/寄存器检测各自的时钟沿**——同步与行波级联都算得对 |
 | **几何与交叉复核** | 生成/布线/解析统一按 5.0 源码公式；`selftest` 再用 Logisim 真值表做外部复核 |
-| **失败显性** | 遇到不认识的元件（内置计数器、寄存器、复用器）直接报错并列出名字与位置，绝不"忽略元件继续跑" |
-| **经验库** | 随包 9 条实测坑（`circ_kb` 可增补；技能里另有 51 条坑表） |
+| **失败显性** | 寄存器 / 多路选择器 / 译码器 / 比较器已纳入网表；仍不认识的元件由 `circ_audit` 标 `partial` 并列出名字与位置，不再当作成功 |
+| **经验库** | 随包 19 条实测坑（`circ_kb` 可增补；技能里另有 51 条坑表） |
 | **Java 桥** | 把 `CircuitAppearance` 等进程内 API 暴露成回环 NDJSON 命令，GUI 内实时改外观、截图、保存 |
 | **零依赖** | 纯 Python 标准库；Java 只在跑 Logisim 原生能力与外观编辑时需要 |
 
@@ -160,7 +160,7 @@ Python     : 3.12.4 (/usr/bin/python3)
 Java       : /usr/bin/java
 内核 jar   : ~/.logisim/logisim-evolution-5.0.0-all.jar
 经验库     : .../knowledge.json
-  条目数   : 9
+  条目数   : 19
   可写     : 是
 插件清单   : logisim-mcp 1.1.0（skills=1）
 生成/体检  : ok（悬空 0，冲突 0）
@@ -179,9 +179,10 @@ Java       : /usr/bin/java
 | `circuit_stats` | 元件统计 |
 | `circuit_build` | 旧版生成器（通道布线 + 隧道），保留兼容 |
 | `circuit_open_gui` | 打开 GUI |
-| **`circ_geometry`** | 查元件真实端口偏移 / 包围盒（5.0 源码 + 实测） |
-| **`circ_audit`** | 静态体检：悬空 / 多驱动 / 孤立 / 重叠 |
-| **`circ_sim`** | 网表级多拍仿真，逐触发器检测时钟沿 |
+| **`circ_geometry`** | 查元件真实端口偏移 / 包围盒（5.0 源码 + 实测；支持 register / mux / decoder / comparator 等） |
+| **`circ_probe`** | 用 Java 桥让 Logisim 自己报任意元件的包围盒、端口坐标与位宽 |
+| **`circ_audit`** | 静态体检：悬空 / 多驱动 / 孤立 / 位宽冲突 / 断头线 / 重叠 |
+| **`circ_sim`** | 网表级多拍仿真，逐触发器/寄存器检测时钟沿 |
 | **`circ_build`** | 声明式多电路生成，迷宫布线，不使用隧道 |
 | **`circ_kb`** | 经验库：list / search / add |
 | **`circ_appearance`** | 在运行中的 Logisim JVM 里编辑子电路外观：get / auto / apply / preview / save / reset / close |
@@ -389,7 +390,8 @@ python tools/sync_skill.py              # 对比插件技能与用户目录
 ## 贡献
 
 见 [CONTRIBUTING.md](CONTRIBUTING.md)。最有价值的贡献是**新的踩坑记录**：
-用 `circ_kb add` 记一条，或直接改 `server/circuit_kit/knowledge.json` 提 PR。
+直接改 `server/circuit_kit/knowledge.json` 提 PR。`circ_kb add` 只写运行时副本
+（LOCALAPPDATA 或 `runtime/kb/`），不会自动进仓库；要让所有人拿到，需要把条目搬进随包 JSON。
 
 ## 许可
 

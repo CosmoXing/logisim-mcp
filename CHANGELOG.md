@@ -1,5 +1,20 @@
 # 更新记录
 
+## 未发布 — 网表支持寄存器/复用器/译码器/比较器；体检补连通性与位宽
+
+- **网表支持** `Multiplexer` / `Decoder` / `Register` / `Comparator`：按 5.0 实测端口建模；
+  寄存器支持 clk 边沿 + en + 异步 clr，比较器支持 unsigned / twosComplement。
+- **子电路端口** 读取 `<appear>` 的 `circ-port` 符号坐标：自定义外观不再按经典布局错位
+  （H15「跨电路串名」与 H24 的根因）。
+- **审计**：新增位宽冲突、断头线（10px 断口）检查；遇到不认识的元件返回 `partial` + 清单，
+  MCP 不再把它当作成功。
+- **几何** `circ_geometry` 支持 register / mux / decoder / comparator / constant / pin /
+  splitter 等，修正分线器公式（east 为 `-10*(n-k)`，`incoming` 缺省恒为 2，并支持
+  `appear=left/center/right`）；多路选择器/译码器补 `facing=west` 与 `enable` 变体。
+- **新增** `circ_probe`：把 Java 桥的 `probe_libraries` / `probe_component` 暴露成 MCP 工具。
+- **经验库** `_SEED` 改为直接读取随包 `knowledge.json`，加载时把缺失条目并回运行时副本，
+  消除内联副本漂移；`circ_kb add` 只写运行时副本，要发布需手动搬进仓库 JSON。
+
 ## 1.3.0 — 32×32 寄存器堆：全实体布线 + 元件探测
 
 - **新增** Java 桥命令 `probe_libraries` / `probe_component`：向运行中的 Logisim 询问任意元件的

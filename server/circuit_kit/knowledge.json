@@ -63,6 +63,7 @@
       ]
     },
     "splitter4": {
+      "_note": "5.0 实测：east 分线 b0 在 -10*n，不是 -20；west 用 splitter.west",
       "ports": {
         "in": [
           0,
@@ -70,26 +71,26 @@
         ],
         "b0": [
           20,
-          -20
+          -40
         ],
         "b1": [
           20,
-          -10
+          -30
         ],
         "b2": [
           20,
-          0
+          -20
         ],
         "b3": [
           20,
-          10
+          -10
         ]
       },
       "body": [
         0,
-        -20,
-        20,
-        20
+        -40,
+        21,
+        1
       ]
     },
     "subcircuit": {
@@ -294,7 +295,7 @@
       }
     },
     "splitter": {
-      "_note": "b0 永远在最上；east 分线在右，west 分线在左",
+      "_note": "b0 永远在最上；appear=left/center/right 决定出口在 bus 上方、居中还是下方（默认 left）。east+left: y=-10n 起；east+center: y=-10*floor(n/2) 起；east+right: y=+10 起；west 镜像",
       "east": {
         "bus": [
           0,
@@ -437,6 +438,12 @@
       "title": "子电路内部旁路会让父电路旁路变冗余",
       "detail": "EightRegs 内部已有 (raddr==waddr && wen) → wdata 的旁路；FourEights 顶层再比一次 5 位地址，逻辑等价却多两个比较器、两个与门、两个 2:1。先确认子模块是否已处理同址旁路，避免重复实现。",
       "evidence": "32x32 寄存器堆层次设计复盘"
+    },
+    {
+      "id": "splitter-appear-layout",
+      "title": "分线器 appear=center/right 会改变位端口高度",
+      "detail": "east+left（默认）：b0 在 -10n；east+center：起点 -10*floor(n/2)；east+right：起点 +10；west 镜像。builder 的 SPLITTER4 写的是 appear=center，必须按 center 算，否则线头差 10~20px，数码管读数会变成 U。",
+      "evidence": "probe_component Splitter 6 组 (facing×appear) + half_adder 回归"
     }
   ]
 }

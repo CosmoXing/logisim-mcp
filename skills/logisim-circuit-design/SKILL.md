@@ -1,6 +1,6 @@
 ---
 name: logisim-circuit-design
-description: 用代码生成、检查和验证 Logisim-evolution (.circ) 数字电路。适用于门级作业（计数器、分频器、寄存器、加法器、译码器、状态机）、8 位总线级电路（原码乘法器、ALU、移位寄存器）、分层子电路设计与子电路展平（paste/canonicalize）、「只许门电路和触发器、不许用现成芯片/隧道」这类限制，以及 .circ 打不开、显示 E/U、位宽冲突、模块引脚接不上、布线短接的排障。内含 57 条实战坑表（A-H 组：13 进制计数器 13 坑 + 8 位乘法器 13 坑 + 八进制加法器 6 坑，含 A* 布线静默失败、回折短接、假通过自检、mux 反接、迭代拍数）、确定性布线工具（lib8/route8）、时序向量封装（sim，<set><seq>）、GUI 截图工具（gui.py）与 5.0 端口坐标表。关键词：logisim、logisim-evolution、.circ、数字电路、电路作业、乘法器、原码乘法、计数器、模13、加法器、八进制、触发器、时序电路、真值表、测试向量、子电路、展平、分线器、数码管、模块外观、restart、netlist、确定性布线。
+description: 用代码生成、检查和验证 Logisim-evolution (.circ) 数字电路。适用于门级作业（计数器、分频器、寄存器、加法器、译码器、状态机）、8 位总线级电路（原码乘法器、ALU、移位寄存器）、64KB ROM/RAM 与低位交叉存储器、分层子电路设计与子电路展平（paste/canonicalize）、「只许门电路和触发器、不许用现成芯片/隧道」这类限制，以及 .circ 打不开、显示 E/U、位宽冲突、模块引脚接不上、布线短接的排障。内含 69 条实战坑表（A-I 组：13 进制计数器 13 坑 + 8 位乘法器 13 坑 + 八进制加法器 6 坑 + 3.2 存储器 12 坑，含 A* 布线静默失败、回折短接、假通过自检、mux 反接、迭代拍数、缺 #Plexers 库、Pin 未入网、connect 自检盲区）、确定性布线工具（lib8/route8）、时序向量封装（sim，<set><seq>）、GUI 截图工具（gui.py）与 5.0 端口坐标表。关键词：logisim、logisim-evolution、.circ、数字电路、电路作业、乘法器、原码乘法、计数器、模13、加法器、八进制、触发器、时序电路、真值表、测试向量、子电路、展平、分线器、数码管、模块外观、restart、netlist、确定性布线、RAM、ROM、存储器、低位交叉、字节使能、64KB。
 ---
 
 # Logisim 电路设计
@@ -10,7 +10,7 @@ description: 用代码生成、检查和验证 Logisim-evolution (.circ) 数字�
 | 路径 | 适合 | 入口 |
 |---|---|---|
 | A. MCP 工具（推荐） | 要交付、要可验证、连线复杂 | `circ_build` / `circ_audit` / `circ_sim` / `circuit_truth_table` / `circ_appearance` |
-| B. 手写脚本 | 环境里没有 MCP、或只想微调一个文件 | `scripts/logisim_gen.py` + `scripts/router.py` + `scripts/verify.py` |
+| B. 手写脚本 | 环境里没有 MCP、或只想微调一个文件 | `scripts/logisim_gen.py` + `scripts/router.py` + `scripts/verify.py`；存储器用 `scripts/mem_gen.py` |
 
 两条路的几何常量、布线规则、踩坑记录是同一套。先读第 1 节的版本前提，这是最容易翻车的地方。
 
@@ -306,7 +306,16 @@ d[8] clk r q[8] <set> <seq>
 | 打开报「加载电路文件出错」 | 目录有 `.circ.autosave` | 删掉再开 |
 | 没有绘图工具条 | 3.9 文件缺 `<toolbar>` | 补 `lib="8"` 的 toolbar 块（5.0 可省） |
 | 电路贴左上角、引脚被面板挡 | 从 `(0,0)` 起画 | 整体 `translate(+120,+60)` |
-| 数码管不亮 | 组件名写成 `HexDigit` | 正确名 `Hex Digit Display`，lib `5` |
+| 数码管不亮 | 组件名写成 `HexDigit` | 正确名 `Hex Digit Display`，5.0 的 lib 是 `3`（I/O）；旧 3.9 文件可能写 5 |
+| 全 `U`，GUI 报「找不到库 5」 | 工程头缺 `#Plexers`，mux/decoder 未识别 | 补 `<lib desc="#Plexers" name="5"/>`（I1） |
+| 全 `U`，引脚都在但地址/数据没驱动 | `add_pin()` 建了 Pin 却没加入任何 net | 断言每个 Pin 至少出现在一条 net（I2） |
+| 生成器自检通过，功能却断线 | `connect()` 不写 `_net_terms`，`verify_nets` 空验证 | 记录端点 + 并查集连通性检查（I3） |
+| RAM 写不进、读回全 `FF` | `DIN/WE/CLK` 没真正到 bank，或地址/数据 `U` | 先单 bank 直连测，再查 mux/使能扇出（I2/I9） |
+| 字节读「错位」，像 mux 接反 | bank0 是 LSB，测试期望值按大端写了 | 先定字节序再写期望值（I4） |
+| `-t stats` 报加载失败，`-w` 却能跑 | 同目录有 `.circ.autosave` | 关 GUI、删 autosave（I5） |
+| `circ_audit` 报一堆 dangling，但电路能跑 | RAM/ROM/Bit Extender 不在网表支持范围，结论 partial | 以生成器自检 + `-w` 功能向量为准（I6） |
+| `circ_appearance preview` 只截到空框 | preview 切到外观视图，不是 circuit view | 主布局用 GUI + 窗口截图（I8） |
+| 16 位地址想拆成 14+2 拆不出来 | Splitter 分支等宽，不能直接拆 2+14 | 8×2 拆分 + 7×2 合并（I10） |
 
 ## 8. 完整案例：两位十三进制计数器
 
@@ -316,6 +325,36 @@ d[8] clk r q[8] <set> <seq>
 每条都是「现象 → 根因 → 解决 → 怎么验证」，文末有排查决策树。
 
 做计数器、分频器、状态机这类时序电路时先读它，能省掉一整轮试错。
+
+## 8.5 存储器设计：64KB ROM + 64KB RAM（低位交叉）
+
+`references/memory-casebook.md` 是 3.2 存储器实验的完整复盘：32 位字长、16 位字节地址、
+64KB ROM + 64KB RAM、字/字节访问都必须单周期。核心结构：
+
+```
+main
+ ├─ rom64k   1 × 16K×32 ROM = 64KB
+ └─ ram64k   4 × 16K×8 RAM 低位交叉 = 64KB
+     ├─ bank0..bank3
+     ├─ 字节使能 BE_i = ~BYTE | (A[1:0]==i)
+     └─ 字/字节读选择
+```
+
+关键规则：
+
+- **地址**：`A[15:2]` 送 4 个 bank 和 ROM，`A[1:0]` 选字节通道；`bank i` 存地址 `4k+i` 的字节。
+- **字节序**：bank0 是 LSB；`0x11223344` 的 byte0=0x44、byte1=0x33、byte2=0x22、byte3=0x11。
+- **单周期**：字写 4 bank 并行；字节写只使能 `A[1:0]` 选中的 bank；读用异步 RAM/ROM + 组合 mux。
+- **RAM 5.0 配置**：`addrWidth=14,dataWidth=8,enables=byte,type=volatile,trigger=rising,`
+  `asyncread=true,databus=bibus,clearpin=false`；`EN` 是 OE，接 1。
+- **ROM contents**：`addr/data: 14 32` 后跟十六进制值列表，少写地址按 0 填充。
+- **横线拆分**：Splitter 分支等宽，16→14+2 要 8×2 拆分 + 7×2 合并，不能直接拆 2+14。
+- **外观**：`bank8` / `rom64k` / `ram64k` 都用圆角框 + 名称牌 + 端口标签；父电路按外观端口布线。
+- **验证**：分层跑 `bank8 → 数据通路 → 控制逻辑 → ram64k → rom64k → main`；
+  3.2 实测 `main` 37/37、`ram64k` 16/16、`bank8` 7/7。
+
+最常用的排查顺序：全 `U` 先查 `#Plexers` 库和 Pin 是否入网；写不进先单 bank 直连；
+字节错位先查字节序；`stats` 加载失败先删 autosave；`audit` partial 时以 `-w` 为准。
 
 ## 9. 四条不要做
 
@@ -332,18 +371,20 @@ d[8] clk r q[8] <set> <seq>
 | 文件 | 内容 |
 |---|---|
 | `references/counter13-casebook.md` | 13 进制计数器实战复盘：13 个坑 + 验证矩阵 + 排查决策树 |
+| `references/memory-casebook.md` | 64KB ROM/RAM 低位交叉：结构、RAM/ROM 5.0 端口、生成器、37/37 验证、12 坑 |
 | `references/geometry.md` | 端口/尺寸常量（含 3.9 vs 5.0 对照）、布线语义、布局与压缩 |
 | `references/dsl.md` | `circ_build` 的 DSL 完整参考：字段、端口名、自动布局、报错含义 |
 | `references/circ-format.md` | `.circ` XML 结构、库索引、组件属性、toolbar、版本差异 |
 | `references/verification.md` | CLI 参数、`.vec` 格式、用例设计、双工程策略、GUI 截图 |
 | `references/appearance.md` | 子电路外观：spec、自动排版、保端口/重排、保存校验 |
-| `references/pitfalls.md` | 57 条实战坑：A-G 组（4 位规模）+ H 组（8 位总线/展平/Windows 环境/外观与 GUI 自动化） |
+| `references/pitfalls.md` | 69 条实战坑：A-G 组（4 位规模）+ H 组（8 位总线/展平/Windows 环境/外观与 GUI 自动化）+ I 组（存储器/工程头/connect 盲区） |
 | `scripts/logisim_gen.py` | XML 生成器：pin / gate / sub / splitter / display / wire / project |
 | `scripts/router.py` | 通道布线器：正交、避让、禁止共线重叠（4 位规模） |
 | `scripts/verify.py` | `-t table` / `-t stats` / `-w` 的封装（自动找 jar、GBK 解码） |
 | `scripts/lib8.py` | 8 位总线生成库：Board / 门/DFF/分线器/子电路/Constant/Clock 几何 + project |
 | `scripts/route8.py` | 确定性布线：z/w 折线 + 六项自检 + verify_nets/verify_short + paste/canonicalize |
 | `scripts/sim.py` | 向量测试封装：`<set> <seq>` 时序、jar 自动探测、verify_alive 防假通过 |
+| `scripts/mem_gen.py` | 64KB ROM + 64KB RAM 生成器：bank8/ram64k/rom64k/main + 自定义外观 + 自检 |
 | `scripts/gui.py` | GUI 自动化：ctypes+PIL 找窗口/点击/送键/滚轮缩放/截图/启动载入（沙箱内可用） |
 | `assets/full-adder.circ` | 已知可用（真值表 8/8）的最小参考工程，5.0 格式 |
 

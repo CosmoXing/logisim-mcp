@@ -328,6 +328,45 @@
           "10*n+1"
         ]
       }
+    },
+    "ram8": {
+      "_note": "Memory/RAM 5.0 实测（16K×8）。addrWidth=14,dataWidth=8,enables=byte,type=volatile,trigger=rising,asyncread=true,databus=bibus,clearpin=false；EN 是输出使能，接 1。",
+      "ports": {
+        "A": [0, 10],
+        "D": [0, 90],
+        "Q": [240, 90],
+        "WE": [0, 50],
+        "EN": [0, 60],
+        "CLK": [0, 70]
+      },
+      "port_widths": {"A": 14, "D": 8, "Q": 8, "WE": 1, "EN": 1, "CLK": 1},
+      "body": [0, 0, 240, 250],
+      "attrs": {
+        "addrWidth": 14,
+        "dataWidth": 8,
+        "enables": "byte",
+        "type": "volatile",
+        "trigger": "rising",
+        "asyncread": "true",
+        "databus": "bibus",
+        "clearpin": "false"
+      }
+    },
+    "rom32": {
+      "_note": "Memory/ROM 5.0 实测（16K×32）。contents 写成 addr/data: 14 32 + 十六进制值列表；少写的地址按 0 填充。",
+      "ports": {
+        "A": [0, 10],
+        "Q": [240, 60]
+      },
+      "port_widths": {"A": 14, "Q": 32},
+      "body": [0, 0, 240, 220],
+      "attrs": {"addrWidth": 14, "dataWidth": 32, "line": "single", "misaligned": "false"}
+    },
+    "bit_extender": {
+      "_note": "Wiring/Bit Extender：端口固定，位宽由 in_width/out_width 决定；零扩展用 type=zero。",
+      "ports": {"in": [-40, 0], "out": [0, 0]},
+      "body": [-40, -20, 0, 20],
+      "attrs": {"in_width": "输入位宽", "out_width": "输出位宽", "type": "zero|sign"}
     }
   },
   "pitfalls": [
@@ -357,9 +396,9 @@
     },
     {
       "id": "vector-row-reset",
-      "title": "Logisim -w 每行都从初始状态重新求值",
-      "detail": "两级触发器链的 q1 永远传不过去，说明 -w 不能验证多拍时序，只能验组合逻辑。时序请用 circ_sim（网表仿真）。",
-      "evidence": "两级 DFF 链交替时钟实验"
+      "title": "Logisim -w 默认每行重置；<set>/<seq> 才保留状态",
+      "detail": "没有 <set>/<seq> 时，-w 每行都从初始状态重新求值，两级触发器链的 q1 永远传不过去；加上 <set>/<seq> 后按组保留电路状态（含子电路实例），可以测多拍时序。CLK 用 0→1 两行制造上升沿，写行期望值用 <DC>；时序仍建议用 circ_sim 交叉复核。",
+      "evidence": "两级 DFF 链 + 3.2 存储器 main 37 行 / ram64k 16 行"
     },
     {
       "id": "not-gate-exception",
@@ -444,6 +483,78 @@
       "title": "分线器 appear=center/right 会改变位端口高度",
       "detail": "east+left（默认）：b0 在 -10n；east+center：起点 -10*floor(n/2)；east+right：起点 +10；west 镜像。builder 的 SPLITTER4 写的是 appear=center，必须按 center 算，否则线头差 10~20px，数码管读数会变成 U。",
       "evidence": "probe_component Splitter 6 组 (facing×appear) + half_adder 回归"
+    },
+    {
+      "id": "missing-plexers-lib",
+      "title": "工程头缺 #Plexers 会让 Mux/Decoder 全变成未识别元件",
+      "detail": "lib8.project() 默认只声明 #Wiring/#Gates/#Memory/#I/O/#Base（0~4）；用了 Multiplexer/Decoder（lib=5）时必须手动补 <lib desc='#Plexers' name='5'/>。缺库不会在 -w 时报错，而是把 mux 输出当 U，表现为整机 DOUT 全 U；GUI 打开则提示“找不到库 5”。",
+      "evidence": "3.2 存储器 main 37 行全 U；补库后 37/37"
+    },
+    {
+      "id": "pin-must-be-in-net",
+      "title": "建了 Pin 不等于入网：A/DIN 漏接会让地址/数据全 U",
+      "detail": "生成器里 add_pin() 只创建引脚元件，必须显式把 pin 坐标加入某条 net。3.2 的 ram64k 先后漏了 A 和 DIN 两根：A 漏接时地址 U；DIN 漏接时写数据 U，RAM 写不进、读回全 FF。生成后应断言每个声明的 Pin 至少出现在一条 net 的端点里。",
+      "evidence": "ram64k 写测试 16 行全失败，补 din_in 后 16/16"
+    },
+    {
+      "id": "connect-verify-blindspot",
+      "title": "lib8.Board.connect() 不写 _net_terms，verify_nets 对它是空验证",
+      "detail": "route8.verify_nets() 只检查 z/w 路由注册的 _net_terms；connect() 只写 self.nets 和 term。于是断线/漏接的 connect 网也能“通过”自检。正确做法：自己记录每根 connect 网的预期端点，用并查集检查所有端点在同一连通块；verify_short 只查短路，查不出开路。",
+      "evidence": "3.2 ram64k 漏 DIN 时 verify_nets/verify_short 均通过，功能测试才暴露"
+    },
+    {
+      "id": "little-endian-bank-map",
+      "title": "4 bank 低位交叉先定字节序：bank0 是 LSB",
+      "detail": "bank i 存地址 4k+i 的字节时，字 0x11223344 的 byte0=0x44、byte1=0x33、byte2=0x22、byte3=0x11。按大端写期望值会把“mux 接反”误判成故障。测试向量里先写清 bank 映射与字节序，再写期望值。",
+      "evidence": "3.2 ROM 字节读 A=1 期望写成 0x22，实际 0x33；修正期望后 6/6"
+    },
+    {
+      "id": "autosave-load-error",
+      "title": ".circ.autosave 会让 -t stats 报“加载电路文件出错”",
+      "detail": "GUI 会话异常退出或未保存时会留下 .<文件名>.autosave。此时 -w 可能仍能跑，但 -t stats 直接报加载失败。无头运行前先关闭 GUI，删除同目录的 .circ.autosave，再重跑。",
+      "evidence": "3.2.circ stats 报错；删除 .3.2.circ.autosave 后 stats_exit=0"
+    },
+    {
+      "id": "audit-partial-memory",
+      "title": "circ_audit 对 RAM/ROM/Bit Extender 只给 partial，dangling 不可全信",
+      "detail": "网表重建不支持 Memory 库的 RAM/ROM 和 Wiring 的 Bit Extender，会把正常连接报成 dangling，结论标 partial。存储器/总线电路不能拿它当最终判据；以生成器几何自检 + Logisim -w 功能向量为准。",
+      "evidence": "3.2.circ audit partial，列出 Splitter/Mux/Constant 多条假 dangling；-w 37/37"
+    },
+    {
+      "id": "handwritten-debug-circ-hang",
+      "title": "手写调试 .circ 可能让 Logisim 卡死或弹窗",
+      "detail": "临时手拼的 .circ 很容易出现非法线、端口压线或宽度冲突，-w 会长时间无响应/弹窗，headless 下只能 kill Java。调试电路也应由生成器产出，或至少用 probe/audit 先过一遍；调试文件放 %TEMP%，不要放交付目录。",
+      "evidence": "temp_romout.circ 的 -w 卡住，两个 Java 进程需强制结束"
+    },
+    {
+      "id": "appearance-preview-vs-circuit",
+      "title": "circ_appearance preview 截的是外观视图，不是 circuit view",
+      "detail": "preview 会切到 Edit Circuit Appearance，main 没有自定义外观时只看到空框。要截主电路布局，需打开 GUI 后保持 circuit view，用 System.Drawing/PrintWindow 截窗口；子电路符号才用 preview。shot.py/wincap.py 依赖 PIL，环境没有 PIL 时会失败。",
+      "evidence": "3.2 main.png 是空外观框；改用全屏截图得到 main_circuit.png"
+    },
+    {
+      "id": "memory-port-map",
+      "title": "RAM/ROM 5.0 实测端口：A(0,10)/D(0,90)/Q(240,90)/WE(0,50)/EN(0,60)/CLK(0,70)",
+      "detail": "16K×8 RAM：addrWidth=14,dataWidth=8,enables=byte,type=volatile,trigger=rising,asyncread=true,databus=bibus,clearpin=false；体 240×250，EN 是 OE，接 1。16K×32 ROM：A(0,10)、Q(240,60)，体 240×220。circ_geometry 现已补 ram8/rom32 条目；其他位宽用 circ_probe。",
+      "evidence": "probe_component RAM/ROM 三组实测 + bank8 7/7"
+    },
+    {
+      "id": "splitter-equal-branches",
+      "title": "Splitter 分支等宽：16→14+2 要 8×2 拆分再 7×2 合并",
+      "detail": "Logisim 的 fanout 分支宽度固定为 incoming/fanout，不能直接拆成 2 位+14 位。做法：16 位用 fanout=8 拆成 8 个 2 位分支，b0 作字节通道，b1..b7 用 fanout=7/incoming=14 的 west 合并成 14 位字地址。b0 永远在最上。",
+      "evidence": "3.2 ram64k/rom64k 地址链；ROM 字读 6/6"
+    },
+    {
+      "id": "rom-contents-format",
+      "title": "ROM contents 格式：addr/data: 14 32 + 十六进制值列表",
+      "detail": "属性值写成 addr/data: <addrBits> <dataBits> 后跟十六进制值列表；只写前 64 个字时其余地址按 0 填充。32 位 ROM 每值 8 位十六进制，8 位 ROM 每值 2 位，不要写 0x 前缀。",
+      "evidence": "3.2 ROM 预置 64 字 0x11223344+i*0x01010101，A=0/4 读回正确"
+    },
+    {
+      "id": "vector-set-seq-hierarchy",
+      "title": "-w 的 <set>/<seq> 可跨子电路保留状态，但列名/列数必须严格匹配",
+      "detail": "同一 <set> 内按 <seq> 递增执行，状态会保留到下一行，子电路实例内部状态也保留；CLK 用 0→1 两行制造上升沿，写行期望值用 <DC>。列名对不上时 Logisim 静默跳过，必须确认“通过数 == 数据行数”。",
+      "evidence": "3.2 main 37 行 + ram64k 16 行 + bank8 7 行全过；列名错时曾静默跳过"
     }
   ]
 }

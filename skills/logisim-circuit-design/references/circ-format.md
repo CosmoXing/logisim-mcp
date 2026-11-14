@@ -36,7 +36,7 @@
 - 子电路只要在同文件里有 `<circuit name="X">` 定义，实例用 `<comp loc=... name="X">` 引用，无需 lib。
 - 元件顺序无关；导线可以写在元件前也可以后。
 - `<options/>` 可以为空。toolbar 不能写在 options 里，必须在 `<project>` 下直接作为子节点。
-- 没有 `<toolbar>` 的文件打开后没有绘图工具条（工具条配置是逐文件保存的，不是全局设置）。`<tool>` 必须带 `lib="8"`（#Base），否则报「在库中找不到该工具」。
+- 没有 `<toolbar>` 的文件打开后没有绘图工具条（工具条配置是逐文件保存的，不是全局设置）。`<tool>` 必须带 `lib="8"`（工具条专用索引，不是组件库 #Base=4），否则报「在库中找不到该工具」。
 
 ## 2. 库索引（实测）
 
@@ -44,10 +44,15 @@
 |---|---|---|
 | `0` | #Wiring | Pin / Splitter / Constant / Power / Ground / Tunnel / Probe |
 | `1` | #Gates | `AND Gate` / `OR Gate` / `NOT Gate` / `XOR Gate` / `NAND Gate` / `NOR Gate` / `XNOR Gate` |
-| `5` | #I/O | `Hex Digit Display` / Button / LED / 7-Segment |
-| `8` | #Base | 工具和基础件（toolbar 里的 tool 用这个库） |
+| `2` | #Memory | `RAM` / `ROM` / Register / Counter |
+| `3` | #I/O | `Hex Digit Display` / Button / LED / 7-Segment |
+| `4` | #Base | 基础件 |
+| `5` | #Plexers | `Multiplexer` / `Decoder` / `Comparator` |
+| `6/7` | #Arithmetic / #TTL | 未实测；在 GUI 里放一个组件保存回读 |
 
-> 其它库（Plexers / Arithmetic / Memory / TTL）的索引未实测。可靠做法：在 GUI 里手动放一个该组件、保存一次，读回文件看它写了什么 lib 数字和组件名，然后照着写。不要猜。
+> 5.0 实测：Memory=2、I/O=3、Plexers=5。`lib8.project()` 默认只声明 0~4，
+> 用了 mux/decoder 时必须补 `<lib desc="#Plexers" name="5"/>`，否则组件变未识别、输出全 `U`。
+> toolbar 里的 `<tool lib="8">` 是工具条专用索引，不等于组件库 #Base=4，别混用。
 
 ## 3. 组件写法
 
@@ -76,7 +81,7 @@
 </comp>
 
 <!-- 十六进制数码管：组件名一个空格都不能错 -->
-<comp lib="5" loc="(980,160)" name="Hex Digit Display">
+<comp lib="3" loc="(980,160)" name="Hex Digit Display">
   <a name="label" val="digit3"/>
 </comp>
 

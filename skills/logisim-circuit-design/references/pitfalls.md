@@ -1,10 +1,11 @@
-# 实战坑表（57 条，症状 → 根因 → 解决）
+# 实战坑表（69 条，症状 → 根因 → 解决）
 
 按「从文件到电路、从布局到运行环境」排序。每条都是踩过的，不是推测。
 G 组是 5.0 环境做 13 进制计数器时新增的，完整上下文见 `counter13-casebook.md`；
 H 组是 8 位总线乘法器（2 万+ 导线、展平/分层两种形态）新增的，配套工具在 `scripts/lib8.py`、
 `scripts/route8.py`、`scripts/sim.py`；H14–H19 是八进制两位数加法器（模块外观 + restart 掩码 +
-紧凑布局）新增的。
+紧凑布局）新增的；I 组是 3.2 存储器实验新增（工程头库、引脚入网、connect 自检、RAM/ROM、
+低位交叉字节序、autosave、audit 边界）。
 
 ---
 
@@ -430,3 +431,74 @@ H 组是 8 位总线乘法器（2 万+ 导线、展平/分层两种形态）新�
   `FourEights` 顶层再比一次 5 位地址，逻辑等价，却多两个比较器、两个与门、两个 2:1。
 - 规则：先确认子模块是否已处理同址旁路，避免重复实现；
   若保留，两边比较位宽必须一致（3 位 vs 5 位不能混）。
+
+---
+
+## I. 存储器 / 工程头 / connect 盲区（3.2 存储器实验新增）
+
+### I1 工程头缺 `#Plexers`，Mux/Decoder 全变未识别元件
+- 症状：整机 `DOUT` 全 `U`；GUI 打开提示「找不到库“5”」。
+- 根因：`lib8.project()` 只声明 `#Wiring/#Gates/#Memory/#I/O/#Base`（0~4），
+  用了 `Multiplexer/Decoder`（lib=5）却没写 `<lib desc="#Plexers" name="5"/>`。
+- 解决：生成后检查工程头；缺库不会在 `-w` 时报错，只会把 mux 输出当 `U`。
+
+### I2 建了 Pin 不等于入网：A/DIN 漏接会让地址/数据全 `U`
+- 症状：地址/数据全 `U`；RAM 写不进、读回全 `FF`。
+- 根因：`add_pin()` 只创建引脚元件，还必须显式把 pin 坐标加入某条 net。
+- 解决：生成后断言「每个声明的 Pin 至少出现在一条 net 的端点里」；不满足不落盘。
+
+### I3 `lib8.Board.connect()` 不写 `_net_terms`，`verify_nets` 对它是空验证
+- 症状：断线/漏接的网也能「自检通过」，功能测试才暴露。
+- 根因：`route8.verify_nets()` 只检查 `z/w` 路由注册的 `_net_terms`；
+  `connect()` 只写 `self.nets` 和 `term`。`verify_short` 只查短路，查不出开路。
+- 解决：自己记录每根 connect 网的预期端点，用并查集检查所有端点在同一连通块。
+
+### I4 4 bank 低位交叉先定字节序：bank0 是 LSB
+- 症状：字节读「错位」，误判成 mux 选择反。
+- 根因：`bank i` 存地址 `4k+i` 的字节时，字 `0x11223344` 的
+  `byte0=0x44、byte1=0x33、byte2=0x22、byte3=0x11`；按大端写期望值就会错。
+- 解决：测试向量里先写清 bank 映射与字节序，再写期望值。
+
+### I5 `.circ.autosave` 会让 `-t stats` 报「加载电路文件出错」
+- 症状：`-w` 可能还能跑，但 `-t stats` 直接报加载失败。
+- 根因：GUI 会话异常退出/未保存留下 `.<文件名>.autosave`。
+- 解决：无头运行前关闭 GUI，删除同目录的 `.circ.autosave`，再重跑。
+
+### I6 `circ_audit` 对 RAM/ROM/Bit Extender 只给 partial
+- 症状：正常连接被列成 `dangling`，结论标 `partial`。
+- 根因：网表重建不支持 Memory 库的 RAM/ROM 和 Wiring 的 Bit Extender。
+- 解决：存储器/总线电路以生成器几何自检 + Logisim `-w` 功能向量为准；
+  `audit` 的 `dangling` 不能全信。
+
+### I7 手写调试 `.circ` 可能让 Logisim 卡死或弹窗
+- 症状：`-w` 长时间无响应，headless 下只能 kill Java 进程。
+- 根因：手拼 XML 容易出现非法线、端口压线或宽度冲突。
+- 解决：调试电路也由生成器产出；调试文件放 `%TEMP%` 或 `_debug/`。
+
+### I8 `circ_appearance preview` 截的是外观视图，不是 circuit view
+- 症状：`main` 截图只有一个空框，看不到电路布局。
+- 根因：`preview` 会切到 Edit Circuit Appearance；没有自定义外观的 `main` 只显示端口框。
+- 解决：主电路布局用 GUI + 窗口截图（System.Drawing/PrintWindow）；
+  子电路符号才用 `preview`。`shot.py/wincap.py` 依赖 PIL，环境没有 PIL 时会失败。
+
+### I9 RAM/ROM 5.0 实测端口
+- 16K×8 RAM：`addrWidth=14,dataWidth=8,enables=byte,type=volatile,trigger=rising,`
+  `asyncread=true,databus=bibus,clearpin=false`；体 `240×250`；
+  `A(0,10) / D(0,90) / Q(240,90) / WE(0,50) / EN(0,60) / CLK(0,70)`；`EN` 是 OE，接 1。
+- 16K×32 ROM：`A(0,10) / Q(240,60)`，体 `240×220`。
+- 其他位宽用 `circ_probe` 实测，不要照搬。
+
+### I10 Splitter 分支等宽：16→14+2 要 8×2 拆分再 7×2 合并
+- 根因：Logisim 的 fanout 分支宽度固定为 `incoming/fanout`，不能直接拆成 2 位+14 位。
+- 解决：16 位用 `fanout=8` 拆成 8 个 2 位分支，`b0` 作字节通道，
+  `b1..b7` 用 `fanout=7/incoming=14` 的 west 合并成 14 位字地址；`b0` 永远在最上。
+
+### I11 ROM contents 格式：`addr/data: 14 32` + 十六进制值列表
+- 属性值写成 `addr/data: <addrBits> <dataBits>` 后跟十六进制值列表；
+  只写前 64 个字时其余地址按 0 填充。
+- 32 位 ROM 每值 8 位十六进制，8 位 ROM 每值 2 位，不要写 `0x` 前缀。
+
+### I12 `-w` 的 `<set>/<seq>` 可跨子电路保留状态
+- 同一 `<set>` 内按 `<seq>` 递增执行，状态会保留到下一行，子电路实例内部状态也保留。
+- CLK 用 0→1 两行制造上升沿，写行期望值用 `<DC>`。
+- 列名对不上时 Logisim 静默跳过，必须确认「通过数 == 数据行数」。

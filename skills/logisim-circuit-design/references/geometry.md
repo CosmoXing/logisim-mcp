@@ -148,6 +148,53 @@ S   : (-30, +30)      异步置位，高有效
 - 反向当合并器时位序同 4 位：最上面的口是最低位。
 - 8 位分线器 + 10px 密排扇出是布线碰撞高发区，配合 `scripts/route8.py` 的确定性布线使用。
 
+### 5.2 存储器与 Bit Extender（3.2 实测）
+
+**Splitter 分支等宽**：分支宽度固定为 `incoming/fanout`，不能直接拆成 2+14。
+16 位地址拆 14 位字地址 + 2 位字节通道：
+
+```
+16 位 --fanout=8, incoming=16--> 8 个 2 位分支
+  b0        -> A[1:0] 字节通道
+  b1..b7    -> fanout=7, incoming=14 的 west 合并器 -> A[15:2]
+```
+
+两个 splitter 的 2 位端口等高直连；`b0` 永远在最上。
+
+**16K×8 RAM**（`lib=2 name=RAM`）：
+
+```
+addrWidth=14, dataWidth=8, enables=byte, type=volatile,
+trigger=rising, asyncread=true, databus=bibus, clearpin=false
+
+体: 240×250
+A   (0,10)   D (0,90)   Q (240,90)
+WE  (0,50)   EN (0,60)  CLK (0,70)
+```
+
+`EN` 是输出使能（OE），直接接 1；写由 `WE=1` + CLK 上升沿触发。
+
+**16K×32 ROM**（`lib=2 name=ROM`）：
+
+```
+addrWidth=14, dataWidth=32, line=single, misaligned=false
+contents = addr/data: 14 32 + 十六进制值列表（少写地址按 0 填充）
+
+体: 240×220
+A (0,10)   Q (240,60)
+```
+
+**Bit Extender**（`lib=0 name="Bit Extender"`）：
+
+```
+in_width=8, out_width=32, type=zero
+in  (-40,0)   out (0,0)
+体: (-40,-20) 40×40
+```
+
+`circ_geometry` 已内置 `ram8 / rom32 / bitextender`；其他位宽用 `circ_probe` 实测，
+不要照搬 14/8/32。
+
 ## 6. 十六进制数码管 Hex Digit Display
 
 ```

@@ -93,8 +93,9 @@ def describe(component=None, select=None, width=None):
     """给 MCP 用的几何说明；component 为空返回全表。
 
     component 支持：gate/and[2]/or/not/nand/nor/xor/xnor、dff/tff、splitter[4][/west]、
-    mux[4|4:1]、decoder[3]、register[32]、comparator[3]、pin、constant、tunnel、clock、
-    led、ground、sub。未知名字返回提示，可改用 circ_probe 走 Java 桥实测。
+    mux[4|4:1]、decoder[3]、register[32]、comparator[3]、ram/ram8、rom/rom32、
+    bitextender、pin、constant、tunnel、clock、led、ground、sub。
+    未知名字返回提示，可改用 circ_probe 走 Java 桥实测。
     """
     table = knowledge.geometry_table()
     if not component:
@@ -222,10 +223,24 @@ def describe(component=None, select=None, width=None):
     if key.startswith("sub"):
         return {"rule": (kb("subcircuit") or {}).get("formula", "")}
 
+    if key.startswith("ram"):
+        geo = table.get("ram8")
+        if geo:
+            return geo
+    if key.startswith("rom"):
+        geo = table.get("rom32")
+        if geo:
+            return geo
+    if key.startswith(("bitextender", "extender")):
+        geo = table.get("bit_extender")
+        if geo:
+            return geo
+
     if key in table:
         return table[key]
     return {"error": f"未知元件 {component}",
             "可选": ["gate", "and", "or", "nand", "xor", "dff", "tff", "splitter",
-                     "mux", "decoder", "register", "comparator", "pin", "constant",
-                     "tunnel", "clock", "led", "ground", "sub"],
+                     "mux", "decoder", "register", "comparator", "ram8", "rom32",
+                     "bitextender", "pin", "constant", "tunnel", "clock", "led",
+                     "ground", "sub"],
             "hint": "任意元件（含 TTL/算术库）可用 circ_probe 让 Logisim 自己报几何"}

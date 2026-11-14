@@ -736,7 +736,8 @@ TOOLS = [
         "description": (
             "查询元件真实端口偏移与包围盒（v5.0 probe_component 实测，数据源 knowledge.json）。"
             "component 支持 gate/and[2]/or/not/nand/xor/xnor、dff/tff、splitter[4][west]、"
-            "mux[4|4:1]、decoder[3]、register[32]、comparator[3]、pin/constant/tunnel/clock/led/ground/sub；"
+            "mux[4|4:1]、decoder[3]、register[32]、comparator[3]、ram8/rom32/bitextender、"
+            "pin/constant/tunnel/clock/led/ground/sub；"
             "留空返回全表。select 表示选择位宽（n 位 → 2^n 路），width 表示数据位宽。"
         ),
         "inputSchema": {

@@ -65,7 +65,7 @@ Logisim-evolution 是纯 Java Swing 桌面程序，没有任何脚本或网络�
 | 多拍仿真 | 逐拍推进，逐触发器/寄存器检测各自的时钟沿——同步与行波级联都算得对 |
 | 几何与交叉复核 | 生成/布线/解析统一按 5.0 源码公式；`selftest` 再用 Logisim 真值表做外部复核 |
 | 失败显性 | 寄存器 / 多路选择器 / 译码器 / 比较器已纳入网表；仍不认识的元件由 `circ_audit` 标 `partial` 并列出名字与位置，不再当作成功 |
-| 经验库 | 随包 19 条实测坑（`circ_kb` 可增补；技能里另有 51 条坑表） |
+| 经验库 | 随包 31 条实测坑（`circ_kb` 可增补；技能里另有 69 条坑表）；含 3.2 存储器实战：RAM/ROM 几何、低位交叉、字节使能、connect 连通性盲区 |
 | Java 桥 | 把 `CircuitAppearance` 等进程内 API 暴露成回环 NDJSON 命令，GUI 内实时改外观、截图、保存 |
 | 零依赖 | 纯 Python 标准库；Java 只在跑 Logisim 原生能力与外观编辑时需要 |
 
@@ -112,12 +112,13 @@ python tools/install.py --uninstall      # 撤销
 
 ### 方式三：完全不用 MCP
 
-`skills/logisim-circuit-design/scripts/` 里的三个脚本可以独立运行：
+`skills/logisim-circuit-design/scripts/` 里的脚本可以独立运行：
 
 ```bash
 python skills/logisim-circuit-design/scripts/verify.py table skills/logisim-circuit-design/assets/full-adder.circ
 python skills/logisim-circuit-design/scripts/verify.py stats demo.circ
 python skills/logisim-circuit-design/scripts/verify.py vector main case.vec demo_test.circ
+python skills/logisim-circuit-design/scripts/mem_gen.py demo_mem.circ   # 64KB ROM + 64KB RAM
 ```
 
 ## 依赖与环境
@@ -359,7 +360,7 @@ Java 桥是可选通道：没有 JDK、没有编译产物或启动失败时，`c
 │   ├── java/src/logisim/bridge/     Java 桥：BridgeMain / BridgeServer / Commands / LogisimAdapter / Edt / Json
 │   └── circuit_kit/                geometry / router / netlist / builder / audit / knowledge / appearance / logisim_bridge
 ├── runtime/bridge/                 编译产物 logisim-bridge.jar（gitignore）；会话状态与日志的兜底目录
-├── skills/logisim-circuit-design/  随包技能：SKILL.md + 6 份参考 + 3 个脚本 + 示例电路
+├── skills/logisim-circuit-design/  随包技能：SKILL.md + 7 份参考 + 4 个脚本 + 示例电路
 ├── tools/                          selftest / build_bridge / build_zip / install / sync_skill / check_release
 ├── docs/                           架构说明、插件规范、截图
 └── examples/                       可直接打开的示例电路（含两位 13 进制计数器）
@@ -374,7 +375,8 @@ Java 桥是可选通道：没有 JDK、没有编译产物或启动失败时，`c
 | [`docs/PLUGIN-SPEC.md`](docs/PLUGIN-SPEC.md) | 插件目录规范、`plugin.json` / `.mcp.json` 字段、占位符 |
 | [`docs/DESIGN-NOTES.md`](docs/DESIGN-NOTES.md) | 从 0 到 1 的取舍：为什么不用隧道、为什么失败要显性 |
 | `skills/.../references/counter13-casebook.md` | 十三进制计数器复盘：13 个坑 + 排查决策树 |
-| `skills/.../references/pitfalls.md` | 51 条实测坑表 |
+| `skills/.../references/memory-casebook.md` | 64KB ROM/RAM 低位交叉：结构、RAM/ROM 端口、生成器、37/37 验证、12 坑 |
+| `skills/.../references/pitfalls.md` | 69 条实测坑表（A-I 组） |
 
 ## 开发
 

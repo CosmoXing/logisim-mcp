@@ -1,4 +1,18 @@
-# 更新记录
+﻿# 更新记录
+
+## 未发布 — Logisim 2.7.1 独立语义层（CPU / DM 纠错沉淀）
+
+- 新增 `server/circuit_kit/circ271.py`：按 2.7.1 实测几何与语义实现网表重建、静态检查、
+  网表仿真与端口几何，独立于 5.0 的 `netlist.py` / `geometry.py`。
+- 新增 MCP 工具 `circ271_check` / `circ271_sim` / `circ271_ports`（工具总数 15 → 18）：
+  - `circ271_check`：位宽冲突、多驱动、悬空、导线穿体、Decoder/Mux 的 sel/en 接入方向；
+  - `circ271_sim`：驱动输入 Pin → 打时钟 N 拍 → 读引脚/Tunnel，RAM 按 `str≠0 即写` 建模；
+  - `circ271_ports`：Splitter 分支、门输入排布、RAM 五控制脚等实测坐标。
+- 固化 2.7.1 语义：Splitter 分支 `y-10*fanout+10*i`（east）、门默认 5 输入、Decoder
+  禁用输出默认 Z（`disabled=0` 才为 0）、RAM CS/OE 悬空=使能、Register en 悬空=使能、
+  保存时省略 `fanout`/`enable` 默认属性。
+- 文档：README 增加「Logisim 2.7.1 支持」；技能新增 `references/cpu271-casebook.md`，
+  `pitfalls.md` 增加 J 组 13 条（69 → 82 条），`geometry.md` / `verification.md` 增加 2.7.1 章节。
 
 ## 未发布 — 网表支持寄存器/复用器/译码器/比较器；体检补连通性与位宽
 

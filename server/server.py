@@ -51,6 +51,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from circuit_kit import audit as kit_audit  # noqa: E402
 from circuit_kit import appearance as kit_app  # noqa: E402
 from circuit_kit import builder as kit_builder  # noqa: E402
+from circuit_kit import circ271 as kit_271  # noqa: E402
 from circuit_kit import geometry as kit_geo  # noqa: E402
 from circuit_kit import knowledge as kit_kb  # noqa: E402
 from circuit_kit import logisim_bridge as kit_bridge  # noqa: E402
@@ -875,6 +876,70 @@ TOOLS = [
             "required": ["action", "file"],
         },
     },
+    {
+        "name": "circ271_check",
+        "description": (
+            "Logisim 2.7.1 专用静态体检（与 circ_audit 的 5.0 语义不同）。"
+            "按 2.7.1 实测规则重建网表：Splitter 分支坐标、门电路输入排布、RAM 五个底部控制脚、"
+            "Decoder/Mux 的 sel/en 必须从下方接入、导线不得穿元件体、位宽/多驱动/悬空检查。"
+            "RAM 的 CS/OE、ROM 的 CS 悬空在 2.7.1 中等价使能，不会误报。"
+            "输出 errors / warnings / unknown_components（Adder、Shifter、子电路等不在支持范围）。"
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "file": {"type": "string", "description": ".circ 文件绝对路径（2.7.1 格式）"},
+                "circuit": {"type": "string", "description": "电路名，默认 main"},
+                "json": {"type": "boolean", "description": "输出完整 JSON，默认 false"},
+            },
+            "required": ["file"],
+        },
+    },
+    {
+        "name": "circ271_sim",
+        "description": (
+            "Logisim 2.7.1 网表级仿真（面向原始元件电路，如 DM / GRF / Controller）。"
+            "驱动输入 Pin（按 label，忽略大小写和空格）→ 打 cycles 个时钟脉冲 → 按 label 读引脚或 Tunnel。"
+            "支持 Pin/Tunnel/Splitter/Constant/基本门/Comparator/Decoder/Mux/RAM/ROM/Register；"
+            "RAM 按 2.7.1 语义（str≠0 即写、CS/OE 悬空=使能、Decoder disabled=0 输出 0）。"
+            "子电路、Adder/Shifter 等未支持，会列入 unknown_components。"
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "file": {"type": "string"},
+                "circuit": {"type": "string", "description": "电路名，默认 main"},
+                "inputs": {"type": "object",
+                           "description": '输入引脚取值，如 {"ALU result":"0x4","RD2":"0xdeadbeef","MemWrite":1}'},
+                "cycles": {"type": "integer", "description": "时钟脉冲数，默认 0"},
+                "clock": {"type": "string",
+                          "description": "时钟引脚名；留空自动找 clk/clock/cp/ck 或 Clock 组件"},
+                "watch": {
+                    "type": "array", "items": {"type": "string"},
+                    "description": "要观察的引脚名或 Tunnel label；留空返回全部输出引脚",
+                },
+            },
+            "required": ["file"],
+        },
+    },
+    {
+        "name": "circ271_ports",
+        "description": (
+            "返回 2.7.1 实测端口几何：元件坐标 + 每个端口的坐标/位宽/方向。"
+            "覆盖 Pin/Tunnel/Constant/Clock/Splitter（east/west 分支位置）/基本门（默认 5 输入）/"
+            "Comparator/Decoder/Multiplexer/RAM（str/cs/clk/oe/clr 五脚）/ROM/Register。"
+            "用于改布局或手写 .circ 时核对坐标，避免接错行。"
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "file": {"type": "string"},
+                "circuit": {"type": "string", "description": "电路名，默认 main"},
+                "component": {"type": "string", "description": "只列名称包含该子串的元件（可选）"},
+            },
+            "required": ["file"],
+        },
+    },
 ]
 
 
@@ -1125,7 +1190,13 @@ def call_tool(name, args):
             "原生MCP": "不支持（官方各版本都没有 MCP/网络接口，本桥接为外部封装）",
             "切换内核": "设置环境变量 LOGISIM_JAR 指向目标 jar 即可",
             "扩展工具": ["circ_geometry", "circ_probe", "circ_audit", "circ_sim", "circ_build",
-                         "circ_kb", "circ_appearance"],
+                         "circ_kb", "circ_appearance",
+                         "circ271_check", "circ271_sim", "circ271_ports"],
+            "2.7.1支持": {
+                "工具": ["circ271_check", "circ271_sim", "circ271_ports"],
+                "语义": "按 2.7.1 实测：Splitter 分支 y、门默认 5 输入、RAM 五控制脚、Decoder 禁用输出、Register en",
+                "内核": os.environ.get("LOGISIM271_JAR", "未设置（EM 引擎类工具需该环境变量）"),
+            },
             "经验库": f"{len(kit_kb.list_pitfalls())} 条（用 circ_kb list 查看）",
             "外观桥": {
                 "jar": (kit_bridge.BRIDGE_JAR if os.path.isfile(kit_bridge.BRIDGE_JAR)
@@ -1320,6 +1391,70 @@ def call_tool(name, args):
 
     if name == "circ_appearance":
         return _circ_appearance(args)
+
+    if name == "circ271_check":
+        f = os.path.abspath(args["file"])
+        if not os.path.isfile(f):
+            return False, f"文件不存在: {f}"
+        try:
+            rep = kit_271.check(f, args.get("circuit", "main"))
+        except SystemExit as exc:
+            return False, str(exc)
+        except ET.ParseError as exc:
+            return False, f"XML 解析失败: {exc}"
+        if args.get("json"):
+            return not rep["errors"], _json_text(rep)
+        head = (f"2.7.1 体检: {rep['circuit']}  wires={rep['wires']}  "
+                f"components={rep['components']}  errors={len(rep['errors'])}  "
+                f"warnings={len(rep['warnings'])}")
+        lines = [head]
+        for e in rep["errors"]:
+            lines.append("  ERROR " + e)
+        for w in rep["warnings"]:
+            lines.append("  WARN  " + w)
+        if rep["unknown_components"]:
+            lines.append("  unknown: " + "、".join(sorted(set(rep["unknown_components"]))))
+        return not rep["errors"], "\n".join(lines)
+
+    if name == "circ271_sim":
+        f = os.path.abspath(args["file"])
+        if not os.path.isfile(f):
+            return False, f"文件不存在: {f}"
+        try:
+            rep = kit_271.simulate(
+                f,
+                args.get("circuit", "main"),
+                args.get("inputs") or {},
+                int(args.get("cycles", 0) or 0),
+                args.get("clock"),
+                args.get("watch") or [],
+            )
+        except KeyError as exc:
+            return False, str(exc)
+        except SystemExit as exc:
+            return False, str(exc)
+        lines = [f"2.7.1 仿真: {rep['circuit']}  clock={rep['clock']}  pins={', '.join(rep['pins'])}"]
+        if rep["cycles"]:
+            labels = list(rep["cycles"][0]["values"].keys())
+            if labels:
+                lines.append("cycle  " + "  ".join(labels))
+                for row in rep["cycles"]:
+                    lines.append(f"{row['cycle']:5d}  " +
+                                 "  ".join(str(row["values"].get(k)) for k in labels))
+        lines.append("final: " + "  ".join(f"{k}={v}" for k, v in rep["final"].items()))
+        if rep["unknown_components"]:
+            lines.append("unknown: " + "、".join(sorted(set(rep["unknown_components"]))))
+        return True, "\n".join(lines)
+
+    if name == "circ271_ports":
+        f = os.path.abspath(args["file"])
+        if not os.path.isfile(f):
+            return False, f"文件不存在: {f}"
+        try:
+            rows = kit_271.ports(f, args.get("circuit", "main"), args.get("component"))
+        except SystemExit as exc:
+            return False, str(exc)
+        return True, _json_text(rows)
 
     if name == "circ_kb":
         act = args.get("action")

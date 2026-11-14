@@ -145,8 +145,8 @@ def test_handshake():
     need = {"logisim_info", "circuit_summary", "circuit_truth_table", "circuit_verify",
             "circuit_test_vector", "circuit_stats", "circuit_build", "circuit_open_gui",
             "circ_geometry", "circ_probe", "circ_audit", "circ_sim", "circ_build", "circ_kb",
-            "circ_appearance"}
-    ok &= check("tools/list 返回 15 个工具", len(tools) == 15, f"实际 {len(tools)}")
+            "circ_appearance", "circ271_check", "circ271_sim", "circ271_ports"}
+    ok &= check("tools/list 返回 18 个工具", len(tools) == 18, f"实际 {len(tools)}")
     ok &= check("工具名齐全", need <= names, f"缺 {sorted(need - names)}" if need - names else "")
     ok &= check("ping 有响应", "result" in by_id.get(p, {}))
     return ok

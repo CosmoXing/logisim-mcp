@@ -1,6 +1,6 @@
----
+﻿---
 name: logisim-circuit-design
-description: 用代码生成、检查和验证 Logisim-evolution (.circ) 数字电路。适用于门级作业（计数器、分频器、寄存器、加法器、译码器、状态机）、8 位总线级电路（原码乘法器、ALU、移位寄存器）、64KB ROM/RAM 与低位交叉存储器、分层子电路设计与子电路展平（paste/canonicalize）、「只许门电路和触发器、不许用现成芯片/隧道」这类限制，以及 .circ 打不开、显示 E/U、位宽冲突、模块引脚接不上、布线短接的排障。内含 69 条实战坑表（A-I 组：13 进制计数器 13 坑 + 8 位乘法器 13 坑 + 八进制加法器 6 坑 + 3.2 存储器 12 坑，含 A* 布线静默失败、回折短接、假通过自检、mux 反接、迭代拍数、缺 #Plexers 库、Pin 未入网、connect 自检盲区）、确定性布线工具（lib8/route8）、时序向量封装（sim，<set><seq>）、GUI 截图工具（gui.py）与 5.0 端口坐标表。关键词：logisim、logisim-evolution、.circ、数字电路、电路作业、乘法器、原码乘法、计数器、模13、加法器、八进制、触发器、时序电路、真值表、测试向量、子电路、展平、分线器、数码管、模块外观、restart、netlist、确定性布线、RAM、ROM、存储器、低位交叉、字节使能、64KB。
+description: 用代码生成、检查和验证 Logisim（5.0 / 3.9 / 2.7.1）(.circ) 数字电路。适用于门级作业（计数器、分频器、寄存器、加法器、译码器、状态机）、8 位总线级电路（原码乘法器、ALU、移位寄存器）、64KB ROM/RAM 与低位交叉存储器、32 位 CPU 与 3072×32 数据存储器（DM）、分层子电路设计与子电路展平（paste/canonicalize）、「只许门电路和触发器、不许用现成芯片/隧道」这类限制，以及 .circ 打不开、显示 E/U、位宽冲突、模块引脚接不上、布线短接的排障。内含 83 条实战坑表（A-J 组：13 进制计数器 13 坑 + 8 位乘法器 13 坑 + 八进制加法器 6 坑 + 3.2 存储器 12 坑 + 2.7.1 CPU/DM 14 坑）、确定性布线工具（lib8/route8）、时序向量封装（sim，<set><seq>）、GUI 截图工具（gui.py）与 5.0 端口坐标表；2.7.1 用 circ271_check / circ271_sim / circ271_ports。关键词：logisim、logisim-evolution、logisim 2.7.1、.circ、数字电路、电路作业、乘法器、原码乘法、计数器、模13、加法器、八进制、触发器、时序电路、真值表、测试向量、子电路、展平、分线器、数码管、模块外观、restart、netlist、确定性布线、RAM、ROM、存储器、低位交叉、字节使能、64KB、CPU、DM、数据存储器、3×1024×32、字对齐、越界保护。
 ---
 
 # Logisim 电路设计
@@ -9,7 +9,7 @@ description: 用代码生成、检查和验证 Logisim-evolution (.circ) 数字�
 
 | 路径 | 适合 | 入口 |
 |---|---|---|
-| A. MCP 工具（推荐） | 要交付、要可验证、连线复杂 | `circ_build` / `circ_audit` / `circ_sim` / `circuit_truth_table` / `circ_appearance` |
+| A. MCP 工具（推荐） | 要交付、要可验证、连线复杂 | `circ_build` / `circ_audit` / `circ_sim` / `circuit_truth_table` / `circ_appearance`；**2.7.1 用 `circ271_check` / `circ271_sim` / `circ271_ports`** |
 | B. 手写脚本 | 环境里没有 MCP、或只想微调一个文件 | `scripts/logisim_gen.py` + `scripts/router.py` + `scripts/verify.py`；存储器用 `scripts/mem_gen.py` |
 
 两条路的几何常量、布线规则、踩坑记录是同一套。先读第 1 节的版本前提，这是最容易翻车的地方。
@@ -19,29 +19,31 @@ description: 用代码生成、检查和验证 Logisim-evolution (.circ) 数字�
 - 用户要求用 Logisim 做数字电路（作业、课设、演示），尤其带「只许门电路/触发器」「不许用隧道」「不许用内置计数器」这类限制。
 - 已有 `.circ` 打不开、导线显示 `E`、橙色报「位宽不兼容」、子电路引脚接不上、数码管不亮。
 - 需要批量生成用例电路、跑真值表、验证一个自己写出来的时序电路。
+- 文件是 **Logisim 2.7.1** 格式（`<project source="2.7.1">`），或用户明确要求「在 2.7.1 下修」。
 
 不适用：模拟电路（SPICE）、Verilog/VHDL 综合。
 
 ## 1. 版本前提（先确认，再动手）
 
 ```bash
-head -3 xxx.circ | grep source        # <project source="5.0.0">
+head -3 xxx.circ | grep source        # <project source="5.0.0"> / "2.7.1"
 logisim_info                          # MCP：报 jar/Java/无头能力
 python server/server.py --doctor      # 插件：报依赖与自检
 ```
 
-| 项 | 3.9 | 5.0（本 skill 默认） |
-|---|---|---|
-| 引脚写法 | `<a name="output" val="true"/>` | `<a name="type" val="input"/>` / `val="output"` |
-| 门 `size` | 40 | 50 |
-| AND/OR 输入口 | `loc.x-20` | `loc.x-50` |
-| NAND/NOR/XOR 输入口 | `loc.x-20` | `loc.x-60` |
-| XNOR 输入口 | `loc.x-20` | `loc.x-70` |
-| NOT 输入口 | `loc.x-20` | `loc.x-30`（特例，宽度 30） |
-| 子电路端口 | `loc.x-30` 起、10px | 按 facing 分边，锚点落在东边第一个口 |
+| 项 | 3.9 | 5.0（本 skill 默认） | 2.7.1 |
+|---|---|---|---|
+| 引脚写法 | `<a name="output" val="true"/>` | `<a name="type" val="input"/>` / `val="output"` | `<a name="output" val="true"/>`（输出） |
+| 门 `size` | 40 | 50 | 50；输入在 `x-50` |
+| AND/OR 输入口 | `loc.x-20` | `loc.x-50` | `loc.x-50`，纵向 40px 均布（2 输入 `y±20`） |
+| NAND/NOR/XOR 输入口 | `loc.x-20` | `loc.x-60` | `loc.x-50`（2.7.1 门体宽 40） |
+| NOT 输入口 | `loc.x-20` | `loc.x-30` | `loc.x-30` |
+| 子电路端口 | `loc.x-30` 起、10px | 按 facing 分边，锚点落在东边第一个口 | 按侧/顺序 10px 打包，与内部 Pin 坐标无关 |
+| Splitter 分支 | `(20, -10*(n-i))` | 取决于 appear | east `y-10*fanout+10*i`；west `y+10*(i+1)` |
+| 验证工具 | `-t table` | `circ_sim` / `-w` / `circ_audit` | `circ271_check` / `circ271_sim` |
 
 抄错这 30px 的症状是「每修好一处、另一处又坏」，几乎一定被误判成"布线算法有问题"。
-不确定就查 `references/geometry.md`，或用 `circ_geometry` 拿活数据。
+不确定就查 `references/geometry.md`，或用 `circ_geometry`（5.0）/ `circ271_ports`（2.7.1）拿活数据。
 
 ## 2. 七条铁律（违反必炸）
 
@@ -140,6 +142,9 @@ python server/server.py --doctor      # 插件：报依赖与自检
 | 时序 | `circ_sim`，用 `cycles` 跑满状态序列 |
 | 查几何 | `circ_geometry` |
 | 查历史坑 | `circ_kb search <关键词>` |
+| **2.7.1 静态体检** | `circ271_check`（按 2.7.1 几何/语义） |
+| **2.7.1 网表仿真** | `circ271_sim`（原始元件电路：DM/GRF/Controller） |
+| **2.7.1 端口几何** | `circ271_ports`（Splitter 分支、RAM 五脚、门输入位置） |
 
 ### 4.4 子电路外观编辑
 
@@ -316,6 +321,11 @@ d[8] clk r q[8] <set> <seq>
 | `circ_audit` 报一堆 dangling，但电路能跑 | RAM/ROM/Bit Extender 不在网表支持范围，结论 partial | 以生成器自检 + `-w` 功能向量为准（I6） |
 | `circ_appearance preview` 只截到空框 | preview 切到外观视图，不是 circuit view | 主布局用 GUI + 窗口截图（I8） |
 | 16 位地址想拆成 14+2 拆不出来 | Splitter 分支等宽，不能直接拆 2+14 | 8×2 拆分 + 7×2 合并（I10） |
+| 2.7.1 文件里 `lw` 读回 x、`bank` 显示 x | Splitter 2 位分支接到错误的 y，网络悬空 | 按 `circ271_ports` 的 `b0/b1` 坐标接线（J1） |
+| 2.7.1 `MemWrite=0` 内存仍被改写 | Decoder 禁用输出默认 Z，RAM WE 判「≠0 即写」 | Decoder 加 `disabled=0`（J3） |
+| 写 `0x3000` 后 `0x0000` 被改 | 单块 12 位地址 RAM + 无越界门控，地址回绕 | 3×1024×32 + `ALU<0x3000` 门控 + `ALU[13:2]`（J12） |
+| `circ_audit` 对 2.7.1 报大量不支持 | 5.0 几何/语义不适用 | 换 `circ271_check` / `circ271_sim` / `circ271_ports` |
+| 评测 trace 错位、某寄存器“多写” | 写使能线漏一段，`en` 悬空=每拍写（J14） | 逐寄存器扫描定位，补齐 en 走线 |
 
 ## 8. 完整案例：两位十三进制计数器
 
@@ -356,6 +366,33 @@ main
 最常用的排查顺序：全 `U` 先查 `#Plexers` 库和 Pin 是否入网；写不进先单 bank 直连；
 字节错位先查字节序；`stats` 加载失败先删 autosave；`audit` partial 时以 `-w` 为准。
 
+## 8.6 Logisim 2.7.1：32 位 CPU / 3072×32 DM
+
+`references/cpu271-casebook.md` 是一次 2.7.1 CPU 纠错的完整复盘。要点：
+
+- **版本隔离**：`<project source="2.7.1">` 的文件不要用 5.0 的 `circ_audit/circ_sim/circ_geometry`，
+  改用 `circ271_check/circ271_sim/circ271_ports`。
+- **DM 三错**：单块 4096×32（容量不对）、`ALU[0:11]` 字节地址当字地址（0x4/0x7 不同字）、
+  无越界门控（写 0x3000 回绕覆盖 0x0000）。
+- **DM 正确结构**：3×1024×32；`ALU[13:2]` = 10 位 offset + 2 位 bank；写用 2:4 Decoder（`disabled=0`），
+  读用 4:1 MUX；`ALU<0x3000` 与 `MemWrite` 过 AND 产生 `wr`。
+- **典型隐藏坑**：Splitter 分支 y 坐标、门默认 5 输入、Decoder 禁用输出悬空导致 RAM 每拍误写、
+  Register `en` 悬空等价使能、保存省略 `fanout/enable`。
+- **写使能阵列必须逐单元扫描**：GRF/RAM 的 `en` 悬空=每拍都写，评测 trace 会整体错位（J14）；
+  只测前几个寄存器不够，要给 r1..r31 各写唯一值再读回。
+- **验证链**：`circ271_check`（0 error）→ `circ271_sim`（DM 12 项）→ 2.7.1 引擎 `DmTest` →
+  2.7.1 引擎 `CpuSim`（整机 12 周期）。四层都过再交付。
+
+常用调用：
+
+```json
+circ271_check {"file":"D:/CPU.circ","circuit":"DM"}
+circ271_sim   {"file":"D:/CPU.circ","circuit":"DM",
+               "inputs":{"MemWrite":1,"ALU result":"0x4","RD2":"0xdeadbeef"},
+               "cycles":1,"watch":["ReadData","bank","wr"]}
+circ271_ports {"file":"D:/CPU.circ","circuit":"DM","component":"Splitter"}
+```
+
 ## 9. 四条不要做
 
 - 不要用自己画的渲染图判断电路长什么样。视觉检查一律打开 Logisim 本体截图：
@@ -372,12 +409,13 @@ main
 |---|---|
 | `references/counter13-casebook.md` | 13 进制计数器实战复盘：13 个坑 + 验证矩阵 + 排查决策树 |
 | `references/memory-casebook.md` | 64KB ROM/RAM 低位交叉：结构、RAM/ROM 5.0 端口、生成器、37/37 验证、12 坑 |
+| `references/cpu271-casebook.md` | 2.7.1 32 位 CPU 纠错复盘：DM 三错、ROM、四层验证链、10 条语义坑、决策树 |
 | `references/geometry.md` | 端口/尺寸常量（含 3.9 vs 5.0 对照）、布线语义、布局与压缩 |
 | `references/dsl.md` | `circ_build` 的 DSL 完整参考：字段、端口名、自动布局、报错含义 |
 | `references/circ-format.md` | `.circ` XML 结构、库索引、组件属性、toolbar、版本差异 |
 | `references/verification.md` | CLI 参数、`.vec` 格式、用例设计、双工程策略、GUI 截图 |
 | `references/appearance.md` | 子电路外观：spec、自动排版、保端口/重排、保存校验 |
-| `references/pitfalls.md` | 69 条实战坑：A-G 组（4 位规模）+ H 组（8 位总线/展平/Windows 环境/外观与 GUI 自动化）+ I 组（存储器/工程头/connect 盲区） |
+| `references/pitfalls.md` | 83 条实战坑：A-G 组（4 位规模）+ H 组（8 位总线/展平/Windows 环境/外观与 GUI 自动化）+ I 组（存储器/工程头/connect 盲区）+ J 组（Logisim 2.7.1） |
 | `scripts/logisim_gen.py` | XML 生成器：pin / gate / sub / splitter / display / wire / project |
 | `scripts/router.py` | 通道布线器：正交、避让、禁止共线重叠（4 位规模） |
 | `scripts/verify.py` | `-t table` / `-t stats` / `-w` 的封装（自动找 jar、GBK 解码） |

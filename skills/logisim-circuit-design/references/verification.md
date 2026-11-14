@@ -154,6 +154,25 @@ gui.close(h)                               # WM_CLOSE（外部改过文件时别
   以 `-w` 功能向量 + 生成器几何自检为准。
 - 顶层截图用 GUI + 窗口截图；`circ_appearance preview` 截的是外观视图，`main` 会显示空框。
 
+## 6.3 Logisim 2.7.1 验证（无 `-w`，靠网表 + 引擎）
+
+2.7.1 没有 5.0 的原生测试向量，`-t` 能力也有限。按四层验证：
+
+| 层 | 工具 | 说明 |
+|---|---|---|
+| 1. 静态 | `circ271_check {"file","circuit"}` | 0 error 才继续；`unknown_components` 只说明覆盖范围 |
+| 2. 网表功能 | `circ271_sim {"file","circuit","inputs","cycles","watch"}` | 原始元件电路（DM/GRF/Controller）；输出引脚和 Tunnel 都能看 |
+| 3. 引擎模块 | Java `DmTest`（2.7.1 jar） | 真实语义，覆盖 `str/cs/oe/clk/clr` 等细节 |
+| 4. 引擎整机 | Java `CpuSim`（2.7.1 jar） | 驱动 reset/时钟，逐拍读 `pc/Instr/WA/WD/RegWrite/MemWrite` |
+
+要点：
+
+- 2.7.1 的时钟是普通 Pin `clk`（或 Clock 组件）；`circ271_sim` 自动找 `clk/clock/cp/ck`。
+- 写操作要在上升沿发生：`cycles` 每拍是一个完整 0→1→0 脉冲。
+- 观察多位信号用 Tunnel label（如 `bank`、`ReadData`），比在画布上找线可靠。
+- 整机含子电路/Adder 时 `circ271_sim` 会列 `unknown_components`，此时必须用引擎级仿真。
+- `Pin.setValue` 后必须 `markComponentAsDirty` + `propagate`，否则值不会进入电路（J7）。
+
 ## 7. 交付检查清单
 
 - [ ] `circ_audit` 对纯门/触发器电路 `verdict` 是 `ok`；含 RAM/ROM/Bit Extender 时允许 `partial`，以 `-w` 为准

@@ -9,6 +9,7 @@
   knowledge 经验库（几何事实与踩坑记录），可持续追加
   appearance 子电路外观 spec / 自动排版 / XML 读写 / 校验
   logisim_bridge 与运行中的 Logisim JVM 通信（可选，需 JDK 编译桥）
+  circ271   Logisim 2.7.1 语义层：网表检查 / 网表仿真 / 端口几何
 """
 
 from . import (  # noqa: F401
@@ -20,7 +21,8 @@ from . import (  # noqa: F401
     knowledge,
     appearance,
     logisim_bridge,
+    circ271,
 )
 
 __all__ = ["geometry", "router", "netlist", "builder", "audit", "knowledge",
-           "appearance", "logisim_bridge"]
+           "appearance", "logisim_bridge", "circ271"]

@@ -1,4 +1,4 @@
-# logisim-mcp
+﻿# logisim-mcp
 
 > 把 Logisim-evolution 接进 AI 工作流的 MCP 插件：查几何 → 声明式生成 → 静态体检 → 网表仿真 → Logisim 真值表复核 → GUI 内编辑外观，全链路可验证，不用手算一个坐标。
 >
@@ -65,7 +65,7 @@ Logisim-evolution 是纯 Java Swing 桌面程序，没有任何脚本或网络�
 | 多拍仿真 | 逐拍推进，逐触发器/寄存器检测各自的时钟沿——同步与行波级联都算得对 |
 | 几何与交叉复核 | 生成/布线/解析统一按 5.0 源码公式；`selftest` 再用 Logisim 真值表做外部复核 |
 | 失败显性 | 寄存器 / 多路选择器 / 译码器 / 比较器已纳入网表；仍不认识的元件由 `circ_audit` 标 `partial` 并列出名字与位置，不再当作成功 |
-| 经验库 | 随包 31 条实测坑（`circ_kb` 可增补；技能里另有 69 条坑表）；含 3.2 存储器实战：RAM/ROM 几何、低位交叉、字节使能、connect 连通性盲区 |
+| 经验库 | 随包 31 条实测坑（`circ_kb` 可增补；技能里另有 83 条坑表（含 2.7.1））；含 3.2 存储器实战：RAM/ROM 几何、低位交叉、字节使能、connect 连通性盲区 |
 | Java 桥 | 把 `CircuitAppearance` 等进程内 API 暴露成回环 NDJSON 命令，GUI 内实时改外观、截图、保存 |
 | 零依赖 | 纯 Python 标准库；Java 只在跑 Logisim 原生能力与外观编辑时需要 |
 
@@ -168,7 +168,7 @@ Java       : /usr/bin/java
 网表仿真   : a=1,b=1 → y=1（应为 1）
 ```
 
-## 工具一览（15 个）
+## 工具一览（18 个）
 
 | 工具 | 作用 |
 |---|---|
@@ -187,6 +187,43 @@ Java       : /usr/bin/java
 | `circ_build` | 声明式多电路生成，迷宫布线，不使用隧道 |
 | `circ_kb` | 经验库：list / search / add |
 | `circ_appearance` | 在运行中的 Logisim JVM 里编辑子电路外观：get / auto / apply / preview / save / reset / close |
+| `circ271_check` | **2.7.1 专用**静态体检：按 2.7.1 实测几何/语义重建网表，查位宽、驱动、穿体、sel/en 接入方向 |
+| `circ271_sim` | **2.7.1 专用**网表仿真：驱动输入 Pin → 打时钟 N 拍 → 读引脚 / Tunnel（DM、GRF 等原始元件电路） |
+| `circ271_ports` | **2.7.1 专用**端口几何：Splitter 分支、门、RAM 五控制脚、Decoder/Mux 的实测坐标 |
+
+## Logisim 2.7.1 支持
+
+2.7.1 与 5.0 的 `.circ` 在库索引、端口几何和元件语义上都不同，不能共用 `circ_audit` / `circ_sim`。
+本仓库提供一套独立的 2.7.1 语义层 `server/circuit_kit/circ271.py`，对应 3 个工具：
+
+```
+circ271_check  {"file":"D:/CPU.circ","circuit":"DM"}          # → errors=0 warnings=0
+circ271_sim    {"file":"D:/CPU.circ","circuit":"DM",
+                "inputs":{"MemWrite":1,"ALU result":"0x4","RD2":"0xdeadbeef"},
+                "cycles":1,"watch":["ReadData","bank","wr"]}   # → ReadData=0xdeadbeef
+circ271_ports  {"file":"D:/CPU.circ","circuit":"DM","component":"RAM"}
+```
+
+### 2.7.1 与 5.0 的关键差异（已固化进工具）
+
+| 项 | 2.7.1 实测语义 |
+|---|---|
+| Splitter 分支 | east：`y - 10*fanout + 10*i`；west：`y + 10*(i+1)` |
+| 门电路 | `inputs` 默认 5；输入在 `x-50`，纵向 40px 内均布（2 输入为 `y±20`） |
+| Decoder 禁用输出 | 默认悬空(Z)；`disabled=0` 才输出 0。RAM 的 WE 是「≠0 即写」，悬空会每拍误写 |
+| MUX / Decoder 的 sel/en | 必须从符号下方接入，横穿会悬空/报错 |
+| RAM 底部五脚 | `str(-110) / cs(-90) / clk(-70) / oe(-50) / clr(-30)`；CS/OE 悬空按使能处理 |
+| Register 的 en | 只有 `en == FALSE` 才禁止加载，悬空等价使能 |
+| Pin 语义 | `output=true` 是电路输出（负载）；输入 Pin 才是驱动源 |
+| 保存省略默认值 | 会丢掉 `fanout`、`enable` 等等于默认值的属性，工具需按推导值处理 |
+
+### 限制
+
+- `circ271_sim` 只覆盖原始元件（Pin/Tunnel/Splitter/Constant/门/Comparator/Decoder/Mux/RAM/ROM/Register）；
+  子电路、Adder/Shifter 等会列入 `unknown_components`。
+- 整机 CPU（含 IFU/GRF/ALU 子电路）请用 Logisim 2.7.1 引擎的 Java 侧仿真（见
+  `skills/.../references/cpu271-casebook.md`），或把子电路展平后再跑 `circ271_sim`。
+- 2.7.1 的 `-w` / `-t table` 无头能力有限（无原生测试向量），验证以网表仿真 + 引擎仿真为主。
 
 ## 60 秒例子
 
@@ -334,6 +371,7 @@ Java 桥是可选通道：没有 JDK、没有编译产物或启动失败时，`c
 | 项 | 支持 |
 |---|---|
 | Logisim-evolution | 5.0（默认，几何按 5.0 源码）／ 3.9（读写兼容，但端口坐标不同，见技能里的对照表） |
+| Logisim 2.7.1 | 独立语义层 `circ271_check / circ271_sim / circ271_ports`（几何与语义按 2.7.1 实测） |
 | Python | 3.8+（CI 覆盖 3.9 与 3.12） |
 | 操作系统 | Windows / macOS / Linux（`.cmd` 与 `.sh` 启动器） |
 | MCP 协议 | `2024-11-05`（stdio） |
@@ -347,6 +385,8 @@ Java 桥是可选通道：没有 JDK、没有编译产物或启动失败时，`c
 - Java 桥需要图形环境：Logisim 的 `Main.main` 会创建 Swing 窗口，纯无头服务器上无法启动，
   这类环境请用 `mode="xml"`。
 - 只覆盖数字电路：模拟电路、Verilog/VHDL 综合不在范围内。
+- 2.7.1 工具只覆盖原始元件电路；子电路、算术库元件（Adder/Shifter/BitAdder）未建模，
+  整机级验证请用 2.7.1 引擎的 Java 侧仿真或先展平子电路。
 
 ## 目录结构
 
@@ -356,9 +396,9 @@ Java 桥是可选通道：没有 JDK、没有编译产物或启动失败时，`c
 ├── .mcp.json                       MCP 服务声明（stdio）
 ├── bin/                            启动器（自动定位 python）
 ├── server/
-│   ├── server.py                   14 个工具 + --doctor
+│   ├── server.py                   18 个工具 + --doctor
 │   ├── java/src/logisim/bridge/     Java 桥：BridgeMain / BridgeServer / Commands / LogisimAdapter / Edt / Json
-│   └── circuit_kit/                geometry / router / netlist / builder / audit / knowledge / appearance / logisim_bridge
+│   └── circuit_kit/                geometry / router / netlist / builder / audit / knowledge / appearance / logisim_bridge / circ271
 ├── runtime/bridge/                 编译产物 logisim-bridge.jar（gitignore）；会话状态与日志的兜底目录
 ├── skills/logisim-circuit-design/  随包技能：SKILL.md + 7 份参考 + 4 个脚本 + 示例电路
 ├── tools/                          selftest / build_bridge / build_zip / install / sync_skill / check_release
@@ -376,7 +416,8 @@ Java 桥是可选通道：没有 JDK、没有编译产物或启动失败时，`c
 | [`docs/DESIGN-NOTES.md`](docs/DESIGN-NOTES.md) | 从 0 到 1 的取舍：为什么不用隧道、为什么失败要显性 |
 | `skills/.../references/counter13-casebook.md` | 十三进制计数器复盘：13 个坑 + 排查决策树 |
 | `skills/.../references/memory-casebook.md` | 64KB ROM/RAM 低位交叉：结构、RAM/ROM 端口、生成器、37/37 验证、12 坑 |
-| `skills/.../references/pitfalls.md` | 69 条实测坑表（A-I 组） |
+| `skills/.../references/pitfalls.md` | 实测坑表（A-J 组；J 组为 Logisim 2.7.1） |
+| `skills/.../references/cpu271-casebook.md` | 2.7.1 32 位 CPU 纠错复盘：DM 三错、ROM、验证链与 10 条语义坑 |
 
 ## 开发
 

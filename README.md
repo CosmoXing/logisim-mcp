@@ -1,4 +1,4 @@
-﻿# logisim-mcp
+# logisim-mcp
 
 > 把 Logisim-evolution 接进 AI 工作流的 MCP 插件：查几何 → 声明式生成 → 静态体检 → 网表仿真 → Logisim 真值表复核 → GUI 内编辑外观，全链路可验证，不用手算一个坐标。
 >

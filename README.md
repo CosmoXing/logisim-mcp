@@ -170,6 +170,17 @@ Java       : /usr/bin/java
 
 ## 工具一览（18 个）
 
+工具按 **Logisim 版本**分三组，**不要跨版本混用**（几何互不兼容）：
+
+| 前缀 | 版本 | 数量 | 说明 |
+|---|---|---|---|
+| `logisim_info` | 通用 | 1 | 探测 jar / Java / 无头能力 |
+| `circuit_*` / `circ_*` | **5.0（evolution）** | 14 | 真值表、向量、几何、体检、仿真、生成、外观、经验库 |
+| `circ271_*` | **2.7.1 / 2.16（Logisim-ITA）** | 3 | 独立的 2.7.1 语义层：端口 / 体检 / 仿真 |
+
+版本判定看 `.circ` 头部的 `source=`。完整对照（含 3.9、几何差异、skill 脚本归属）见
+**[docs/VERSIONS.md](docs/VERSIONS.md)**。
+
 | 工具 | 作用 |
 |---|---|
 | `logisim_info` | 探测 jar / Java / 无头能力 |
@@ -191,10 +202,28 @@ Java       : /usr/bin/java
 | `circ271_sim` | **2.7.1 专用**网表仿真：驱动输入 Pin → 打时钟 N 拍 → 读引脚 / Tunnel（DM、GRF 等原始元件电路） |
 | `circ271_ports` | **2.7.1 专用**端口几何：Splitter 分支、门、RAM 五控制脚、Decoder/Mux 的实测坐标 |
 
-## Logisim 2.7.1 支持
+## 版本支持：5.0 / 2.7.1 / 2.16
 
-2.7.1 与 5.0 的 `.circ` 在库索引、端口几何和元件语义上都不同，不能共用 `circ_audit` / `circ_sim`。
-本仓库提供一套独立的 2.7.1 语义层 `server/circuit_kit/circ271.py`，对应 3 个工具：
+三套几何互不兼容，**混用会出现「修好一处、另一处又坏」**。
+判定依据是 `.circ` 头部的 `source=`，不是你装的 Logisim 版本：
+
+| `source=` | 用哪套 | 代码入口 |
+|---|---|---|
+| `5.0` | 5.0 几何 | `circuit_kit/geometry.py`，工具 `circ_*` / `circuit_*` |
+| `2.16` / `2.7` | 2.7.1 几何 | `circuit_kit/circ271.py`，工具 `circ271_*` |
+| `3.9` | 3.9 几何 | 未落地为代码，差异表见 [docs/VERSIONS.md](docs/VERSIONS.md) |
+
+程序里可直接路由：
+
+```python
+from circuit_kit.versions import get, detect
+geo = get("2.16")          # -> circuit_kit.circ271
+ver = detect("xxx.circ")   # -> '2.16'
+```
+
+2.7.1 / 2.16 与 5.0 在库索引、端口几何、元件语义上都不同，不能共用
+`circ_audit` / `circ_sim`。本仓库为此提供独立的语义层 `server/circuit_kit/circ271.py`，
+对应 3 个工具：
 
 ```
 circ271_check  {"file":"D:/CPU.circ","circuit":"DM"}          # → errors=0 warnings=0

@@ -10,7 +10,7 @@ description: 用代码生成、检查和验证 Logisim（5.0 / 3.9 / 2.7.1）(.c
 | 路径 | 适合 | 入口 |
 |---|---|---|
 | A. MCP 工具（推荐） | 要交付、要可验证、连线复杂 | `circ_build` / `circ_audit` / `circ_sim` / `circuit_truth_table` / `circ_appearance`；**2.7.1 用 `circ271_check` / `circ271_sim` / `circ271_ports`** |
-| B. 手写脚本 | 环境里没有 MCP、或只想微调一个文件 | `scripts/logisim_gen.py` + `scripts/router.py` + `scripts/verify.py`；存储器用 `scripts/mem_gen.py` |
+| B. 手写脚本 | 环境里没有 MCP、或只想微调一个文件 | `scripts/v50/logisim_gen.py` + `scripts/v50/router.py` + `scripts/v50/verify.py`；存储器用 `scripts/v50/mem_gen.py` |
 
 两条路的几何常量、布线规则、踩坑记录是同一套。先读第 1 节的版本前提，这是最容易翻车的地方。
 
@@ -51,10 +51,10 @@ python server/server.py --doctor      # 插件：报依赖与自检
 | 译码器 | `sel=(x,y)`、`en=(x-10,y)`、`out_i=(x+20, y-10*(cnt-i))` |
 | 子电路端口 | `loc + (x + (portW-1)//2 - 2, y + portH//2 - 3)` |
 | 外观矩形 | **必须比端口内缩 10px**，否则端口被静默丢弃（J1） |
-| 验证 | **没有 `-w` 向量引擎**，用 `scripts/ita_probe.py` |
+| 验证 | **没有 `-w` 向量引擎**，用 `scripts/v271/ita_probe.py` |
 
 排线还要记住：**端口落在别的导线上就一定会连**（T 接），主干通道必须避开所有端口坐标。
-位宽对不上时跑 `python scripts/netcheck.py file.circ "电路名"`，
+位宽对不上时跑 `python scripts/v271/netcheck.py file.circ "电路名"`，
 它按真实端口坐标建网，一次列全冲突点所属元件（J5）。
 
 抄错这 30px 的症状是「每修好一处、另一处又坏」，几乎一定被误判成"布线算法有问题"。
@@ -218,13 +218,13 @@ open("demo.circ", "w", encoding="utf-8", newline="\n").write(
 
 生成器提供：`pin gate sub splitter display constant power ground wire path translate strip_pins project`。
 
-布线交给 `scripts/router.py`（通道布线，避开共线重叠与端点压线）。有失败就 `raise`，绝不写出文件——
+布线交给 `scripts/v50/router.py`（通道布线，避开共线重叠与端点压线）。有失败就 `raise`，绝不写出文件——
 断头导线轻则整列 `E`，重则加载时 `WireRepair` 卡死。
 
 ### 5.1 v6 工具链：8 位总线级项目（推荐用于多比特/大规模电路）
 
 logisim_gen/router 是 4 位小电路时代的工具。8 位总线、几十个模块、2 万+ 导线的规模，
-用 `scripts/lib8.py` + `scripts/route8.py` + `scripts/sim.py`（原码乘法器项目沉淀，已在本插件目录独立验证）：
+用 `scripts/v50/lib8.py` + `scripts/v50/route8.py` + `scripts/v50/sim.py`（原码乘法器项目沉淀，已在本插件目录独立验证）：
 
 ```python
 import lib8, route8, sim
@@ -260,9 +260,9 @@ sim.verify_alive(res, len(rows))                # 防假通过：通过数必须
   顶层连线永远读 `b.sub()` 返回的坐标，不硬编码偏移（H6）。
 
 ```bash
-python scripts/verify.py table  fa.circ                 # 真值表
-python scripts/verify.py stats  demo.circ               # 元件统计
-python scripts/verify.py vector main bcd4.vec demo_test.circ
+python scripts/v50/verify.py table  fa.circ                 # 真值表
+python scripts/v50/verify.py stats  demo.circ               # 元件统计
+python scripts/v50/verify.py vector main bcd4.vec demo_test.circ
 ```
 
 ## 6. 验证：先把"验什么"分清
@@ -418,6 +418,20 @@ circ271_ports {"file":"D:/CPU.circ","circuit":"DM","component":"Splitter"}
 - 不要为省元件把多个功能塞进 5 入以上模块——端口会挤爆，且出错无提示。
 - 不要只在顶层验证：分层电路必须每层都验，否则错误定位成本高 10 倍。
 
+## 9.5 脚本目录按版本归类（不要跨目录混用）
+
+```
+scripts/
+  v50/      evolution 5.0 专用：lib8 / route8 / sim / verify / router / logisim_gen / mem_gen
+  v271/     2.7.1 与 2.16(ITA) 专用：circ271 / ita_probe / netcheck / ita/ITAProbe.java
+  common/   与版本无关：gui.py（找窗口、点击、截图）
+```
+
+**判据是 `.circ` 的 `source=`，不是你装的 Logisim 版本。**
+`source="5.0"` → 只能用 `v50/`；`source="2.16..."` 或 `2.7.x` → 只能用 `v271/`。
+两套几何的端口偏移完全不同，混用会出现「修好一处、另一处又坏」。
+版本矩阵与各版本几何对照见仓库 `docs/VERSIONS.md`。
+
 ## 10. 资源
 
 | 文件 | 内容 |
@@ -431,17 +445,17 @@ circ271_ports {"file":"D:/CPU.circ","circuit":"DM","component":"Splitter"}
 | `references/verification.md` | CLI 参数、`.vec` 格式、用例设计、双工程策略、GUI 截图 |
 | `references/appearance.md` | 子电路外观：spec、自动排版、保端口/重排、保存校验 |
 | `references/pitfalls.md` | 83 条实战坑：A-G 组（4 位规模）+ H 组（8 位总线/展平/Windows 环境/外观与 GUI 自动化）+ I 组（存储器/工程头/connect 盲区）+ J 组（Logisim 2.7.1） |
-| `scripts/logisim_gen.py` | XML 生成器：pin / gate / sub / splitter / display / wire / project |
-| `scripts/router.py` | 通道布线器：正交、避让、禁止共线重叠（4 位规模） |
-| `scripts/verify.py` | `-t table` / `-t stats` / `-w` 的封装（自动找 jar、GBK 解码） |
-| `scripts/lib8.py` | 8 位总线生成库：Board / 门/DFF/分线器/子电路/Constant/Clock 几何 + project |
-| `scripts/route8.py` | 确定性布线：z/w 折线 + 六项自检 + verify_nets/verify_short + paste/canonicalize |
-| `scripts/sim.py` | 向量测试封装：`<set> <seq>` 时序、jar 自动探测、verify_alive 防假通过 |
-| `scripts/mem_gen.py` | 64KB ROM + 64KB RAM 生成器：bank8/ram64k/rom64k/main + 自定义外观 + 自检 |
-| `scripts/ita/ITAProbe.java` | **2.16/2.7.1 headless 探针**：加载/设引脚/打时钟/读输出（`--list/--set/--vector/--ends/--errors`） |
-| `scripts/ita_probe.py` | 探针 Python 封装：自动编译，`list_pins/eval_pins/run_vector/ends/errors` |
-| `scripts/netcheck.py` | **位宽冲突定位**：真实端口坐标 + 导线图建网，一次列全冲突点 |
-| `scripts/gui.py` | GUI 自动化：ctypes+PIL 找窗口/点击/送键/滚轮缩放/截图/启动载入（沙箱内可用） |
+| `scripts/v50/logisim_gen.py` | XML 生成器：pin / gate / sub / splitter / display / wire / project |
+| `scripts/v50/router.py` | 通道布线器：正交、避让、禁止共线重叠（4 位规模） |
+| `scripts/v50/verify.py` | `-t table` / `-t stats` / `-w` 的封装（自动找 jar、GBK 解码） |
+| `scripts/v50/lib8.py` | 8 位总线生成库：Board / 门/DFF/分线器/子电路/Constant/Clock 几何 + project |
+| `scripts/v50/route8.py` | 确定性布线：z/w 折线 + 六项自检 + verify_nets/verify_short + paste/canonicalize |
+| `scripts/v50/sim.py` | 向量测试封装：`<set> <seq>` 时序、jar 自动探测、verify_alive 防假通过 |
+| `scripts/v50/mem_gen.py` | 64KB ROM + 64KB RAM 生成器：bank8/ram64k/rom64k/main + 自定义外观 + 自检 |
+| `scripts/v271/ita/ITAProbe.java` | **2.16/2.7.1 headless 探针**：加载/设引脚/打时钟/读输出（`--list/--set/--vector/--ends/--errors`） |
+| `scripts/v271/ita_probe.py` | 探针 Python 封装：自动编译，`list_pins/eval_pins/run_vector/ends/errors` |
+| `scripts/v271/netcheck.py` | **位宽冲突定位**：真实端口坐标 + 导线图建网，一次列全冲突点 |
+| `scripts/common/gui.py` | GUI 自动化：ctypes+PIL 找窗口/点击/送键/滚轮缩放/截图/启动载入（沙箱内可用） |
 | `assets/full-adder.circ` | 已知可用（真值表 8/8）的最小参考工程，5.0 格式 |
 
 ### 测试向量的静默陷阱（务必自检）

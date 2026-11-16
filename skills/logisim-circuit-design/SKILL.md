@@ -42,6 +42,21 @@ python server/server.py --doctor      # 插件：报依赖与自检
 | Splitter 分支 | `(20, -10*(n-i))` | 取决于 appear | east `y-10*fanout+10*i`；west `y+10*(i+1)` |
 | 验证工具 | `-t table` | `circ_sim` / `-w` / `circ_audit` | `circ271_check` / `circ271_sim` |
 
+**2.16 / 2.7.1（Logisim-ITA，课程常用）—— 和上面两套都不一样，且有硬限制：**
+
+| 项 | 2.7.1 / 2.16 |
+|---|---|
+| 门输入口 | `(loc.x-30, loc.y ± step*(n-1)/2)`，2 输入时 `y±10`（**不是 x-50**） |
+| 分线器位口 | `b_i=(x+20, y+10*(i-fanout+1))`；**b0 是低位组**，3 位/2 位别搞反 |
+| 译码器 | `sel=(x,y)`、`en=(x-10,y)`、`out_i=(x+20, y-10*(cnt-i))` |
+| 子电路端口 | `loc + (x + (portW-1)//2 - 2, y + portH//2 - 3)` |
+| 外观矩形 | **必须比端口内缩 10px**，否则端口被静默丢弃（J1） |
+| 验证 | **没有 `-w` 向量引擎**，用 `scripts/ita_probe.py` |
+
+排线还要记住：**端口落在别的导线上就一定会连**（T 接），主干通道必须避开所有端口坐标。
+位宽对不上时跑 `python scripts/netcheck.py file.circ "电路名"`，
+它按真实端口坐标建网，一次列全冲突点所属元件（J5）。
+
 抄错这 30px 的症状是「每修好一处、另一处又坏」，几乎一定被误判成"布线算法有问题"。
 不确定就查 `references/geometry.md`，或用 `circ_geometry`（5.0）/ `circ271_ports`（2.7.1）拿活数据。
 
@@ -423,6 +438,9 @@ circ271_ports {"file":"D:/CPU.circ","circuit":"DM","component":"Splitter"}
 | `scripts/route8.py` | 确定性布线：z/w 折线 + 六项自检 + verify_nets/verify_short + paste/canonicalize |
 | `scripts/sim.py` | 向量测试封装：`<set> <seq>` 时序、jar 自动探测、verify_alive 防假通过 |
 | `scripts/mem_gen.py` | 64KB ROM + 64KB RAM 生成器：bank8/ram64k/rom64k/main + 自定义外观 + 自检 |
+| `scripts/ita/ITAProbe.java` | **2.16/2.7.1 headless 探针**：加载/设引脚/打时钟/读输出（`--list/--set/--vector/--ends/--errors`） |
+| `scripts/ita_probe.py` | 探针 Python 封装：自动编译，`list_pins/eval_pins/run_vector/ends/errors` |
+| `scripts/netcheck.py` | **位宽冲突定位**：真实端口坐标 + 导线图建网，一次列全冲突点 |
 | `scripts/gui.py` | GUI 自动化：ctypes+PIL 找窗口/点击/送键/滚轮缩放/截图/启动载入（沙箱内可用） |
 | `assets/full-adder.circ` | 已知可用（真值表 8/8）的最小参考工程，5.0 格式 |
 

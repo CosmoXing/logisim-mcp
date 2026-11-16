@@ -16,6 +16,9 @@ server/java/build/
 runtime/bridge/*.jar
 runtime/bridge/build.json
 
+# headless 探针编译产物（ita_probe 首次运行自动生成）
+*.class
+
 # 运行时经验库（用户数据，不进仓库）
 runtime/kb/
 

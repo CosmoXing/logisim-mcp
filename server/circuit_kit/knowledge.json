@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "version": 2,
+  "version": 3,
   "geometry": {
     "_note": "端口偏移相对元件 loc，单位像素。来源：logisim-evolution v5.0.0 源码 + 实测复核。",
     "gate": {
@@ -332,15 +332,45 @@
     "ram8": {
       "_note": "Memory/RAM 5.0 实测（16K×8）。addrWidth=14,dataWidth=8,enables=byte,type=volatile,trigger=rising,asyncread=true,databus=bibus,clearpin=false；EN 是输出使能，接 1。",
       "ports": {
-        "A": [0, 10],
-        "D": [0, 90],
-        "Q": [240, 90],
-        "WE": [0, 50],
-        "EN": [0, 60],
-        "CLK": [0, 70]
+        "A": [
+          0,
+          10
+        ],
+        "D": [
+          0,
+          90
+        ],
+        "Q": [
+          240,
+          90
+        ],
+        "WE": [
+          0,
+          50
+        ],
+        "EN": [
+          0,
+          60
+        ],
+        "CLK": [
+          0,
+          70
+        ]
       },
-      "port_widths": {"A": 14, "D": 8, "Q": 8, "WE": 1, "EN": 1, "CLK": 1},
-      "body": [0, 0, 240, 250],
+      "port_widths": {
+        "A": 14,
+        "D": 8,
+        "Q": 8,
+        "WE": 1,
+        "EN": 1,
+        "CLK": 1
+      },
+      "body": [
+        0,
+        0,
+        240,
+        250
+      ],
       "attrs": {
         "addrWidth": 14,
         "dataWidth": 8,
@@ -355,18 +385,55 @@
     "rom32": {
       "_note": "Memory/ROM 5.0 实测（16K×32）。contents 写成 addr/data: 14 32 + 十六进制值列表；少写的地址按 0 填充。",
       "ports": {
-        "A": [0, 10],
-        "Q": [240, 60]
+        "A": [
+          0,
+          10
+        ],
+        "Q": [
+          240,
+          60
+        ]
       },
-      "port_widths": {"A": 14, "Q": 32},
-      "body": [0, 0, 240, 220],
-      "attrs": {"addrWidth": 14, "dataWidth": 32, "line": "single", "misaligned": "false"}
+      "port_widths": {
+        "A": 14,
+        "Q": 32
+      },
+      "body": [
+        0,
+        0,
+        240,
+        220
+      ],
+      "attrs": {
+        "addrWidth": 14,
+        "dataWidth": 32,
+        "line": "single",
+        "misaligned": "false"
+      }
     },
     "bit_extender": {
       "_note": "Wiring/Bit Extender：端口固定，位宽由 in_width/out_width 决定；零扩展用 type=zero。",
-      "ports": {"in": [-40, 0], "out": [0, 0]},
-      "body": [-40, -20, 0, 20],
-      "attrs": {"in_width": "输入位宽", "out_width": "输出位宽", "type": "zero|sign"}
+      "ports": {
+        "in": [
+          -40,
+          0
+        ],
+        "out": [
+          0,
+          0
+        ]
+      },
+      "body": [
+        -40,
+        -20,
+        0,
+        20
+      ],
+      "attrs": {
+        "in_width": "输入位宽",
+        "out_width": "输出位宽",
+        "type": "zero|sign"
+      }
     }
   },
   "pitfalls": [
@@ -555,6 +622,72 @@
       "title": "-w 的 <set>/<seq> 可跨子电路保留状态，但列名/列数必须严格匹配",
       "detail": "同一 <set> 内按 <seq> 递增执行，状态会保留到下一行，子电路实例内部状态也保留；CLK 用 0→1 两行制造上升沿，写行期望值用 <DC>。列名对不上时 Logisim 静默跳过，必须确认“通过数 == 数据行数”。",
       "evidence": "3.2 main 37 行 + ram64k 16 行 + bank8 7 行全过；列名错时曾静默跳过"
+    },
+    {
+      "id": "version-sniff-trap",
+      "title": "别用 .circ 的 source 属性判断 Logisim 版本",
+      "detail": "`<project source=\"2.16.1.0.exe\">` 只是保存时那个 exe 的文件名；同一台机器上可能同时存在 2.15.0.2 的 exe 与 2.16.1.0 的 jar。要拿真实版本，用 `javap -c -p -cp <jar> com.cburch.logisim.Main` 看 static 初始化里的 `LogisimVersion.get(major,minor,release,rev)`。",
+      "evidence": "实验2：上传的 logisim.exe 标题栏 2.15.0.2，而待修目录的 .circ 全是 2.16.1.0.exe 保存的"
+    },
+    {
+      "id": "replace-frame-breaks-appear",
+      "title": "整块替换给定框架电路会丢 Pin/Tunnel/外观",
+      "detail": "把老师给的验证电路整段替换成新生成的 <circuit>，会丢掉原有 Pin、Tunnel、Probe、Splitter 与 <appear>；加载时报 `Appearance element circ-port not found`，文件打不开。正确做法是保留原电路内容，只把新元件/导线追加到 `</circuit>` 之前。",
+      "evidence": "实验2 加法器：四个框架被替换后 7 个电路全部无法加载"
+    },
+    {
+      "id": "ita215-gate-ports",
+      "title": "2.15.0.2 门端口：AND/OR x-30、XOR x-40、NOT x-20",
+      "detail": "实测 Logisim-ITA 2.15.0.2：AND/OR 输入口 `(x-30, y±…)`，XOR 输入口 `x-40`，NOT 输入口 `x-20`（不是 -30）。NOT 写成 -30 时输入悬空，输出直接 E。",
+      "evidence": "实验2：NOT 接错后 Overflow 恒为 E，其余输出正常"
+    },
+    {
+      "id": "ita215-even-inputs-gap",
+      "title": "偶数输入门的中间空档是 20px",
+      "detail": "2 输入：y-10 / y+10；4 输入：y-20 / y-10 / y+10 / y+20（中间跳过 y）；5 输入：y-20 … y+20 每 10px 一个。按“10px 均布”算偶数输入会整体错位。",
+      "evidence": "实验2 并行进位器：4 输入与门端口错 10px"
+    },
+    {
+      "id": "ita-subappearance-anchor",
+      "title": "子电路外观锚点映射：loc + (端口中心 − 锚点中心)",
+      "detail": "`circ-port` 的 x/y 是端口框左上角，映射时要用中心：端口中心 = (x + width//2, y + height//2)，锚点中心 = (circ-anchor.x + 3, circ-anchor.y + 3)。实例端口 = 实例 loc + 两者中心之差。用左上角直接相减会差 1~2px，表现为“看着接上了其实差了 1px”。",
+      "evidence": "实验2：按该公式一次算准 5 个子电路实例的全部端口"
+    },
+    {
+      "id": "ita-subcomp-no-lib",
+      "title": "2.x 子电路实例的 <comp> 不写 lib",
+      "detail": "`<comp loc=\"(400,300)\" name=\"并行进位器\"/>` 即可；写成 `lib=\"8\"` 会去查不存在的库，加载报「库“8”中缺少组件」。库编号 0-6 是内置库，用户电路按出现顺序隐式编号。",
+      "evidence": "实验2 标定外观时第一次写成 lib=\"8\" 直接加载失败"
+    },
+    {
+      "id": "circ271-false-body-hit",
+      "title": "circ271_check 对 2.15 报“导线穿元件体”是误报",
+      "detail": "circ271 按原始 2.7.1 建模（门输入 x-50、门体更宽），而 ITA 2.15/2.16 的输入口在 x-30；20px 输入短线会被判成穿体。2.15 的真实判定以 Logisim 自身 `ERRCOUNT` 与 ita_probe 向量为准。",
+      "evidence": "实验2：并行进位器被报 45 条穿体，实际 ERRCOUNT 0、512/512 通过"
+    },
+    {
+      "id": "netcheck-probe-zero-width",
+      "title": "netcheck.py 的 Probe 位宽 0 假冲突",
+      "detail": "Probe 没有数据位宽，ita_probe 报告 width=0；netcheck 会把它和 4/8/16 位隧道判成冲突。每个带 6 个探针的验证框架都会稳定报 6 条假冲突，忽略即可。",
+      "evidence": "实验2：三个框架电路各 6 条 [0,4]/[0,8]/[0,16] 假冲突"
+    },
+    {
+      "id": "vector-column-count",
+      "title": "向量行字段数必须等于表头列数",
+      "detail": "少写一列时 ita_probe 报 `bad-column-count`，整表 fail；如果列名对不上则直接报 header pin not found。4 位全加器 13 列（9 入 + 4 出），只给 3 个十进制数会 512 行全灭。",
+      "evidence": "实验2：第一次 4 位全加器 512 行全部失败"
+    },
+    {
+      "id": "group-gp-msb-first",
+      "title": "G*/P* 期望值要从 MSB 往 LSB 递推",
+      "detail": "组进位生成 `G* = G4 + P4·G3 + P4·P3·G2 + P4·P3·P2·G1`，`P* = P4·P3·P2·P1`。从 LSB 累加会算成 `G0 + P0·G1 …`，4 并行加法器与 16 位的 G*/P* 会大面积失败。",
+      "evidence": "实验2：改正后 4 并行 512/512、16 位 508/508"
+    },
+    {
+      "id": "launch4j-jar-extract",
+      "title": "Launch4j 的 exe 要取内嵌 jar 才能喂探针",
+      "detail": "ITA 2.15 分发的是 Launch4j 单文件 exe。内嵌 jar 就是 `PK\\x03\\x04` 偏移到文件尾的整段字节；切出来可直接作为 classpath。另：加载失败时 GUI 对话框会吞异常，用 `scripts/v215/LoadTest.java` 覆写 `Loader.showError` 打印真实报错。",
+      "evidence": "实验2：从 logisim.exe 切出 4,264,607 字节 jar，探针正常工作"
     }
   ]
 }

@@ -17,6 +17,7 @@
 """
 from __future__ import annotations
 
+import json
 import os
 import re
 import shutil
@@ -27,16 +28,29 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ITA_DIR = os.path.join(HERE, "ita")
 CLASSES = os.path.join(ITA_DIR, "classes")
 
-# 常见 jar 位置，可用环境变量 LOGISIM_ITA_JAR 覆盖
-JAR_CANDIDATES = [
-    os.environ.get("LOGISIM_ITA_JAR", ""),
-    r"D:/Prigect/logism桥接/待修/存储器40/Logisim-ITA.jar",
-    r"C:/Program Files/Logisim-ITA/Logisim-ITA.jar",
-]
+
+def _local_ita_jar() -> str:
+    """向上找插件根的 logisim.local.json（已被 gitignore 排除），读 "ita_jar"。"""
+    d = HERE
+    for _ in range(6):
+        path = os.path.join(d, "logisim.local.json")
+        if os.path.isfile(path):
+            try:
+                with open(path, encoding="utf-8") as fh:
+                    return str(json.load(fh).get("ita_jar") or "")
+            except (OSError, ValueError):
+                return ""
+        d = os.path.dirname(d)
+    return ""
 
 
 def find_jar() -> str:
-    for p in JAR_CANDIDATES:
+    # 查找顺序：LOGISIM_ITA_JAR → logisim.local.json 的 ita_jar → 标准安装位置
+    for p in (
+        os.environ.get("LOGISIM_ITA_JAR", ""),
+        _local_ita_jar(),
+        "C:/Program Files/Logisim-ITA/Logisim-ITA.jar",
+    ):
         if p and os.path.isfile(p):
             return p
     raise FileNotFoundError(

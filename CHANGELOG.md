@@ -1,5 +1,18 @@
 # 更新记录
 
+## 未发布 — Logisim-ITA 2.15.0.2 支持（实验2 加法器沉淀）
+
+- 技能新增 `scripts/v215/`：`board215.py`（2.15 实测几何 + Board 追加式构建 + 六项正交布线自检）、
+  `gen_adder_lab2.py`（加法器生成）、`verify_adder_lab2.py`（穷举/随机向量）、
+  `LoadTest.java`（覆写 `Loader.showError` 打印加载异常）。
+- 固化 2.15.0.2 几何：AND/OR 输入 `x-30`、XOR `x-40`、**NOT `x-20`**、偶数输入中间留 20px 空档；
+  子电路实例端口 = `loc + (端口中心 − 锚点中心)`；实例 `<comp>` 不写 `lib`。
+- `circ271_check` / `circ271_sim` / `circ271_ports` 标注同时适用 ITA 2.15/2.16；
+  `circ271_check` 遇到 `source="2.15/2.16"` 会在输出首行提示“门体按原始 2.7.1 建模，可能误判穿体”。
+- `logisim_info` 增加「2.15/2.16支持」块，报告 `logisim.local.json` 的 `ita_jar`。
+- 技能文档：`SKILL.md` 增加 2.15 实测表；新增 `references/adder215-casebook.md`；
+  `pitfalls.md` 增加 K 组 11 条（83 → 94 条）；经验库 `knowledge.json` 同步 11 条。
+
 ## 未发布 — Logisim 2.7.1 独立语义层（CPU / DM 纠错沉淀）
 
 - 新增 `server/circuit_kit/circ271.py`：按 2.7.1 实测几何与语义实现网表重建、静态检查、

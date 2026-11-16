@@ -879,10 +879,12 @@ TOOLS = [
     {
         "name": "circ271_check",
         "description": (
-            "Logisim 2.7.1 专用静态体检（与 circ_audit 的 5.0 语义不同）。"
+            "Logisim 2.7.1 / ITA 2.15·2.16 专用静态体检（与 circ_audit 的 5.0 语义不同）。"
             "按 2.7.1 实测规则重建网表：Splitter 分支坐标、门电路输入排布、RAM 五个底部控制脚、"
             "Decoder/Mux 的 sel/en 必须从下方接入、导线不得穿元件体、位宽/多驱动/悬空检查。"
             "RAM 的 CS/OE、ROM 的 CS 悬空在 2.7.1 中等价使能，不会误报。"
+            "注意：门体模型按原始 2.7.1（输入 x-50），对 ITA 2.15/2.16（输入 x-30）会把"
+            "20px 输入短线误判为穿体；功能验证请用技能里的 ita_probe。"
             "输出 errors / warnings / unknown_components（Adder、Shifter、子电路等不在支持范围）。"
         ),
         "inputSchema": {
@@ -898,11 +900,12 @@ TOOLS = [
     {
         "name": "circ271_sim",
         "description": (
-            "Logisim 2.7.1 网表级仿真（面向原始元件电路，如 DM / GRF / Controller）。"
+            "Logisim 2.7.1 / ITA 2.15·2.16 网表级仿真（面向原始元件电路，如 DM / GRF / Controller）。"
             "驱动输入 Pin（按 label，忽略大小写和空格）→ 打 cycles 个时钟脉冲 → 按 label 读引脚或 Tunnel。"
             "支持 Pin/Tunnel/Splitter/Constant/基本门/Comparator/Decoder/Mux/RAM/ROM/Register；"
             "RAM 按 2.7.1 语义（str≠0 即写、CS/OE 悬空=使能、Decoder disabled=0 输出 0）。"
-            "子电路、Adder/Shifter 等未支持，会列入 unknown_components。"
+            "子电路、Adder/Shifter 等未支持，会列入 unknown_components；"
+            "含子电路的 2.15/2.16 整机验证请用技能里的 ita_probe（真实引擎）。"
         ),
         "inputSchema": {
             "type": "object",
@@ -925,10 +928,11 @@ TOOLS = [
     {
         "name": "circ271_ports",
         "description": (
-            "返回 2.7.1 实测端口几何：元件坐标 + 每个端口的坐标/位宽/方向。"
-            "覆盖 Pin/Tunnel/Constant/Clock/Splitter（east/west 分支位置）/基本门（默认 5 输入）/"
-            "Comparator/Decoder/Multiplexer/RAM（str/cs/clk/oe/clr 五脚）/ROM/Register。"
-            "用于改布局或手写 .circ 时核对坐标，避免接错行。"
+            "返回 2.7.1 / ITA 2.15·2.16 实测端口几何：元件坐标 + 每个端口的坐标/位宽/方向。"
+            "覆盖 Pin/Tunnel/Constant/Clock/Splitter（east/west 分支位置）/基本门（默认 5 输入，"
+            "输入口 x-30）/Comparator/Decoder/Multiplexer/RAM（str/cs/clk/oe/clr 五脚）/ROM/Register。"
+            "用于改布局或手写 .circ 时核对坐标，避免接错行；"
+            "ITA 2.15 补充：XOR 输入 x-40、NOT 输入 x-20、偶数输入中间留 20px。"
         ),
         "inputSchema": {
             "type": "object",
@@ -1179,6 +1183,11 @@ def call_tool(name, args):
             caps.append("-w 原生测试向量（只能验组合逻辑：每行都从初始状态重算）")
         else:
             caps.append("-w 需要 5.0+，当前版本不支持")
+        ita_jar = str(_local_config().get("ita_jar", "")).strip()
+        if ita_jar and not os.path.isfile(ita_jar):
+            ita_jar = f"{ita_jar}（文件不存在）"
+        if not ita_jar:
+            ita_jar = "未配置（在 logisim.local.json 写 ita_jar，或设 LOGISIM_ITA_JAR）"
         info = {
             "版本": ver,
             "当前选用": JAR or "未找到（设置 LOGISIM_JAR）",
@@ -1196,6 +1205,13 @@ def call_tool(name, args):
                 "工具": ["circ271_check", "circ271_sim", "circ271_ports"],
                 "语义": "按 2.7.1 实测：Splitter 分支 y、门默认 5 输入、RAM 五控制脚、Decoder 禁用输出、Register en",
                 "内核": os.environ.get("LOGISIM271_JAR", "未设置（EM 引擎类工具需该环境变量）"),
+            },
+            "2.15/2.16支持": {
+                "工具": ["circ271_check", "circ271_sim", "circ271_ports"],
+                "语义": "ITA 2.15.0.2 实测：AND/OR 输入 x-30、XOR x-40、NOT x-20；"
+                        "偶数输入中间留 20px 空档；子电路实例不写 lib；外观按端口/锚点中心映射",
+                "功能验证": "MCP 无 ITA 仿真引擎，用技能 scripts/v271/ita_probe.py（--list/--set/--vector/--ends/--errors）",
+                "ita_jar": ita_jar,
             },
             "经验库": f"{len(kit_kb.list_pitfalls())} 条（用 circ_kb list 查看）",
             "外观桥": {
@@ -1404,9 +1420,20 @@ def call_tool(name, args):
             return False, f"XML 解析失败: {exc}"
         if args.get("json"):
             return not rep["errors"], _json_text(rep)
-        head = (f"2.7.1 体检: {rep['circuit']}  wires={rep['wires']}  "
-                f"components={rep['components']}  errors={len(rep['errors'])}  "
-                f"warnings={len(rep['warnings'])}")
+        src = ""
+        try:
+            with open(f, encoding="utf-8") as fh:
+                m = re.search(r'<project[^>]*source="([^"]*)"', fh.read(400))
+                src = m.group(1) if m else ""
+        except OSError:
+            pass
+        note = ""
+        if src.startswith(("2.15", "2.16")):
+            note = (f"[ITA {src}] 几何按 ITA 实测；本工具门体按原始 2.7.1 建模，"
+                    "20px 输入短线可能被误判为穿体。功能验证请用技能里的 ita_probe。\n")
+        head = note + (f"2.7.1 体检: {rep['circuit']}  wires={rep['wires']}  "
+                       f"components={rep['components']}  errors={len(rep['errors'])}  "
+                       f"warnings={len(rep['warnings'])}")
         lines = [head]
         for e in rep["errors"]:
             lines.append("  ERROR " + e)

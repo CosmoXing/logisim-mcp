@@ -36,7 +36,7 @@ PLUGIN_SKILL = os.path.join(ROOT, "skills", SKILL_NAME)
 USER_SKILL = os.path.join(os.path.expanduser("~/.workbuddy/skills"), SKILL_NAME)
 
 SKIP_DIRS = {"__pycache__", ".git"}
-SKIP_EXT = {".pyc", ".pyo"}
+SKIP_EXT = {".pyc", ".pyo", ".class"}
 
 
 def walk(root):

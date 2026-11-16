@@ -65,7 +65,7 @@ Logisim-evolution 是纯 Java Swing 桌面程序，没有任何脚本或网络�
 | 多拍仿真 | 逐拍推进，逐触发器/寄存器检测各自的时钟沿——同步与行波级联都算得对 |
 | 几何与交叉复核 | 生成/布线/解析统一按 5.0 源码公式；`selftest` 再用 Logisim 真值表做外部复核 |
 | 失败显性 | 寄存器 / 多路选择器 / 译码器 / 比较器已纳入网表；仍不认识的元件由 `circ_audit` 标 `partial` 并列出名字与位置，不再当作成功 |
-| 经验库 | 随包 31 条实测坑（`circ_kb` 可增补；技能里另有 83 条坑表（含 2.7.1））；含 3.2 存储器实战：RAM/ROM 几何、低位交叉、字节使能、connect 连通性盲区 |
+| 经验库 | 随包 42 条实测坑（`circ_kb` 可增补；技能里另有 94 条坑表（含 2.7.1 / 2.15））；含 3.2 存储器实战：RAM/ROM 几何、低位交叉、字节使能、connect 连通性盲区 |
 | Java 桥 | 把 `CircuitAppearance` 等进程内 API 暴露成回环 NDJSON 命令，GUI 内实时改外观、截图、保存 |
 | 零依赖 | 纯 Python 标准库；Java 只在跑 Logisim 原生能力与外观编辑时需要 |
 
@@ -198,11 +198,11 @@ Java       : /usr/bin/java
 | `circ_build` | 声明式多电路生成，迷宫布线，不使用隧道 |
 | `circ_kb` | 经验库：list / search / add |
 | `circ_appearance` | 在运行中的 Logisim JVM 里编辑子电路外观：get / auto / apply / preview / save / reset / close |
-| `circ271_check` | **2.7.1 专用**静态体检：按 2.7.1 实测几何/语义重建网表，查位宽、驱动、穿体、sel/en 接入方向 |
-| `circ271_sim` | **2.7.1 专用**网表仿真：驱动输入 Pin → 打时钟 N 拍 → 读引脚 / Tunnel（DM、GRF 等原始元件电路） |
-| `circ271_ports` | **2.7.1 专用**端口几何：Splitter 分支、门、RAM 五控制脚、Decoder/Mux 的实测坐标 |
+| `circ271_check` | **2.7.1 / ITA 2.15·2.16** 静态体检：按 2.7.1 实测几何/语义重建网表，查位宽、驱动、穿体、sel/en 接入方向 |
+| `circ271_sim` | **2.7.1 / ITA 2.15·2.16** 网表仿真：驱动输入 Pin → 打时钟 N 拍 → 读引脚 / Tunnel（DM、GRF 等原始元件电路） |
+| `circ271_ports` | **2.7.1 / ITA 2.15·2.16** 端口几何：Splitter 分支、门、RAM 五控制脚、Decoder/Mux 的实测坐标 |
 
-## 版本支持：5.0 / 2.7.1 / 2.16
+## 版本支持：5.0 / 2.7.1 / 2.16 / 2.15
 
 三套几何互不兼容，**混用会出现「修好一处、另一处又坏」**。
 判定依据是 `.circ` 头部的 `source=`，不是你装的 Logisim 版本：
@@ -211,7 +211,12 @@ Java       : /usr/bin/java
 |---|---|---|
 | `5.0` | 5.0 几何 | `circuit_kit/geometry.py`，工具 `circ_*` / `circuit_*` |
 | `2.16` / `2.7` | 2.7.1 几何 | `circuit_kit/circ271.py`，工具 `circ271_*` |
+| `2.15` | ITA 几何：AND/OR 输入 `x-30`、XOR `x-40`、**NOT `x-20`**、偶数输入中间 20px 空档 | 静态检查用 `circ271_*`；功能验证用技能 `scripts/v271/ita_probe.py`，构建用 `scripts/v215/board215.py` |
 | `3.9` | 3.9 几何 | 未落地为代码，差异表见 [docs/VERSIONS.md](docs/VERSIONS.md) |
+
+> 2.15 说明：`circ271_check` 的门体模型按原始 2.7.1（输入 x-50）建模，对 2.15/2.16 会把
+> 20px 输入短线误判为“导线穿元件体”，属已知误报；以 Logisim 自身 `ERRCOUNT` 与
+> `ita_probe` 向量为准。`circ271_check` 检测到 `source="2.15/2.16"` 时会在首行给出提示。
 
 程序里可直接路由：
 

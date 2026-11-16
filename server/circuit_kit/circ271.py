@@ -217,7 +217,7 @@ def component_ports(comp):
         cnt = width_of(a, 'inputs', 5)
         w = width_of(a, 'width')
         # 实测 2.7.1/2.16：输入口在 (x-30, y ± step*(cnt-1)/2)，2 输入时 y±10
-        step = 20 if cnt == 2 else (40 // (cnt - 1) if cnt > 1 else 0)
+        step = 20 if cnt == 2 else 10
         for i in range(cnt):
             add(f'in{i}', x - 30, y - step * (cnt - 1) // 2 + i * step, w, 'in')
         add('out', x, y, w, 'out')

@@ -300,34 +300,34 @@ def build_alu():
 
     # S32 = {S3,S2}
     bus, p = b.split((380, 700), 2, "north")
-    b.wire(p[0], (p[0][0], p[0][1] - 20))
-    b.tunnel((p[0][0], p[0][1] - 20), "S2", 1, "north")
-    b.wire(p[1], (p[1][0], p[1][1] - 40))
-    b.tunnel((p[1][0], p[1][1] - 40), "S3", 1, "north")
+    b.wire(p[0], (p[0][0], p[0][1] - 30))
+    b.tunnel((p[0][0], p[0][1] - 30), "S2", 1, "north")
+    b.wire(p[1], (p[1][0], p[1][1] - 70))
+    b.tunnel((p[1][0], p[1][1] - 70), "S3", 1, "north")
     b.wire(bus, (bus[0], bus[1] + 20))
     b.tunnel((bus[0], bus[1] + 20), "S32", 2, "south")
 
     # S10 = {S1,S0}
     bus, p = b.split((500, 700), 2, "north")
-    b.wire(p[0], (p[0][0], p[0][1] - 20))
-    b.tunnel((p[0][0], p[0][1] - 20), "S0", 1, "north")
-    b.wire(p[1], (p[1][0], p[1][1] - 40))
-    b.tunnel((p[1][0], p[1][1] - 40), "S1", 1, "north")
+    b.wire(p[0], (p[0][0], p[0][1] - 30))
+    b.tunnel((p[0][0], p[0][1] - 30), "S0", 1, "north")
+    b.wire(p[1], (p[1][0], p[1][1] - 70))
+    b.tunnel((p[1][0], p[1][1] - 70), "S1", 1, "north")
     b.wire(bus, (bus[0], bus[1] + 20))
     b.tunnel((bus[0], bus[1] + 20), "S10", 2, "south")
 
     # N3 = A[2:0]
     bus, p = b.split((620, 700), 3, "north")
     for i in range(3):
-        q = (p[i][0], p[i][1] - 20 * (i + 1))
+        q = (p[i][0], p[i][1] - 40 * (i + 1))
         b.wire(p[i], q)
         b.tunnel(q, f"a{i}", 1, "north")
     b.wire(bus, (bus[0], bus[1] + 20))
     b.tunnel((bus[0], bus[1] + 20), "N3", 3, "south")
 
     # B_eff：INC/NEC 时把 B 置 0（S3=1,S2=0,S1=1）
-    b.gate_io("NOT Gate", (600, 850), 1, 1, ["S2"], "nS2")
-    b.gate_io("NOT Gate", (600, 900), 1, 1, ["S3"], "nS3")
+    b.gate_io("NOT Gate", (540, 850), 1, 1, ["S2"], "nS2")
+    b.gate_io("NOT Gate", (540, 900), 1, 1, ["S3"], "nS3")
     b.gate_io("AND Gate", (750, 850), 3, 1, ["S3", "nS2", "S1"], "ZB")
     b.const((750, 950), 8, 0)
     b.stub((750, 950), "Z8", 8, "e")
@@ -377,9 +377,9 @@ def build_alu():
     b.stub(out, "S", 8, "e")
 
     # S 分线：ZF 用 8 输入或非；SF = S7
-    b.wire((1440, 630), (1440, 650))
-    b.tunnel((1440, 630), "S", 8, "north")
-    _, bits_s = b.split((1440, 650), 8, "south")
+    b.wire((1520, 630), (1520, 650))
+    b.tunnel((1520, 630), "S", 8, "north")
+    _, bits_s = b.split((1520, 650), 8, "south")
     b.fan_bits(bits_s, "s")
 
     # CF 4 选 1

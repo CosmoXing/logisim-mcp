@@ -1,5 +1,24 @@
 # 更新记录
 
+## 未发布 — 实验4 控制器模块（2.15.0.2）沉淀
+
+- 新增 `scripts/v215/calib_lab4.py`（Register/Counter/DFF/RAM/ROM/Decoder/多分支 Splitter
+  标定）、`gen_ctrl_lab4.py`（Regs/PC/IR/ID/CLK/S-I/B/Flag/CU/系统连接 9 电路 +
+  六项自检 + 紧凑布局）、`verify_ctrl_lab4.py`（9 电路 112 行时序/组合向量）。
+- `board215.py` 扩展：`dff / adder / register / counter / ram / rom / decoder / splitn`
+  及 `lead()`；`fan_stub` 改为横向 20+30i、纵向交替 ±25；`fan_bits` 30px 步进；
+  `gate_io` 输入自动扇出，消除隧道压盖。
+- `ITAProbe.java` 新增 `--trace`，逐行打印所有引脚值；`ita_probe.run_vector(trace=True)`。
+- 固化 K20~K29：Register 端口与写使能边沿竞争、2.15 内置 Adder 的 Cout 是输入脚、
+  Counter 向下计数、RAM cs 低有效 / oe 高有效、ROM cs、多分支 Splitter 的 bit 分组、
+  子电路外观 `pin` 必须写真实 Pin 坐标、XYZ 位序（bit15/14/13）、手工 `--set` 不可靠、
+  隧道/引脚视觉间距与重叠检查。
+- 实验3 电路同步按新间距规则重排（3436/1984/1936/1452 行全过）；实验4 112 行全过，
+  ERRCOUNT 0，系统连接 1630×1100 量级。
+- 文档：新增 `references/controller215-casebook.md`；`SKILL.md` 2.15 表补
+  Register/Counter/Adder/RAM/ROM 与布局间距，资源表补实验4 工具；
+  `tools/sync_skill.py` 支持 `--home ~/.trae-cn` 同步到 Trae 技能目录。
+
 ## 未发布 — 实验3 8位 ALU（带比较器，2.15.0.2）沉淀
 
 - `scripts/v215/board215.py` 扩展：新增 `mux / cmp / const / ext / shifter / split`

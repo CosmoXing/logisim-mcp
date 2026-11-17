@@ -95,6 +95,63 @@ def cmp_ports(loc):
             "gt": (x, y - 10), "eq": (x, y), "lt": (x, y + 10)}
 
 
+def reg_ports(loc):
+    x, y = loc
+    return {"D": (x - 30, y), "Q": (x, y), "en": (x - 30, y + 10),
+            "clk": (x - 20, y + 20), "clr": (x - 10, y + 20),
+            "preset": (x - 10, y - 20), "cs": (x - 30, y - 10)}
+
+
+def cnt_ports(loc):
+    x, y = loc
+    return {"Q": (x, y), "D": (x - 30, y), "clk": (x - 20, y + 20),
+            "clr": (x - 10, y + 20), "ld": (x - 30, y - 10),
+            "en": (x - 30, y + 10), "carry": (x, y + 10),
+            "preset": (x - 10, y - 20), "rst": (x - 20, y - 20)}
+
+
+def ram_ports(loc):
+    x, y = loc
+    return {"A": (x - 140, y), "Q": (x, y), "D": (x - 140, y + 20),
+            "str": (x - 110, y + 40), "cs": (x - 90, y + 40),
+            "clk": (x - 70, y + 40), "oe": (x - 50, y + 40),
+            "clr": (x - 30, y + 40)}
+
+
+def rom_ports(loc):
+    x, y = loc
+    return {"A": (x - 140, y), "D": (x, y), "cs": (x - 90, y + 40)}
+
+
+def dec_ports(loc, select):
+    x, y = loc
+    n = 1 << select
+    outs = [(x + 20, y - 10 * (n - i)) for i in range(n)]
+    return outs, (x, y), (x - 10, y)
+
+
+def dff_ports(loc):
+    x, y = loc
+    return {"Q": (x, y), "nQ": (x, y + 40), "D": (x - 60, y),
+            "clk": (x - 30, y - 20), "R": (x - 60, y + 40),
+            "S": (x - 30, y + 60)}
+
+
+def adder_ports(loc):
+    """2.15 实测：Cin(-20,-20)、Cout(-20,+20)（ITA 把 Cout 也声明成输入脚）。"""
+    x, y = loc
+    return {"A": (x - 40, y - 20), "B": (x - 40, y + 10),
+            "Cin": (x - 20, y - 20), "S": (x, y), "Cout": (x - 20, y + 20)}
+
+
+def splitn_ports(loc, fanout, facing="south"):
+    """多分支分线器：branch i 在 x + off - 10i（最右为 b0）。"""
+    x, y = loc
+    off = ((fanout + 1) // 2 - 1) * 10
+    dy = 20 if facing == "south" else -20
+    return (x, y), [(x + off - 10 * i, y + dy) for i in range(fanout)]
+
+
 def overlap(a, b):
     return not (a[2] <= b[0] or b[2] <= a[0] or a[3] <= b[1] or b[3] <= a[1])
 
@@ -197,25 +254,102 @@ class Board:
                             set(pts) | {bus}))
         return bus, pts
 
+    def dff(self, loc):
+        pts = dff_ports(loc)
+        self.items.append(("dff", dict(loc=loc)))
+        self.bodies.append(((loc[0] - 60, loc[1] - 20, loc[0], loc[1] + 40),
+                            f"dff@{loc}", set(pts.values())))
+        return pts
+
+    def adder(self, loc, width=8):
+        pts = adder_ports(loc)
+        self.items.append(("adder", dict(loc=loc, width=width)))
+        self.bodies.append(((loc[0] - 40, loc[1] - 25, loc[0], loc[1] + 25),
+                            f"adder@{loc}", set(pts.values())))
+        return pts
+
+    def register(self, loc, width=8, label=""):
+        pts = reg_ports(loc)
+        self.items.append(("register", dict(loc=loc, width=width, label=label)))
+        self.bodies.append(((loc[0] - 30, loc[1] - 20, loc[0], loc[1] + 20),
+                            f"register@{loc}", set(pts.values())))
+        return pts
+
+    def counter(self, loc, width=2, maxval=(1 << 2) - 1):
+        pts = cnt_ports(loc)
+        self.items.append(("counter", dict(loc=loc, width=width, maxval=maxval)))
+        self.bodies.append(((loc[0] - 30, loc[1] - 20, loc[0], loc[1] + 20),
+                            f"counter@{loc}", set(pts.values())))
+        return pts
+
+    def ram(self, loc, addr_width=4, data_width=8):
+        pts = ram_ports(loc)
+        self.items.append(("ram", dict(loc=loc, addr_width=addr_width,
+                                       data_width=data_width)))
+        self.bodies.append(((loc[0] - 140, loc[1] - 10, loc[0], loc[1] + 45),
+                            f"ram@{loc}", set(pts.values())))
+        return pts
+
+    def rom(self, loc, addr_width=3, data_width=16, contents=""):
+        pts = rom_ports(loc)
+        self.items.append(("rom", dict(loc=loc, addr_width=addr_width,
+                                       data_width=data_width, contents=contents)))
+        self.bodies.append(((loc[0] - 140, loc[1] - 10, loc[0], loc[1] + 45),
+                            f"rom@{loc}", set(pts.values())))
+        return pts
+
+    def decoder(self, loc, select=2, enable=False):
+        outs, sel, en = dec_ports(loc, select)
+        self.items.append(("decoder", dict(loc=loc, select=select, enable=enable)))
+        ports = set(outs) | {sel}
+        if enable:
+            ports.add(en)
+        self.bodies.append(((loc[0] - 10, loc[1] - 10 * (1 << select),
+                             loc[0] + 20, loc[1] + 5),
+                            f"decoder@{loc}", ports))
+        return outs, sel, en
+
+    def splitn(self, loc, fanout, incoming, groups=None, facing="south"):
+        """fanout 个分支，incoming 位；groups[i]=第 i 位所属分支（0 = 最右）。"""
+        groups = groups or list(range(incoming))
+        if len(groups) != incoming:
+            raise ValueError(f"{self.name}: splitn groups 长度不符")
+        bus, pts = splitn_ports(loc, fanout, facing)
+        self.items.append(("splitn", dict(loc=loc, fanout=fanout,
+                                          incoming=incoming, groups=groups,
+                                          facing=facing)))
+        self.bodies.append((split_body(loc, facing), f"splitn{fanout}@{loc}",
+                            set(pts) | {bus}))
+        return bus, pts
+
     def text(self, loc, text, bold=False):
         self.items.append(("text", dict(loc=loc, text=text, bold=bold)))
 
+    def lead(self, port, label, width, side, dist=80):
+        """引脚引出线：先走 dist，再放隧道，避免隧道压住引脚本体。"""
+        dx, dy = {"w": (-1, 0), "e": (1, 0), "n": (0, -1), "s": (0, 1)}[side]
+        q = (port[0] + dx * dist, port[1] + dy * dist)
+        self.wire(port, q)
+        self.tunnel(q, label, width, facing={"w": "west", "e": "east",
+                                             "n": "north", "s": "south"}[side])
+
     def fan_bits(self, bits_ports, prefix, facing="south"):
-        """把分线器每个位口竖着拉远，隧道按 20px 递增错开，避免标签重叠。"""
+        """把分线器每个位口竖着拉远，隧道按 30px 递增错开，避免标签重叠。"""
         for i, p in enumerate(bits_ports):
-            dy = 20 * (i + 1)
+            dy = 30 * (i + 1)
             q = (p[0], p[1] + dy) if facing == "south" else (p[0], p[1] - dy)
             self.wire(p, q)
             self.tunnel(q, f"{prefix}{i}", 1, facing=facing)
 
     def fan_stub(self, ports, labels, width, side="w"):
-        """给同侧一排端口加隧道：第 i 个先横走 20+20i，再竖走 20(i+1) 错开。"""
+        """同侧一排端口的隧道扇出：横向 20+30i，纵向交替 ±25，标签互不压盖。"""
         sx = -1 if side == "w" else 1
         face = {"w": "west", "e": "east", "n": "north", "s": "south"}[side]
         for i, (p, lab) in enumerate(zip(ports, labels)):
-            q = (p[0] + sx * (20 + 20 * i), p[1])
+            q = (p[0] + sx * (20 + 30 * i), p[1])
             self.wire(p, q)
-            r = (q[0], q[1] - 20 * (i + 1))
+            dy = -25 if i % 2 == 0 else 25
+            r = (q[0], q[1] + dy)
             self.wire(q, r)
             self.tunnel(r, lab, width, facing=face)
 
@@ -241,11 +375,14 @@ class Board:
         ins, out = self.gate(kind, loc, n, width)
         if len(in_labels) != len(ins):
             raise ValueError(f"{self.name}: {kind}@{loc} 输入数不符")
-        for p, lab in zip(ins, in_labels):
-            if isinstance(lab, tuple):
-                self.stub(p, lab[0], lab[1], "w")
-            else:
-                self.stub(p, lab, width, "w")
+        if all(not isinstance(lab, tuple) for lab in in_labels):
+            self.fan_stub(ins, in_labels, width, "w")
+        else:
+            for p, lab in zip(ins, in_labels):
+                if isinstance(lab, tuple):
+                    self.stub(p, lab[0], lab[1], "w")
+                else:
+                    self.stub(p, lab, width, "w")
         if isinstance(out_label, tuple):
             self.stub(out, out_label[0], out_label[1], "e")
         else:
@@ -359,6 +496,65 @@ class Board:
                         f'      <a name="incoming" val="{bits}"/>',
                         '      <a name="appear" val="center"/>',
                         bit_attrs.rstrip("\n"),
+                        '    </comp>']
+            elif kind == "splitn":
+                x, y = d["loc"]
+                bit_attrs = "".join(
+                    f'      <a name="bit{i}" val="{d["groups"][i]}"/>\n'
+                    for i in range(d["incoming"]))
+                out += [f'    <comp lib="{LIB_WIRING}" loc="({x},{y})" name="Splitter">',
+                        f'      <a name="facing" val="{d["facing"]}"/>',
+                        f'      <a name="fanout" val="{d["fanout"]}"/>',
+                        f'      <a name="incoming" val="{d["incoming"]}"/>',
+                        '      <a name="appear" val="center"/>',
+                        bit_attrs.rstrip("\n"),
+                        '    </comp>']
+            elif kind == "dff":
+                x, y = d["loc"]
+                out += [f'    <comp lib="4" loc="({x},{y})" name="D Flip-Flop">',
+                        '      <a name="trigger" val="rising"/>',
+                        '    </comp>']
+            elif kind == "adder":
+                x, y = d["loc"]
+                out += [f'    <comp lib="3" loc="({x},{y})" name="Adder">',
+                        f'      <a name="width" val="{d["width"]}"/>',
+                        '    </comp>']
+            elif kind == "register":
+                x, y = d["loc"]
+                out += [f'    <comp lib="4" loc="({x},{y})" name="Register">',
+                        f'      <a name="width" val="{d["width"]}"/>',
+                        '      <a name="trigger" val="rising"/>']
+                if d["label"]:
+                    out.append(f'      <a name="label" val="{d["label"]}"/>')
+                out.append('    </comp>')
+            elif kind == "counter":
+                x, y = d["loc"]
+                out += [f'    <comp lib="4" loc="({x},{y})" name="Counter">',
+                        f'      <a name="width" val="{d["width"]}"/>',
+                        '      <a name="trigger" val="rising"/>',
+                        '    </comp>']
+            elif kind == "ram":
+                x, y = d["loc"]
+                out += [f'    <comp lib="4" loc="({x},{y})" name="RAM">',
+                        f'      <a name="addrWidth" val="{d["addr_width"]}"/>',
+                        f'      <a name="dataWidth" val="{d["data_width"]}"/>',
+                        '      <a name="bus" val="separate"/>',
+                        '      <a name="trigger" val="rising"/>',
+                        '    </comp>']
+            elif kind == "rom":
+                x, y = d["loc"]
+                out += [f'    <comp lib="4" loc="({x},{y})" name="ROM">',
+                        f'      <a name="addrWidth" val="{d["addr_width"]}"/>',
+                        f'      <a name="dataWidth" val="{d["data_width"]}"/>',
+                        f'      <a name="contents">addr/data: {d["addr_width"]} '
+                        f'{d["data_width"]}\n{d["contents"]}\n</a>',
+                        '    </comp>']
+            elif kind == "decoder":
+                x, y = d["loc"]
+                out += [f'    <comp lib="2" loc="({x},{y})" name="Decoder">',
+                        f'      <a name="select" val="{d["select"]}"/>',
+                        f'      <a name="enable" val="{"true" if d["enable"] else "false"}"/>',
+                        '      <a name="disabled" val="0"/>',
                         '    </comp>']
             elif kind == "sub":
                 x, y = d["loc"]

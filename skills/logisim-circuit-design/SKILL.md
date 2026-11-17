@@ -71,9 +71,15 @@ python server/server.py --doctor      # 插件：报依赖与自检
 | Bit Extender | in `(x-40,y)`、out `(x,y)`；属性 `in_width/out_width/type` |
 | Shifter | data `(x-40,y-10)`、distance `(x-40,y+10)`（3 位）、out `(x,y)`；属性 `shift=ll/lr/ar` |
 | Splitter 南/北 | bus `(x,y)`；bit i `(x+off-10i, y±20)`，`off=(ceil(bits/2)-1)*10`，**b0 最右** |
+| 多分支 Splitter | `fanout=分支数`、`incoming=总位数`、`bit{i}=第 i 位所属分支`；端口位置只按分支数算 |
+| Register | D `(x-30,y)`、en `(x-30,y+10)`、clk `(x-20,y+20)`、clr `(x-10,y+20)`、preset `(x-10,y-20)`、cs `(x-30,y-10)`、Q `(x,y)`；cs=0（默认 low-select）才输出 |
+| Counter | `max/goal` 无关紧要：2 位默认 **向下** 计数 `0→3→2→1`；要向上用 1 位 Register 自搭 |
+| Adder | 2.15 内置 Adder 的 `Cout` 被声明成输入脚，输出恒 `U`；改用全加器子电路行波进位 |
+| RAM | A `(x-140,y)`、D `(x-140,y+20)`、Q `(x,y)`；底部 str/cs/clk/oe/clr = `-110/-90/-70/-50/-30`；**cs=0、oe=1** 才读出 |
+| ROM | A `(x-140,y)`、Q `(x,y)`、cs `(x-90,y+40)`；cs=0 输出有效 |
 | Tunnel | `facing` 必须写 `east/west/north/south`；写 `e/w` 会加载报错并可能 WireRepair 卡死 |
 | 验证 | 2.15 **没有** `-t stats` / `-w`；用 `scripts/v271/ita_probe.py`、`scripts/v215/verify_adder_lab2.py`、`verify_alu_lab3.py` |
-| 构建 | `scripts/v215/board215.py`（实测几何 + Board + 六项自检）+ `gen_adder_lab2.py` / `gen_alu_lab3.py` |
+| 构建 | `scripts/v215/board215.py`（实测几何 + Board + 六项自检）+ `gen_adder_lab2.py` / `gen_alu_lab3.py` / `gen_ctrl_lab4.py` |
 | 内嵌 jar | 2.15 用 Launch4j 打包 exe，可从 `PK\x03\x04` 偏移整段切出 jar 喂探针 |
 | 加载报错 | GUI 对话框会吞异常；`ITAProbe` 的 `ProbeLoader` 会打印 `LOADERR`，旧工具用 `LoadTest.java` |
 
@@ -84,6 +90,15 @@ python server/server.py --doctor      # 插件：报依赖与自检
 > 实验3 8位 ALU（移位/比较/算术/逻辑 + 标志）的完整复盘见
 > `references/alu215-casebook.md`：8 个电路结构、16604 行验证矩阵、
 > K12~K19 的新坑（Tunnel facing、分线器反推、MUX enable、Shifter、比较器 S=1/0、INC/NEC）。
+>
+> 实验4 控制器模块（Regs/PC/IR/ID/CLK/S-I/B/Flag/CU/系统）见
+> `references/controller215-casebook.md`：K20~K29（Register 端口与写使能竞争、
+> 内置 Adder 不可用、Counter 向下计数、RAM cs/oe 极性、多分支 Splitter、
+> 外观 `pin` 坐标、XYZ 位序、`--set` 不可靠、隧道/引脚可视间距）；
+> `verify_ctrl_lab4.py` 112 行全过。
+>
+> 布局间距规范：引脚 `Board.lead()` 80px；同侧多脚 `fan_stub` 横向 20+30i、
+> 纵向 ±25；`fan_bits` 30px；MUX out/sel 40px；寄存器用 `wire_reg()`（cs/preset 悬空）。
 > 2.15 课程框架本身大量使用 Tunnel；沿用时按框架原样保留，只有用户明确禁用时才全部改实体线。
 
 抄错这 30px 的症状是「每修好一处、另一处又坏」，几乎一定被误判成"布线算法有问题"。
@@ -483,8 +498,8 @@ scripts/
 | `scripts/v50/route8.py` | 确定性布线：z/w 折线 + 六项自检 + verify_nets/verify_short + paste/canonicalize |
 | `scripts/v50/sim.py` | 向量测试封装：`<set> <seq>` 时序、jar 自动探测、verify_alive 防假通过 |
 | `scripts/v50/mem_gen.py` | 64KB ROM + 64KB RAM 生成器：bank8/ram64k/rom64k/main + 自定义外观 + 自检 |
-| `scripts/v271/ita/ITAProbe.java` | **2.16/2.7.1 headless 探针**：加载/设引脚/打时钟/读输出（`--list/--set/--vector/--ends/--errors`）；`ProbeLoader` 把加载异常打成 `LOADERR` |
-| `scripts/v271/ita_probe.py` | 探针 Python 封装：自动编译，`list_pins/eval_pins/run_vector/ends/errors` |
+| `scripts/v271/ita/ITAProbe.java` | **2.16/2.7.1 headless 探针**：加载/设引脚/打时钟/读输出（`--list/--set/--vector/--trace/--ends/--errors`）；`ProbeLoader` 把加载异常打成 `LOADERR` |
+| `scripts/v271/ita_probe.py` | 探针 Python 封装：自动编译，`list_pins/eval_pins/run_vector(trace=True)/ends/errors` |
 | `scripts/v271/netcheck.py` | **位宽冲突定位**：真实端口坐标 + 导线图建网，一次列全冲突点 |
 | `scripts/v215/board215.py` | 2.15.0.2 实测几何 + Board 追加式构建器 + 六项正交布线自检；含 mux/cmp/const/ext/shifter/split 与 fan_bits/fan_stub |
 | `scripts/v215/gen_adder_lab2.py` | 实验2 加法器生成器：7 个电路，在原验证框架上追加（不覆盖原元件） |
@@ -492,6 +507,10 @@ scripts/
 | `scripts/v215/calib_lab3.py` | 实验3 元件标定：MUX 2/4/8:1、Comparator、Bit Extender、Shifter、2/3/8 位 Splitter 真实端口 |
 | `scripts/v215/gen_alu_lab3.py` | 实验3 8位 ALU 生成器：5 个新电路 + 紧凑布局 + 六项自检 |
 | `scripts/v215/verify_alu_lab3.py` | 实验3 功能向量：模块级 + ALU 顶层，16604 行 |
+| `references/controller215-casebook.md` | 实验4 控制器 2.15 复盘：9 个模块、指令字段/真值表、T0~T3 时序、K20~K29、布局间距与重叠检查 |
+| `scripts/v215/calib_lab4.py` | 实验4 元件标定：Register/Counter/DFF/RAM/ROM/Decoder/多分支 Splitter |
+| `scripts/v215/gen_ctrl_lab4.py` | 实验4 生成器：Regs/PC/IR/ID/CLK/S-I/B/Flag/CU/系统连接 |
+| `scripts/v215/verify_ctrl_lab4.py` | 实验4 验证：9 个电路 112 行向量 |
 | `scripts/v215/probe_points.py` | 按坐标读运行值 / `--dump`，排查中间网络 |
 | `scripts/v215/test_wide.py` | 最小复现：宽 Pin、分线器、隧道驱动关系 |
 | `scripts/v215/LoadTest.java` | 加载错误探针：覆写 `Loader.showError`，打印被 GUI 吞掉的真实异常 |

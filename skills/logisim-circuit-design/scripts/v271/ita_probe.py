@@ -132,11 +132,13 @@ def eval_pins(circ: str, circuit: str | None = None,
 
 
 def run_vector(circ: str, vec: str, circuit: str | None = None,
-               clk: str | None = None) -> dict:
+               clk: str | None = None, trace: bool = False) -> dict:
     """跑向量文件。返回 {'rows','pass','fail','fails':[行号...]}"""
     args = ["--vector", vec]
     if clk:
         args += ["--clk", clk]
+    if trace:
+        args += ["--trace"]
     out = run(args, circ, circuit)
     s = re.search(r"SUMMARY rows=(\d+) pass=(\d+) fail=(\d+)", out)
     fails = [int(m.group(1)) for m in re.finditer(r"ROW (\d+) FAIL", out)]

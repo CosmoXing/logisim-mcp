@@ -62,7 +62,7 @@ public class ITAProbe {
         out = new PrintStream(new java.io.FileOutputStream(java.io.FileDescriptor.out), true, StandardCharsets.UTF_8);
         String file = null, circuitName = null, setSpec = null, readSpec = null, vector = null, clkName = null, probeSpec = null;
         boolean dump = false, ends = false, errors = false;
-        boolean list = false;
+        boolean list = false, trace = false;
         try {
             for (int i = 0; i < args.length; i++) {
                 String a = args[i];
@@ -78,6 +78,7 @@ public class ITAProbe {
                     case "--ends": ends = true; break;
                     case "--errors": errors = true; break;
                     case "--list": list = true; break;
+                    case "--trace": trace = true; break;
                     default: die("unknown arg " + a);
                 }
             }
@@ -200,7 +201,7 @@ public class ITAProbe {
             }
 
             if (vector != null) {
-                int[] rc = runVector(st, prop, pins, vector, clkName);
+                int[] rc = runVector(st, prop, pins, vector, clkName, trace);
                 out.println("SUMMARY rows=" + rc[0] + " pass=" + rc[1] + " fail=" + rc[2]);
                 System.exit(rc[2] == 0 ? 0 : 1);
                 return;
@@ -386,7 +387,7 @@ public class ITAProbe {
 
     // ---------------- 向量 ----------------
 
-    static int[] runVector(CircuitState st, Propagator prop, List<P> pins, String path, String clkArg) throws Exception {
+    static int[] runVector(CircuitState st, Propagator prop, List<P> pins, String path, String clkArg, boolean trace) throws Exception {
         Map<String, P> byName = new LinkedHashMap<>();
         for (P p : pins) byName.put(p.name, p);
 
@@ -444,6 +445,15 @@ public class ITAProbe {
                 }
             }
             applyInputs(st, prop, byName, vals, clk);
+
+            if (trace) {
+                StringBuilder sb = new StringBuilder("TRACE");
+                for (Map.Entry<String, P> e : byName.entrySet()) {
+                    P p = e.getValue();
+                    sb.append(' ').append(p.name).append('=').append(fmt(readPin(st, p), p.width));
+                }
+                out.println(sb.toString());
+            }
 
             List<String> bad = new ArrayList<>();
             for (String e : expects) {

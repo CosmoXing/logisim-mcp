@@ -9,6 +9,7 @@
 
 默认源：<plugin>/skills/logisim-circuit-design
 默认目标：~/.workbuddy/skills/logisim-circuit-design
+可加 --home ~/.trae-cn 同步到 Trae（技能目录 = <home>/skills）。
 """
 
 from __future__ import annotations
@@ -33,7 +34,6 @@ _utf8_console()
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SKILL_NAME = "logisim-circuit-design"
 PLUGIN_SKILL = os.path.join(ROOT, "skills", SKILL_NAME)
-USER_SKILL = os.path.join(os.path.expanduser("~/.workbuddy/skills"), SKILL_NAME)
 
 SKIP_DIRS = {"__pycache__", ".git"}
 SKIP_EXT = {".pyc", ".pyo", ".class"}
@@ -65,9 +65,12 @@ def main():
     ap.add_argument("--apply", action="store_true", help="真正写入（默认只对比）")
     ap.add_argument("--to-plugin", action="store_true", help="反向：用户目录 → 插件")
     ap.add_argument("--prune", action="store_true", help="删除目标里多出来的文件")
+    ap.add_argument("--home", default="~/.workbuddy",
+                    help="用户配置根目录；技能目录 = <home>/skills（Trae 用 ~/.trae-cn）")
     args = ap.parse_args()
 
-    src, dst = (USER_SKILL, PLUGIN_SKILL) if args.to_plugin else (PLUGIN_SKILL, USER_SKILL)
+    user_skill = os.path.join(os.path.expanduser(args.home), "skills", SKILL_NAME)
+    src, dst = (user_skill, PLUGIN_SKILL) if args.to_plugin else (PLUGIN_SKILL, user_skill)
     if not os.path.isdir(src):
         raise SystemExit(f"源目录不存在: {src}")
     if not os.path.isdir(dst):

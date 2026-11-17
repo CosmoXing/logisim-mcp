@@ -34,6 +34,18 @@ import java.util.Map;
  */
 public class ITAProbe {
 
+    /** 无 GUI 的 Loader：把 showError 打到 stderr，避免 HeadlessException 吞掉真实原因。 */
+    static final class ProbeLoader extends Loader {
+        ProbeLoader() {
+            super(null);
+        }
+
+        @Override
+        public void showError(String msg) {
+            System.err.println("LOADERR " + msg);
+        }
+    }
+
     static final class P {
         final Component comp;
         final String name;
@@ -71,7 +83,7 @@ public class ITAProbe {
             }
             if (file == null) die("--file required");
 
-            Loader loader = new Loader(null);
+            Loader loader = new ProbeLoader();
             LogisimFile lf = loader.openLogisimFile(new File(file));
             if (lf == null) die("cannot load " + file);
             Project proj = new Project(lf);

@@ -9,7 +9,7 @@
 """
 from __future__ import annotations
 
-LIB_WIRING, LIB_GATES, LIB_BASE = "0", "1", "6"
+LIB_WIRING, LIB_GATES, LIB_PLEXERS, LIB_ARITH, LIB_BASE = "0", "1", "2", "3", "6"
 
 
 # ---------------------------------------------------------------- 几何
@@ -47,6 +47,52 @@ def gate_body(kind: str, loc, n: int):
         return (x - 20, y - 10, x, y + 10)
     left = x - (40 if kind == "XOR Gate" else 30)
     return (left, y + offs[0] - 10, x, y + offs[-1] + 10)
+
+
+# 2.15.0.2 实测（enable=false）：数据口在左，sel 在下方，out 在 loc
+def mux_ports(loc, select: int):
+    x, y = loc
+    if select == 1:
+        return [(x - 30, y - 10), (x - 30, y + 10)], (x - 20, y + 20), (x, y)
+    if select == 2:
+        return ([(x - 40, y - 20 + 10 * i) for i in range(4)],
+                (x - 20, y + 20), (x, y))
+    if select == 3:
+        return ([(x - 40, y - 40 + 10 * i) for i in range(8)],
+                (x - 20, y + 40), (x, y))
+    raise ValueError("select 只支持 1/2/3")
+
+
+def mux_body(loc, select: int):
+    x, y = loc
+    return {1: (x - 30, y - 10, x, y + 10),
+            2: (x - 40, y - 20, x, y + 20),
+            3: (x - 40, y - 40, x, y + 40)}[select]
+
+
+def split_ports(loc, bits: int, facing="south"):
+    """实测：bit i 在 x + off - 10*i，off = (ceil(bits/2)-1)*10；b0 最右。"""
+    x, y = loc
+    off = ((bits + 1) // 2 - 1) * 10
+    dy = 20 if facing == "south" else -20
+    return (x, y), [(x + off - 10 * i, y + dy) for i in range(bits)]
+
+
+def split_body(loc, facing="south"):
+    x, y = loc
+    return (x - 10, y - 5, x + 10, y + 20) if facing == "south" \
+        else (x - 10, y - 20, x + 10, y + 5)
+
+
+def shifter_ports(loc):
+    x, y = loc
+    return (x - 40, y - 10), (x - 40, y + 10), (x, y)
+
+
+def cmp_ports(loc):
+    x, y = loc
+    return {"A": (x - 40, y - 10), "B": (x - 40, y + 10),
+            "gt": (x, y - 10), "eq": (x, y), "lt": (x, y + 10)}
 
 
 def overlap(a, b):
@@ -110,8 +156,68 @@ class Board:
                             f"sub {name}@{loc}", set(pts.values())))
         return pts
 
+    def mux(self, loc, select, width=1):
+        data, sel, out = mux_ports(loc, select)
+        self.items.append(("mux", dict(loc=loc, select=select, width=width)))
+        self.bodies.append((mux_body(loc, select), f"mux{select}@{loc}",
+                            set(data) | {sel, out}))
+        return data, sel, out
+
+    def cmp(self, loc, width=8):
+        pts = cmp_ports(loc)
+        self.items.append(("cmp", dict(loc=loc, width=width)))
+        self.bodies.append(((loc[0] - 40, loc[1] - 10, loc[0], loc[1] + 10),
+                            f"cmp@{loc}", set(pts.values())))
+        return pts
+
+    def const(self, loc, width=1, value=0):
+        self.items.append(("const", dict(loc=loc, width=width, value=value)))
+        self.bodies.append(((loc[0] - 30, loc[1] - 8, loc[0], loc[1] + 8),
+                            f"const@{loc}", {loc}))
+        return loc
+
+    def ext(self, loc, in_width=1, out_width=8):
+        self.items.append(("ext", dict(loc=loc, in_width=in_width,
+                                       out_width=out_width)))
+        self.bodies.append(((loc[0] - 40, loc[1] - 18, loc[0], loc[1] + 18),
+                            f"ext@{loc}", {(loc[0] - 40, loc[1]), loc}))
+        return (loc[0] - 40, loc[1]), loc
+
+    def shifter(self, loc, width=8, shift="ll"):
+        d, n, out = shifter_ports(loc)
+        self.items.append(("shifter", dict(loc=loc, width=width, shift=shift)))
+        self.bodies.append(((loc[0] - 40, loc[1] - 20, loc[0], loc[1] + 20),
+                            f"shifter {shift}@{loc}", {d, n, out}))
+        return d, n, out
+
+    def split(self, loc, bits, facing="south"):
+        bus, pts = split_ports(loc, bits, facing)
+        self.items.append(("split", dict(loc=loc, bits=bits, facing=facing)))
+        self.bodies.append((split_body(loc, facing), f"split{bits}@{loc}",
+                            set(pts) | {bus}))
+        return bus, pts
+
     def text(self, loc, text, bold=False):
         self.items.append(("text", dict(loc=loc, text=text, bold=bold)))
+
+    def fan_bits(self, bits_ports, prefix, facing="south"):
+        """把分线器每个位口竖着拉远，隧道按 20px 递增错开，避免标签重叠。"""
+        for i, p in enumerate(bits_ports):
+            dy = 20 * (i + 1)
+            q = (p[0], p[1] + dy) if facing == "south" else (p[0], p[1] - dy)
+            self.wire(p, q)
+            self.tunnel(q, f"{prefix}{i}", 1, facing=facing)
+
+    def fan_stub(self, ports, labels, width, side="w"):
+        """给同侧一排端口加隧道：第 i 个先横走 20+20i，再竖走 20(i+1) 错开。"""
+        sx = -1 if side == "w" else 1
+        face = {"w": "west", "e": "east", "n": "north", "s": "south"}[side]
+        for i, (p, lab) in enumerate(zip(ports, labels)):
+            q = (p[0] + sx * (20 + 20 * i), p[1])
+            self.wire(p, q)
+            r = (q[0], q[1] - 20 * (i + 1))
+            self.wire(q, r)
+            self.tunnel(r, lab, width, facing=face)
 
     def wire(self, p, q):
         if p == q:
@@ -209,6 +315,50 @@ class Board:
                 out += [f'    <comp lib="{LIB_GATES}" loc="({x},{y})" name="{d["kind"]}">',
                         f'      <a name="inputs" val="{d["inputs"]}"/>',
                         f'      <a name="width" val="{d["width"]}"/>',
+                        '    </comp>']
+            elif kind == "mux":
+                x, y = d["loc"]
+                out += [f'    <comp lib="{LIB_PLEXERS}" loc="({x},{y})" name="Multiplexer">',
+                        f'      <a name="select" val="{d["select"]}"/>',
+                        f'      <a name="width" val="{d["width"]}"/>',
+                        '      <a name="enable" val="false"/>',
+                        '    </comp>']
+            elif kind == "cmp":
+                x, y = d["loc"]
+                out += [f'    <comp lib="{LIB_ARITH}" loc="({x},{y})" name="Comparator">',
+                        f'      <a name="width" val="{d["width"]}"/>',
+                        '      <a name="mode" val="unsigned"/>',
+                        '    </comp>']
+            elif kind == "const":
+                x, y = d["loc"]
+                out += [f'    <comp lib="{LIB_WIRING}" loc="({x},{y})" name="Constant">',
+                        f'      <a name="width" val="{d["width"]}"/>',
+                        f'      <a name="value" val="0x{d["value"]:x}"/>',
+                        '    </comp>']
+            elif kind == "ext":
+                x, y = d["loc"]
+                out += [f'    <comp lib="{LIB_WIRING}" loc="({x},{y})" name="Bit Extender">',
+                        f'      <a name="in_width" val="{d["in_width"]}"/>',
+                        f'      <a name="out_width" val="{d["out_width"]}"/>',
+                        '      <a name="type" val="zero"/>',
+                        '    </comp>']
+            elif kind == "shifter":
+                x, y = d["loc"]
+                out += [f'    <comp lib="{LIB_ARITH}" loc="({x},{y})" name="Shifter">',
+                        f'      <a name="width" val="{d["width"]}"/>',
+                        f'      <a name="shift" val="{d["shift"]}"/>',
+                        '    </comp>']
+            elif kind == "split":
+                x, y = d["loc"]
+                bits = d["bits"]
+                bit_attrs = "".join(
+                    f'      <a name="bit{i}" val="{i}"/>\n' for i in range(bits))
+                out += [f'    <comp lib="{LIB_WIRING}" loc="({x},{y})" name="Splitter">',
+                        f'      <a name="facing" val="{d["facing"]}"/>',
+                        f'      <a name="fanout" val="{bits}"/>',
+                        f'      <a name="incoming" val="{bits}"/>',
+                        '      <a name="appear" val="center"/>',
+                        bit_attrs.rstrip("\n"),
                         '    </comp>']
             elif kind == "sub":
                 x, y = d["loc"]

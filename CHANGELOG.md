@@ -1,5 +1,23 @@
 # 更新记录
 
+## 未发布 — 实验3 8位 ALU（带比较器，2.15.0.2）沉淀
+
+- `scripts/v215/board215.py` 扩展：新增 `mux / cmp / const / ext / shifter / split`
+  与 `fan_bits / fan_stub`；固化 2.15 的 MUX（`enable=false`）、Comparator、Bit Extender、
+  Constant、Shifter、2/3/8 位 Splitter（南/北向）实测几何。
+- 新增 `scripts/v215/calib_lab3.py`（元件端口标定）、`gen_alu_lab3.py`（8 位 ALU 生成 +
+  紧凑布局 + 六项自检）、`verify_alu_lab3.py`（模块级 + 顶层 16604 行向量）、
+  `probe_points.py`（按坐标读运行值）、`test_wide.py`（宽 Pin/分线器/隧道最小复现）。
+- `scripts/v271/ita/ITAProbe.java` 新增 `ProbeLoader`：覆写 `Loader.showError`，
+  加载异常打印 `LOADERR`，不再被 HeadlessException 吞掉。
+- 固化 K12~K19 八条新坑：Tunnel facing 必须全称、分线器位口悬空反推总线、
+  无头加载吞错误、`--probe/--dump` 在 Pin/Tunnel 上可能读旧值、Shifter 可变距离与 SOL、
+  MUX `enable=false`、比较结果 S=0x01/0x00、INC/NEC 先把 B 置 0。
+- 文档：新增 `references/alu215-casebook.md`；`SKILL.md` 2.15 表补 MUX/Comparator/
+  BitExtender/Shifter/Splitter/Tunnel 几何与 ALU 工具，坑表 94→102、2.15 11→19 坑；
+  `geometry.md` 新增第 11 节 2.15 实测补充；README 坑数与 2.15 说明同步。
+- 验证：8 个电路、16604 行向量 0 失败；ALU 顶层 2480×1780 → 1460×1030。
+
 ## 未发布 — Logisim-ITA 2.15.0.2 支持（实验2 加法器沉淀）
 
 - 技能新增 `scripts/v215/`：`board215.py`（2.15 实测几何 + Board 追加式构建 + 六项正交布线自检）、

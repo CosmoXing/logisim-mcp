@@ -261,3 +261,35 @@ loc      = 数据口，固定 4 位
 - Register 的 `en` 只有 `== FALSE` 才禁止加载；悬空等价使能。
 - Decoder 禁用输出默认 `Z`；需要 0 时加 `disabled=0`。
 - 子电路实例端口按侧/顺序 10px 打包，与子电路内部 Pin 坐标不成比例；内部重排不影响父电路。
+
+## 11. Logisim-ITA 2.15.0.2 实测补充（实验2/3）
+
+以下全部由 `scripts/v215/calib_lab3.py` 生成临时标定电路、`ita_probe.ends` 读真实端口得到，
+相对元件 `loc`；与 2.7.1 原始几何不同，不要混用。
+
+| 元件 | 端口 |
+|---|---|
+| AND / OR | 输入 `(x-30, y+off)`，输出 `(x,y)`；奇数输入 10px 均布，偶数中间留 20px 空档 |
+| XOR | 输入 `(x-40, y+off)`，输出 `(x,y)` |
+| NOT | 输入 `(x-20,y)`，输出 `(x,y)` |
+| MUX 2:1（`enable=false`） | 数据 `(x-30,y-10)/(x-30,y+10)`；sel `(x-20,y+20)`；out `(x,y)` |
+| MUX 4:1（`enable=false`） | 数据 `(x-40,y-20+10i)` i=0..3；sel `(x-20,y+20)`；out `(x,y)` |
+| MUX 8:1（`enable=false`） | 数据 `(x-40,y-40+10i)` i=0..7；sel `(x-20,y+40)`；out `(x,y)` |
+| Comparator(8) | A `(x-40,y-10)`、B `(x-40,y+10)`；gt `(x,y-10)`、eq `(x,y)`、lt `(x,y+10)` |
+| Constant | out `(x,y)` |
+| Bit Extender | in `(x-40,y)`、out `(x,y)`；`in_width/out_width/type` |
+| Shifter(8) | data `(x-40,y-10)` 8 位；distance `(x-40,y+10)` 3 位；out `(x,y)` |
+| Splitter 南向 | bus `(x,y)`；bit i `(x+off-10i, y+20)`，`off=(ceil(bits/2)-1)*10`，**b0 最右** |
+| Splitter 北向 | bus `(x,y)`；bit i `(x+off-10i, y-20)`，位序同南向 |
+| Tunnel | 端口 = `loc`；`facing` 只认 `east/west/north/south` |
+| 子电路实例 | `loc + (端口中心 − 锚点中心)`；`circ-anchor` 中心 = 坐标 + 3 |
+
+补充规则：
+
+- **MUX 的 `enable` 默认 true**；不写 `enable=false` 会多一个 `en` 脚，悬空时输出 `U/E`。
+  上表是 `enable=false` 的坐标。
+- **分线器位口悬空会反推总线**：只拆低 3 位时，其余位口必须接假负载或不用分线器。
+- **Shifter 不输出移出位**，SOL 要另算（左移 `X[8-N]`、右移 `X[N-1]`，N=0 为 0）。
+- **Tunnel facing 写短码 `e/w` 会加载报错**，并可能触发 `WireRepair` 死循环。
+- 比较器结果若要 8 位，用 Bit Extender 1→8；实验3 的 S=0x01/0x00。
+

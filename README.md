@@ -65,7 +65,7 @@ Logisim-evolution 是纯 Java Swing 桌面程序，没有任何脚本或网络�
 | 多拍仿真 | 逐拍推进，逐触发器/寄存器检测各自的时钟沿——同步与行波级联都算得对 |
 | 几何与交叉复核 | 生成/布线/解析统一按 5.0 源码公式；`selftest` 再用 Logisim 真值表做外部复核 |
 | 失败显性 | 寄存器 / 多路选择器 / 译码器 / 比较器已纳入网表；仍不认识的元件由 `circ_audit` 标 `partial` 并列出名字与位置，不再当作成功 |
-| 经验库 | 随包 42 条实测坑（`circ_kb` 可增补；技能里另有 94 条坑表（含 2.7.1 / 2.15））；含 3.2 存储器实战：RAM/ROM 几何、低位交叉、字节使能、connect 连通性盲区 |
+| 经验库 | 随包 50 条实测坑（`circ_kb` 可增补；技能里另有 102 条坑表（含 2.7.1 / 2.15））；含 3.2 存储器实战：RAM/ROM 几何、低位交叉、字节使能、connect 连通性盲区 |
 | Java 桥 | 把 `CircuitAppearance` 等进程内 API 暴露成回环 NDJSON 命令，GUI 内实时改外观、截图、保存 |
 | 零依赖 | 纯 Python 标准库；Java 只在跑 Logisim 原生能力与外观编辑时需要 |
 
@@ -211,7 +211,7 @@ Java       : /usr/bin/java
 |---|---|---|
 | `5.0` | 5.0 几何 | `circuit_kit/geometry.py`，工具 `circ_*` / `circuit_*` |
 | `2.16` / `2.7` | 2.7.1 几何 | `circuit_kit/circ271.py`，工具 `circ271_*` |
-| `2.15` | ITA 几何：AND/OR 输入 `x-30`、XOR `x-40`、**NOT `x-20`**、偶数输入中间 20px 空档 | 静态检查用 `circ271_*`；功能验证用技能 `scripts/v271/ita_probe.py`，构建用 `scripts/v215/board215.py` |
+| `2.15` | ITA 几何：AND/OR 输入 `x-30`、XOR `x-40`、**NOT `x-20`**、偶数输入中间 20px 空档；MUX 需 `enable=false`，Comparator/BitExtender/Shifter/南向 Splitter 见技能 `references/geometry.md` 第 11 节 | 静态检查用 `circ271_*`；功能验证用 `scripts/v271/ita_probe.py`，构建用 `scripts/v215/board215.py`，ALU 用 `gen_alu_lab3.py` + `verify_alu_lab3.py` |
 | `3.9` | 3.9 几何 | 未落地为代码，差异表见 [docs/VERSIONS.md](docs/VERSIONS.md) |
 
 > 2.15 说明：`circ271_check` 的门体模型按原始 2.7.1（输入 x-50）建模，对 2.15/2.16 会把
@@ -450,8 +450,9 @@ Java 桥是可选通道：没有 JDK、没有编译产物或启动失败时，`c
 | [`docs/DESIGN-NOTES.md`](docs/DESIGN-NOTES.md) | 从 0 到 1 的取舍：为什么不用隧道、为什么失败要显性 |
 | `skills/.../references/counter13-casebook.md` | 十三进制计数器复盘：13 个坑 + 排查决策树 |
 | `skills/.../references/memory-casebook.md` | 64KB ROM/RAM 低位交叉：结构、RAM/ROM 端口、生成器、37/37 验证、12 坑 |
-| `skills/.../references/pitfalls.md` | 实测坑表（A-J 组；J 组为 Logisim 2.7.1） |
+| `skills/.../references/pitfalls.md` | 实测坑表（A-K 组；J 组为 Logisim 2.7.1，K 组为 ITA 2.15） |
 | `skills/.../references/cpu271-casebook.md` | 2.7.1 32 位 CPU 纠错复盘：DM 三错、ROM、验证链与 10 条语义坑 |
+| `skills/.../references/alu215-casebook.md` | 2.15 8 位 ALU（带比较器）复盘：结构、标志语义、16604 行验证、K12~K19 与布局压缩 |
 
 ## 开发
 

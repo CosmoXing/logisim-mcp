@@ -694,3 +694,35 @@ H 组是 8 位总线乘法器（2 万+ 导线、展平/分层两种形态）新�
 ### K11 Launch4j 的 exe 要取内嵌 jar 才能喂探针
 - **坑/规则**：ITA 2.15 分发的是 Launch4j 单文件 exe。内嵌 jar 就是 `PK\x03\x04` 偏移到文件尾的整段字节；切出来可直接作为 classpath。另：加载失败时 GUI 对话框会吞异常，用 `scripts/v215/LoadTest.java` 覆写 `Loader.showError` 打印真实报错。
 - **证据**：实验2：从 logisim.exe 切出 4,264,607 字节 jar，探针正常工作
+
+### K12 Tunnel 的 facing 必须写全称
+- **坑/规则**：Tunnel 的 `facing` 只认 `east/west/north/south`。生成器把 side 短码 `e/w/n/s` 直接写进 XML 时，加载报 `attribute value (e) is not valid for facing [Tunnel(...)]`，该隧道不参与连网；更隐蔽的是后续 `WireRepair` 可能死循环，探针 300s 超时。所有短码必须先映射成完整单词。
+- **证据**：实验3 ALU：fan_stub 写入 `e/w` 后 B 总线全 U，SUB 用例 300s 超时；修正后 16604 行全过
+
+### K13 分线器位口悬空会反推总线
+- **坑/规则**：分线器不是纯扇出。位口悬空时它会从位侧向总线反推 0/U，和输入 Pin 抢驱动，表现为“Pin 明明有值，总线却是 0/U”。只拆低 3 位时，其余位必须接假负载（如 5 输入 OR，输出不接），或者不要用分线器、直接给总线打隧道分支。
+- **证据**：实验3 ALU：A/B 总线各挂 8 位分线器但大部分位口悬空，模块输入全错；删 B 分线器 + 给 A 的 a3~a7 加假负载后恢复
+
+### K14 无头加载会吞真实错误
+- **坑/规则**：`Loader.showError` 在 headless 下弹 `JOptionPane` → `HeadlessException`，真实的非法属性/库缺失被吞掉。探针里用 `ProbeLoader extends Loader` 覆写 `showError`，把原因打成 `LOADERR ...`。“能打开但结果怪/超时”先看 LOADERR，不要先怀疑布线。
+- **证据**：实验3：Tunnel facing 写 `e` 的真实报错被 HeadlessException 盖住，只看到 300s 超时；ProbeLoader 上线后一次定位
+
+### K15 --probe / --dump 在 Pin/Tunnel 上可能读到旧值
+- **坑/规则**：`CircuitState.getValue(loc)` 在输入 Pin、Tunnel 端口上不一定是网络真值；据此判断断线会误判。判断功能用 `--vector` 比输出引脚，或对子电路单独 `--set` 验证；中间网用临时输出 Pin 或子电路引脚观测。
+- **证据**：实验3：A/B 输入 Pin 处 dump 恒 0，但子电路单独 eval 正确
+
+### K16 内置 Shifter 有可变距离口，但不输出移出位
+- **坑/规则**：2.15 的 Shifter 属性 `shift=ll/lr/ar/rl/rr`，8 位数据对应 3 位距离口，端口为 `data(x-40,y-10)`、`distance(x-40,y+10)`、`out(x,y)`。移位器模块可用 3 个 Shifter + 4:1；但 Shifter 不出移出位，SOL 要另算：左移 `X[8-N]`、右移 `X[N-1]`，N=0 为 0，用两个 8:1 + 2:1(S1) + AND(S1|S0)。
+- **证据**：实验3：移位器 1984/1984，N=0/1/2/7 与 ll/lr/ar 全核对
+
+### K17 MUX 忘记 enable=false
+- **坑/规则**：2.15 Multiplexer 默认带使能脚；不显式 `enable=false` 时，悬空的 en 会让输出 `U/E`。关掉后：2:1 数据 `(x-30,y±10)`、4:1 `(x-40,y-20+10i)`、8:1 `(x-40,y-40+10i)`；sel 分别在 `(x-20,y+20)` / `(x-20,y+40)`；out `(x,y)`。
+- **证据**：实验3：所有 MUX 统一 enable=false，移位/逻辑/比较/结果选择全部一次通过
+
+### K18 比较结果不是“只出标志”
+- **坑/规则**：实验3 比较器图是 A/B → Comparator → >/=/< → 4:1(S1S0) → 1→8 扩展器。所以 ALU 比较模式的 S 是 0x01/0x00；CF=A<B、ZF=A=B，SF/OF 无效。把 S 固定 0 会漏掉实验要求的“输出比较结果”。
+- **证据**：实验3：比较器 1452/1452，A>B/A=B/A<B 的 Y、CF、ZF 全对
+
+### K19 INC/NEC 要先把 B 置 0
+- **坑/规则**：算术 1010/1011 不是 `A+B`。令 `zero_b = S3 & ~S2 & S1`，把 B_eff 置 0，再走 `B'=B_eff⊕Sub`、`Cin'=Cin⊕Sub`；INC(Cin=1,Sub=0)=A+1，NEC(Cin=1,Sub=1)=A+0xFF+0=A-1。OF 用 `(A7==Bx7)&(A7!=S7)`，CF=Cout。
+- **证据**：实验3：ALU 算术 3704/3704，含 0x7F→0x80、0x80→0x7F 的 OF=1 边界

@@ -1,6 +1,6 @@
 ---
 name: logisim-circuit-design
-description: 用代码生成、检查和验证 Logisim（5.0 / 3.9 / 2.7.1 / ITA 2.15·2.16）(.circ) 数字电路。适用于门级作业（计数器、分频器、寄存器、加法器、译码器、状态机）、8 位总线级电路（原码乘法器、ALU、移位寄存器）、64KB ROM/RAM 与低位交叉存储器、32 位 CPU 与 3072×32 数据存储器（DM）、分层子电路设计与子电路展平（paste/canonicalize）、「只许门电路和触发器、不许用现成芯片/隧道」这类限制，以及 .circ 打不开、显示 E/U、位宽冲突、模块引脚接不上、布线短接的排障。内含 94 条实战坑表（A-K 组：13 进制计数器 13 坑 + 8 位乘法器 13 坑 + 八进制加法器 6 坑 + 3.2 存储器 12 坑 + 2.7.1 CPU/DM 14 坑 + ITA 2.15 11 坑）、确定性布线工具（lib8/route8）、时序向量封装（sim，<set><seq>）、GUI 截图工具（gui.py）与 5.0 端口坐标表；2.7.1 用 circ271_check / circ271_sim / circ271_ports；ITA 2.15 用 scripts/v215/board215.py 构建 + ita_probe 验证。关键词：logisim、logisim-evolution、logisim 2.7.1、logisim 2.15、logisim 2.16、Logisim-ITA、.circ、数字电路、电路作业、加法器、半加器、全加器、先行进位、CLA74182、16位加法器、可控加减、溢出标志、乘法器、原码乘法、计数器、模13、八进制、触发器、时序电路、真值表、测试向量、子电路、展平、分线器、数码管、模块外观、restart、netlist、确定性布线、RAM、ROM、存储器、低位交叉、字节使能、64KB、CPU、DM、数据存储器、3×1024×32、字对齐、越界保护。
+description: 用代码生成、检查和验证 Logisim（5.0 / 3.9 / 2.7.1 / ITA 2.15·2.16）(.circ) 数字电路。适用于门级作业（计数器、分频器、寄存器、加法器、译码器、状态机）、8 位总线级电路（原码乘法器、ALU、移位寄存器）、64KB ROM/RAM 与低位交叉存储器、32 位 CPU 与 3072×32 数据存储器（DM）、分层子电路设计与子电路展平（paste/canonicalize）、「只许门电路和触发器、不许用现成芯片/隧道」这类限制，以及 .circ 打不开、显示 E/U、位宽冲突、模块引脚接不上、布线短接的排障。内含 102 条实战坑表（A-K 组：13 进制计数器 13 坑 + 8 位乘法器 13 坑 + 八进制加法器 6 坑 + 3.2 存储器 12 坑 + 2.7.1 CPU/DM 14 坑 + ITA 2.15 19 坑）、确定性布线工具（lib8/route8）、时序向量封装（sim，<set><seq>）、GUI 截图工具（gui.py）与 5.0 端口坐标表；2.7.1 用 circ271_check / circ271_sim / circ271_ports；ITA 2.15 用 scripts/v215/board215.py 构建 + ita_probe 验证。关键词：logisim、logisim-evolution、logisim 2.7.1、logisim 2.15、logisim 2.16、Logisim-ITA、.circ、数字电路、电路作业、加法器、半加器、全加器、8位ALU、运算器、比较器、移位器、标志位、先行进位、CLA74182、16位加法器、可控加减、溢出标志、乘法器、原码乘法、计数器、模13、八进制、触发器、时序电路、真值表、测试向量、子电路、展平、分线器、数码管、模块外观、restart、netlist、确定性布线、RAM、ROM、存储器、低位交叉、字节使能、64KB、CPU、DM、数据存储器、3×1024×32、字对齐、越界保护。
 ---
 
 # Logisim 电路设计
@@ -66,14 +66,25 @@ python server/server.py --doctor      # 插件：报依赖与自检
 | 子电路实例端口 | `loc + (端口中心 − 锚点中心)`，中心 = `坐标 + 尺寸//2`，`circ-anchor` 同样取中心 |
 | 实例写法 | 子电路 `<comp>` **不写 `lib`**；写了不存在的库编号直接报「库缺失」 |
 | 外观 | 每个 Pin 必须恰好一个 `circ-port`；缺的会被自动补到符号顶边（`y-19` 一排） |
-| 验证 | 2.15 **没有** `-t stats` / `-w`；用 `scripts/v271/ita_probe.py` 或 `scripts/v215/verify_adder_lab2.py` |
-| 构建 | `scripts/v215/board215.py`（实测几何 + Board + 六项自检）+ `gen_adder_lab2.py` |
+| MUX | 必须显式 `enable=false`；2:1 数据 `(x-30,y±10)`、4:1 `(x-40,y-20+10i)`、8:1 `(x-40,y-40+10i)`；sel `(x-20,y+20)` / `(x-20,y+40)`；out `(x,y)` |
+| Comparator | A `(x-40,y-10)`、B `(x-40,y+10)`；gt `(x,y-10)`、eq `(x,y)`、lt `(x,y+10)` |
+| Bit Extender | in `(x-40,y)`、out `(x,y)`；属性 `in_width/out_width/type` |
+| Shifter | data `(x-40,y-10)`、distance `(x-40,y+10)`（3 位）、out `(x,y)`；属性 `shift=ll/lr/ar` |
+| Splitter 南/北 | bus `(x,y)`；bit i `(x+off-10i, y±20)`，`off=(ceil(bits/2)-1)*10`，**b0 最右** |
+| Tunnel | `facing` 必须写 `east/west/north/south`；写 `e/w` 会加载报错并可能 WireRepair 卡死 |
+| 验证 | 2.15 **没有** `-t stats` / `-w`；用 `scripts/v271/ita_probe.py`、`scripts/v215/verify_adder_lab2.py`、`verify_alu_lab3.py` |
+| 构建 | `scripts/v215/board215.py`（实测几何 + Board + 六项自检）+ `gen_adder_lab2.py` / `gen_alu_lab3.py` |
 | 内嵌 jar | 2.15 用 Launch4j 打包 exe，可从 `PK\x03\x04` 偏移整段切出 jar 喂探针 |
-| 加载报错 | GUI 对话框会吞异常；用 `scripts/v215/LoadTest.java` 覆写 `Loader.showError` 打印真实错误 |
+| 加载报错 | GUI 对话框会吞异常；`ITAProbe` 的 `ProbeLoader` 会打印 `LOADERR`，旧工具用 `LoadTest.java` |
 
 `circ271_check` / `netcheck.py` 对 2.15 有两类固定误报：前者按原始 2.7.1（门输入 x-50）
 建模，会把 20px 输入短线判成「导线穿元件体」；后者把 Probe 当 0 位宽。
 以 Logisim 自身 `ERRCOUNT` 与 `ita_probe` 功能向量为准。
+
+> 实验3 8位 ALU（移位/比较/算术/逻辑 + 标志）的完整复盘见
+> `references/alu215-casebook.md`：8 个电路结构、16604 行验证矩阵、
+> K12~K19 的新坑（Tunnel facing、分线器反推、MUX enable、Shifter、比较器 S=1/0、INC/NEC）。
+> 2.15 课程框架本身大量使用 Tunnel；沿用时按框架原样保留，只有用户明确禁用时才全部改实体线。
 
 抄错这 30px 的症状是「每修好一处、另一处又坏」，几乎一定被误判成"布线算法有问题"。
 不确定就查 `references/geometry.md`，或用 `circ_geometry`（5.0）/ `circ271_ports`（2.7.1）拿活数据。
@@ -462,8 +473,9 @@ scripts/
 | `references/circ-format.md` | `.circ` XML 结构、库索引、组件属性、toolbar、版本差异 |
 | `references/verification.md` | CLI 参数、`.vec` 格式、用例设计、双工程策略、GUI 截图 |
 | `references/appearance.md` | 子电路外观：spec、自动排版、保端口/重排、保存校验 |
-| `references/pitfalls.md` | 94 条实战坑：A-G 组（4 位规模）+ H 组（8 位总线/展平/Windows 环境/外观与 GUI 自动化）+ I 组（存储器/工程头/connect 盲区）+ J 组（Logisim 2.7.1）+ K 组（Logisim-ITA 2.15） |
+| `references/pitfalls.md` | 102 条实战坑：A-G 组（4 位规模）+ H 组（8 位总线/展平/Windows 环境/外观与 GUI 自动化）+ I 组（存储器/工程头/connect 盲区）+ J 组（Logisim 2.7.1）+ K 组（Logisim-ITA 2.15，K1~K19） |
 | `references/adder215-casebook.md` | 实验2「串行 + 快速加法器」2.15 实战：半加/全加/4位/8位可控加减、CLA、16 位级联、C15/C16 语义、验证矩阵 |
+| `references/alu215-casebook.md` | 实验3 8位 ALU（带比较器）2.15 实战：移位/比较/算术/逻辑、标志语义、16604 行验证、K12~K19 新坑、布局压缩记录 |
 | `scripts/v50/logisim_gen.py` | XML 生成器：pin / gate / sub / splitter / display / wire / project |
 | `scripts/v50/router.py` | 通道布线器：正交、避让、禁止共线重叠（4 位规模） |
 | `scripts/v50/verify.py` | `-t table` / `-t stats` / `-w` 的封装（自动找 jar、GBK 解码） |
@@ -471,12 +483,17 @@ scripts/
 | `scripts/v50/route8.py` | 确定性布线：z/w 折线 + 六项自检 + verify_nets/verify_short + paste/canonicalize |
 | `scripts/v50/sim.py` | 向量测试封装：`<set> <seq>` 时序、jar 自动探测、verify_alive 防假通过 |
 | `scripts/v50/mem_gen.py` | 64KB ROM + 64KB RAM 生成器：bank8/ram64k/rom64k/main + 自定义外观 + 自检 |
-| `scripts/v271/ita/ITAProbe.java` | **2.16/2.7.1 headless 探针**：加载/设引脚/打时钟/读输出（`--list/--set/--vector/--ends/--errors`） |
+| `scripts/v271/ita/ITAProbe.java` | **2.16/2.7.1 headless 探针**：加载/设引脚/打时钟/读输出（`--list/--set/--vector/--ends/--errors`）；`ProbeLoader` 把加载异常打成 `LOADERR` |
 | `scripts/v271/ita_probe.py` | 探针 Python 封装：自动编译，`list_pins/eval_pins/run_vector/ends/errors` |
 | `scripts/v271/netcheck.py` | **位宽冲突定位**：真实端口坐标 + 导线图建网，一次列全冲突点 |
-| `scripts/v215/board215.py` | 2.15.0.2 实测几何 + Board 追加式构建器 + 六项正交布线自检 |
+| `scripts/v215/board215.py` | 2.15.0.2 实测几何 + Board 追加式构建器 + 六项正交布线自检；含 mux/cmp/const/ext/shifter/split 与 fan_bits/fan_stub |
 | `scripts/v215/gen_adder_lab2.py` | 实验2 加法器生成器：7 个电路，在原验证框架上追加（不覆盖原元件） |
 | `scripts/v215/verify_adder_lab2.py` | 加法器功能向量：穷举 + 随机，走 2.15 引擎 |
+| `scripts/v215/calib_lab3.py` | 实验3 元件标定：MUX 2/4/8:1、Comparator、Bit Extender、Shifter、2/3/8 位 Splitter 真实端口 |
+| `scripts/v215/gen_alu_lab3.py` | 实验3 8位 ALU 生成器：5 个新电路 + 紧凑布局 + 六项自检 |
+| `scripts/v215/verify_alu_lab3.py` | 实验3 功能向量：模块级 + ALU 顶层，16604 行 |
+| `scripts/v215/probe_points.py` | 按坐标读运行值 / `--dump`，排查中间网络 |
+| `scripts/v215/test_wide.py` | 最小复现：宽 Pin、分线器、隧道驱动关系 |
 | `scripts/v215/LoadTest.java` | 加载错误探针：覆写 `Loader.showError`，打印被 GUI 吞掉的真实异常 |
 | `scripts/common/gui.py` | GUI 自动化：ctypes+PIL 找窗口/点击/送键/滚轮缩放/截图/启动载入（沙箱内可用） |
 | `assets/full-adder.circ` | 已知可用（真值表 8/8）的最小参考工程，5.0 格式 |

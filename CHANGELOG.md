@@ -1,5 +1,19 @@
 # 更新记录
 
+## 未发布 — 实验5 指令分析和程序设计（2.15.0.2）沉淀
+
+- 新增 `scripts/v215/gen_lab5.py`（指令格式 + 4 程序 ROM + 4 选 1 + Regs Q0~Q3 +
+  符号扩展 S-I/B + A 通道移位 MUX + Flag 门控）、`verify_lab5.py`（ISA 模型 +
+  六场景 600 行逐拍向量，含例4 三分支 ROM 变体）。
+- `board215.py` 的 `Board.ext()` 新增 `sign=True`（Bit Extender `type="sign"`）。
+- 固化 K30~K40：立即数/偏移符号扩展、S-Regs 位序、移位固定 1 位、
+  Comparator `twosComplement`、T1 取指、跳转不更新 Flag、INC 的 SA 字段、
+  4 ROM+Prog、模型化验证的补码/进制/文件名、多层子电路逐拍向量、布局回归。
+- 实验5 交付 `实验5 指令分析.circ`（17 电路）：600 行全过，ERRCOUNT 0，
+  六项布线自检 0 错误。
+- 文档：新增 `references/instruction215-casebook.md`；`SKILL.md` 2.15 段与资源表补实验5；
+  `knowledge.json` 同步 K30~K40 共 11 条（连同实验4 K20~K29，两批合计 50 → 71）。
+
 ## 未发布 — 实验4 控制器模块（2.15.0.2）沉淀
 
 - 新增 `scripts/v215/calib_lab4.py`（Register/Counter/DFF/RAM/ROM/Decoder/多分支 Splitter
@@ -12,7 +26,7 @@
 - 固化 K20~K29：Register 端口与写使能边沿竞争、2.15 内置 Adder 的 Cout 是输入脚、
   Counter 向下计数、RAM cs 低有效 / oe 高有效、ROM cs、多分支 Splitter 的 bit 分组、
   子电路外观 `pin` 必须写真实 Pin 坐标、XYZ 位序（bit15/14/13）、手工 `--set` 不可靠、
-  隧道/引脚视觉间距与重叠检查。
+  隧道/引脚视觉间距与重叠检查；`knowledge.json` 补 K20~K29 共 10 条。
 - 实验3 电路同步按新间距规则重排（3436/1984/1936/1452 行全过）；实验4 112 行全过，
   ERRCOUNT 0，系统连接 1630×1100 量级。
 - 文档：新增 `references/controller215-casebook.md`；`SKILL.md` 2.15 表补

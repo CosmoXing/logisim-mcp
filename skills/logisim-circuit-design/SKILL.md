@@ -67,8 +67,8 @@ python server/server.py --doctor      # 插件：报依赖与自检
 | 实例写法 | 子电路 `<comp>` **不写 `lib`**；写了不存在的库编号直接报「库缺失」 |
 | 外观 | 每个 Pin 必须恰好一个 `circ-port`；缺的会被自动补到符号顶边（`y-19` 一排） |
 | MUX | 必须显式 `enable=false`；2:1 数据 `(x-30,y±10)`、4:1 `(x-40,y-20+10i)`、8:1 `(x-40,y-40+10i)`；sel `(x-20,y+20)` / `(x-20,y+40)`；out `(x,y)` |
-| Comparator | A `(x-40,y-10)`、B `(x-40,y+10)`；gt `(x,y-10)`、eq `(x,y)`、lt `(x,y+10)` |
-| Bit Extender | in `(x-40,y)`、out `(x,y)`；属性 `in_width/out_width/type` |
+| Comparator | A `(x-40,y-10)`、B `(x-40,y+10)`；gt `(x,y-10)`、eq `(x,y)`、lt `(x,y+10)`；`mode` 只有 `unsigned` / `twosComplement`（有符号写后者，写 `signed` 输出全 `U`） |
+| Bit Extender | in `(x-40,y)`、out `(x,y)`；属性 `in_width/out_width/type`，`type` 取 `zero` / `sign`（负数扩展用 `sign`） |
 | Shifter | data `(x-40,y-10)`、distance `(x-40,y+10)`（3 位）、out `(x,y)`；属性 `shift=ll/lr/ar` |
 | Splitter 南/北 | bus `(x,y)`；bit i `(x+off-10i, y±20)`，`off=(ceil(bits/2)-1)*10`，**b0 最右** |
 | 多分支 Splitter | `fanout=分支数`、`incoming=总位数`、`bit{i}=第 i 位所属分支`；端口位置只按分支数算 |
@@ -96,6 +96,12 @@ python server/server.py --doctor      # 插件：报依赖与自检
 > 内置 Adder 不可用、Counter 向下计数、RAM cs/oe 极性、多分支 Splitter、
 > 外观 `pin` 坐标、XYZ 位序、`--set` 不可靠、隧道/引脚可视间距）；
 > `verify_ctrl_lab4.py` 112 行全过。
+>
+> 实验5 指令分析与程序设计（4 个程序 + PC+n + 条件跳转）见
+> `references/instruction215-casebook.md`：指令/S-op 编码表、四个程序的机器码、
+> 600 行模型化逐拍向量；K30~K40（立即数/偏移符号扩展、S-Regs 位序、移位固定 1 位、
+> Comparator `twosComplement`、T1 取指、跳转不更新 Flag、INC 的 SA 字段、
+> 4 ROM+Prog 选通、补码模型/向量进制、多层子电路逐拍验证、布局回归）。
 >
 > 布局间距规范：引脚 `Board.lead()` 80px；同侧多脚 `fan_stub` 横向 20+30i、
 > 纵向 ±25；`fan_bits` 30px；MUX out/sel 40px；寄存器用 `wire_reg()`（cs/preset 悬空）。
@@ -488,7 +494,7 @@ scripts/
 | `references/circ-format.md` | `.circ` XML 结构、库索引、组件属性、toolbar、版本差异 |
 | `references/verification.md` | CLI 参数、`.vec` 格式、用例设计、双工程策略、GUI 截图 |
 | `references/appearance.md` | 子电路外观：spec、自动排版、保端口/重排、保存校验 |
-| `references/pitfalls.md` | 102 条实战坑：A-G 组（4 位规模）+ H 组（8 位总线/展平/Windows 环境/外观与 GUI 自动化）+ I 组（存储器/工程头/connect 盲区）+ J 组（Logisim 2.7.1）+ K 组（Logisim-ITA 2.15，K1~K19） |
+| `references/pitfalls.md` | 实战坑表：A-G 组（4 位规模）+ H 组（8 位总线/展平/Windows 环境/外观与 GUI 自动化）+ I 组（存储器/工程头/connect 盲区）+ J 组（Logisim 2.7.1）+ K 组（Logisim-ITA 2.15，K1~K19 + K30~K40；K20~K29 见 controller215-casebook） |
 | `references/adder215-casebook.md` | 实验2「串行 + 快速加法器」2.15 实战：半加/全加/4位/8位可控加减、CLA、16 位级联、C15/C16 语义、验证矩阵 |
 | `references/alu215-casebook.md` | 实验3 8位 ALU（带比较器）2.15 实战：移位/比较/算术/逻辑、标志语义、16604 行验证、K12~K19 新坑、布局压缩记录 |
 | `scripts/v50/logisim_gen.py` | XML 生成器：pin / gate / sub / splitter / display / wire / project |
@@ -511,6 +517,9 @@ scripts/
 | `scripts/v215/calib_lab4.py` | 实验4 元件标定：Register/Counter/DFF/RAM/ROM/Decoder/多分支 Splitter |
 | `scripts/v215/gen_ctrl_lab4.py` | 实验4 生成器：Regs/PC/IR/ID/CLK/S-I/B/Flag/CU/系统连接 |
 | `scripts/v215/verify_ctrl_lab4.py` | 实验4 验证：9 个电路 112 行向量 |
+| `references/instruction215-casebook.md` | 实验5 指令分析 2.15 复盘：指令/S-op 编码表、四个程序机器码、PC+n/条件跳转、600 行逐拍向量、K30~K40 |
+| `scripts/v215/gen_lab5.py` | 实验5 生成器：Regs+Q0~Q3、符号扩展 S-I/B、4 ROM+Prog、A 通道移位 MUX、Flag 门控 |
+| `scripts/v215/verify_lab5.py` | 实验5 验证：ISA 模型 + 六场景逐拍向量（600 行），含例4 三分支 ROM 变体 |
 | `scripts/v215/probe_points.py` | 按坐标读运行值 / `--dump`，排查中间网络 |
 | `scripts/v215/test_wide.py` | 最小复现：宽 Pin、分线器、隧道驱动关系 |
 | `scripts/v215/LoadTest.java` | 加载错误探针：覆写 `Loader.showError`，打印被 GUI 吞掉的真实异常 |

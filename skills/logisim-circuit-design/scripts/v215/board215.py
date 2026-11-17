@@ -233,9 +233,9 @@ class Board:
                             f"const@{loc}", {loc}))
         return loc
 
-    def ext(self, loc, in_width=1, out_width=8):
+    def ext(self, loc, in_width=1, out_width=8, sign=False):
         self.items.append(("ext", dict(loc=loc, in_width=in_width,
-                                       out_width=out_width)))
+                                       out_width=out_width, sign=sign)))
         self.bodies.append(((loc[0] - 40, loc[1] - 18, loc[0], loc[1] + 18),
                             f"ext@{loc}", {(loc[0] - 40, loc[1]), loc}))
         return (loc[0] - 40, loc[1]), loc
@@ -477,7 +477,7 @@ class Board:
                 out += [f'    <comp lib="{LIB_WIRING}" loc="({x},{y})" name="Bit Extender">',
                         f'      <a name="in_width" val="{d["in_width"]}"/>',
                         f'      <a name="out_width" val="{d["out_width"]}"/>',
-                        '      <a name="type" val="zero"/>',
+                        f'      <a name="type" val="{"sign" if d.get("sign") else "zero"}"/>',
                         '    </comp>']
             elif kind == "shifter":
                 x, y = d["loc"]

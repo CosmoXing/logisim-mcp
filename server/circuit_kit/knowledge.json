@@ -736,6 +736,132 @@
       "title": "INC/NEC 要先把 B 置 0",
       "detail": "算术 1010/1011 不是 A+B。令 zero_b = S3 & ~S2 & S1，把 B_eff 置 0，再走 B'=B_eff⊕Sub、Cin'=Cin⊕Sub；INC(Cin=1,Sub=0)=A+1，NEC(Cin=1,Sub=1)=A+0xFF+0=A-1。OF 用 (A7==Bx7)&(A7!=S7)，CF=Cout。",
       "evidence": "实验3：ALU 算术 3704/3704，含 0x7F→0x80、0x80→0x7F 的 OF=1 边界"
+    },
+    {
+      "id": "ita215-register-ports-enable",
+      "title": "2.15 Register 端口与写使能：别用 CLK 做门控",
+      "detail": "端口 D(-30,0)、en(-30,+10)、clk(-20,+20)、clr(-10,+20)、preset(-10,-20)、cs(-30,-10)、Q(0,0)；体 (-30,-20)..(0,+20)。cs 低有效；en=FALSE 才禁止加载；clr/preset 高有效。用 CLK 做使能门控（en=译码&R/W&CLK）会在上升沿看到旧 en=0，寄存器不写；正确做法 en=译码&R/W，clk=CLK/T3。",
+      "evidence": "实验4：Regs 16 行全过；CLK 门控版写入随机失败"
+    },
+    {
+      "id": "ita215-adder-unusable",
+      "title": "2.15 内置 Adder 的 Cout 是输入脚",
+      "detail": "lib=3 name=Adder 的 5 个端口里 Cout 被声明成输入脚（(x-20,-20)=Cin、(x-20,+20)=Cout），全接 0 后 S 仍为 U。PC 加法改用全加器子电路行波进位；8 位用两个 4 位全加器。",
+      "evidence": "实验4：PC 14 行 + 0xFF 进位用例全过"
+    },
+    {
+      "id": "ita215-counter-counts-down",
+      "title": "2.15 Counter 默认向下计数",
+      "detail": "lib=4 name=Counter，width=2、trigger=rising，max/goal 省略或 max=3,goal=wrap，复位后序列都是 0→3→2→1→0。要 T0~T3 向上计数，用两个 1 位 Register 自搭：D0=~Q0、D1=Q1 xor Q0，再门级 2-4 译码。",
+      "evidence": "实验4：CLK 模块 12 行全过"
+    },
+    {
+      "id": "ita215-ram-cs-oe",
+      "title": "2.15 RAM：cs 低有效、oe 高有效",
+      "detail": "lib=4 name=RAM（bus=separate）：A(-140,0)、D(-140,+20)、Q(0,0)、str(-110,+40)、cs(-90,+40)、clk(-70,+40)、oe(-50,+40)、clr(-30,+40)。cs 低有效、oe 高有效；cs=0,oe=1 才能读出 Q，oe=0 时 Q=U。str=1 且 clk 上升沿写入；写使能不要串 CLK。",
+      "evidence": "实验4/5：STORE/LOAD 正常，RAMQ 不再 U"
+    },
+    {
+      "id": "ita215-rom-cs-contents",
+      "title": "2.15 ROM 的 cs 与 contents 写法",
+      "detail": "lib=4 name=ROM：A(-140,0)、D(0,0)、cs(-90,+40)，cs=0 输出有效。contents 是元素文本：addr/data: 3 16 换行后跟十六进制字，不是属性；4 位地址写 addr/data: 4 16 后跟 16 个字。",
+      "evidence": "实验4 8 字 ROM、实验5 4×16 字 ROM 均一次加载成功"
+    },
+    {
+      "id": "ita215-splitter-multibranch",
+      "title": "2.15 多分支 Splitter 的 fanout/incoming/bit 分组",
+      "detail": "fanout=分支数、incoming=总位数；bit{i} 的值是第 i 位所属分支（0=最右）。端口位置只与分支数有关：b_i=(x+off-10i, y±20)，off=((fanout+1)//2-1)*10。例：16→2（8/8）branch0 在 (x,y+20)、branch1 在 (x-10,y+20)。位口悬空会反推总线（见 K13）。",
+      "evidence": "实验4：S-Regs/S-op/PC 拆分全部按此建模"
+    },
+    {
+      "id": "ita215-subcircuit-appearance-pin",
+      "title": "子电路外观的 circ-port pin 必须是内部 Pin 的真实 loc",
+      "detail": "<circ-port pin=\"120,100\"/> 的坐标必须等于子电路内 Pin 的 loc；写错不报错，Logisim 会把该端口按默认外观压到符号顶边（10px 密排），表现为父电路连线对不上、内部全 U。改完用 ita_probe.ends 在父电路核对实例端口坐标。",
+      "evidence": "实验4：外观正确后 System 19 行全过；写错时子电路全 U"
+    },
+    {
+      "id": "ita215-xyz-bit-order",
+      "title": "2.15 指令 XYZ 位序：X=bit15、Y=bit14、Z=bit13",
+      "detail": "[15:13] 按 X(bit15)、Y(bit14)、Z(bit13) 读，才与 PDF 真值表的 3 位组合一致；按 bit13→X 接线会把 001 与 100 对调，JP 误触发。",
+      "evidence": "实验4：ID 8 行穷举全过"
+    },
+    {
+      "id": "ita215-manual-set-unreliable",
+      "title": "2.15 探针手工 --set 不可靠",
+      "detail": "2.15 的 --set 单次求值经常读到全 0（引脚值没落到网上）；时序/组合验证一律走 --vector，必要时加 --trace 逐行打印所有引脚。判断功能用输出引脚比对，不要用 --probe 的中间网。",
+      "evidence": "实验4/5：--set 读回 0；--vector 同电路全过"
+    },
+    {
+      "id": "ita215-tunnel-pin-spacing",
+      "title": "2.15 隧道/引脚的可视间距",
+      "detail": "隧道标签盒从 loc 向 facing 方向伸出约 8*字数+8 × 26px，紧贴端口会压住引脚本体。引脚引出用 Board.lead() 默认 80px；同侧多脚 fan_stub 横向 20+30i、纵向交替 ±25；fan_bits 30px；MUX out/sel 40px；寄存器用 wire_reg()（cs/preset 悬空）；子电路 circ-port pin 必须写真实 loc。",
+      "evidence": "实验4：Regs/PC/ID 可视重叠降到 0，整体 80→33 处"
+    },
+    {
+      "id": "ita215-sign-extend-imm-offset",
+      "title": "4 位立即数和跳转偏移必须符号扩展",
+      "detail": "2.15 Bit Extender 默认 type=\"zero\"，会把 -8 变 +8、-5 变 +11；实验5 的 MOV -8/-4/-3 和 JMP -5 全部依赖补码。XML 写 <a name=\"type\" val=\"sign\"/>，Board.ext(loc,4,8,sign=True) 已支持；跳转偏移取 IR[3:0] 符号扩展，不能取 IR[7:0]。",
+      "evidence": "实验5：零扩展版例1 R2=0x50；改 sign 后 600 行全过"
+    },
+    {
+      "id": "ita215-sregs-field-order",
+      "title": "S-Regs 位序：C-Reg=IR[7:6]、SA=IR[5:4]、SB=IR[3:2]",
+      "detail": "实验4 的系统连接把 S-Regs 接成 bit2-3=C-Reg、bit4-5=SA、bit6-7=SB，方向反了。实验5 必须用 IR[7:6]=C-Reg、IR[5:4]=SA、IR[3:2]=SB、IR[3:0] 兼作立即数（与 SB 重叠）。用 2008/0040/4038 自查：2008 C-Reg=00，0040 C-Reg=01/SA=00/SB=00，4038 SA=11/SB=10。",
+      "evidence": "实验5 改正后例1/2/3/4 全过；实验4 只做模块级验证，未跑完整程序"
+    },
+    {
+      "id": "ita215-shift-one-bit",
+      "title": "实验5 的移位是“移 1 位”，不是 A[2:0] 位",
+      "detail": "实验3 ALU 用 N=A[2:0]、X=B；实验5 的 SLL/SHR/SAR 例题都是移 1 位，机器码没有独立移位数（0244 的 SA/SB 只是源寄存器）。系统里加 8 位 2:1 MUX：S3S2=00（MOV/移位）给 ALU 的 A 送 0x01，否则送 RA；不要改实验3 ALU 本体。",
+      "evidence": "实验5 例1：R0 F8→F0、R1 F8→C0，ADD 后 R2=B0"
+    },
+    {
+      "id": "ita215-comparator-twoscomplement",
+      "title": "Comparator 的有符号模式是 twosComplement，不是 signed",
+      "detail": "2.15 Comparator 的 mode 只有 unsigned 和 twosComplement 两个合法值（javap 可见 SIGNED_OPTION 的 key 为 twosComplement）。写 mode=\"signed\" 不报错但比较器输出全 U。实验5 例4 要 2 > -3，需把“比较器”子电路的 mode 改为 twosComplement；实验3 文件保持 unsigned。",
+      "evidence": "实验5：unsigned 时 2>0xFD 判成 A<B；twosComplement 后 GT=1，三分支全过"
+    },
+    {
+      "id": "ita215-ir-fetch-t1",
+      "title": "复位后 T0 已为 1，IR 用 T0 取指会漏第 0 条指令",
+      "detail": "计数器被 RST 清 0 时 T0 立即为 1；释放 RST 后 T0 仍是 1，第一个 T0 上升沿要等一整轮，此时 PC 已在 T3 加 1，IR 取到 ROM[1]。把 IR 时钟改接 T1：释放复位后的第一个 CLK 上升沿（计数器 0→1）取 ROM[0]，PC 仍为 0。",
+      "evidence": "实验4 系统首拍 IRQ=0x8030（ROM[1]）；实验5 改 T1 后首条 2008 正确"
+    },
+    {
+      "id": "ita215-jump-no-flag-update",
+      "title": "跳转指令必须关闭 Flag 使能，否则连续 JZ/JC 失效",
+      "detail": "Flag 的 D 接 ALU 标志；en 恒 1 时，JZ/JC 自己的 S-op（高字节 0，即 MOV B）会在 T3 冲掉 CMP 刚锁存的 CF/ZF。例4 LT 路径：CMP 置 CF=1 → JZ 把 CF 清 0 → JC 不跳。接成 Flag en = ~(JP|JZ|JC)；PC 与 Flag 同在 T3 沿，PC 取沿前 Flag Q，CMP 结果对两条跳转都有效。",
+      "evidence": "实验5：不加门控例4 -3<2 得 R2=1；加门控后 R2=0，三分支全过"
+    },
+    {
+      "id": "ita215-inc-sa-field",
+      "title": "INC/NEC 的 SA 必须指向源寄存器；15FC 才是 INC R3",
+      "detail": "INC（S-op=10101）的 A 通道由 SA 选。0x15FC：C-Reg=11、SA=11 → A=R3、写 R3；0x15C0：SA=00 → 把 R0+1 写进 R3，不是 R3 自增。PDF 的 15fc 是对的，不要化简成 15c0。",
+      "evidence": "实验5 例3：15FC 使 R3 0→1→2→3→4；15C0 则 R3 被写成 R0+1"
+    },
+    {
+      "id": "ita215-four-rom-prog",
+      "title": "4 片 ROM + 4:1 MUX 的 Prog 选通与 contents 写法",
+      "detail": "ROM addrWidth=4、dataWidth=16，contents 为 addr/data: 4 16 后跟 16 个十六进制字；未用字填 0000（MOV R0,R0，无副作用）。4 片 D 经隧道 P0D~P3D 进 16 位 4:1 MUX，select 接 Prog[2]。ROM 端口 A(-140,0)、D(0,0)、cs(-90,+40)，cs=0 使能；PA4=PC[3:0] 用 8→2 分线器（groups=[0,0,0,0,1,1,1,1]，分支 0 为低 4 位）。",
+      "evidence": "实验5：Prog=0/1/2/3 跑出例1/2/3/4，600 行全过"
+    },
+    {
+      "id": "ita215-model-vector-sign-hex-ascii",
+      "title": "模型化验证：负数 8 位补码、向量值写 0x、临时文件名 ASCII",
+      "detail": "Python 模型的 imm8 要转 0..255 补码（imm4 if imm4<8 else imm4+240），PC 偏移另存有符号值；否则 %x 输出 0xfffffff8，与 8 位引脚的 0xf8 不符。.vec 不带 0x/0b 的 token 按十进制解析（8030=0x1F5E）。向量文件名含中文/空格/* 会触发 OSError [Errno 22]。",
+      "evidence": "实验5：首轮 8+2+16 行“失败”全是 0xfffffff8 对 0xf8；修正后全过"
+    },
+    {
+      "id": "ita215-per-cycle-vector-hierarchy",
+      "title": "逐拍向量可穿透多层子电路；复位/边沿映射固定",
+      "detail": "ITAProbe.deepPropagate 能处理 System→CU→IR 的多层时序子电路，无需展平。复位序列 (0,1)→(1,1)→(0,1)→(0,0)，之后 CLK 1/0 交替；e%4==1 为 T1 取指、3 为 T3 写回。Regs 不受 RST 清零（新仿真初值 0），RAM 初值 0 不清零，PC/IR/Flag/CLK 计数器受 RST 清零。",
+      "evidence": "实验4 系统 10 行、实验5 六场景 600 行，均直接跑 系统连接"
+    },
+    {
+      "id": "ita215-layout-regression-body",
+      "title": "新增观测脚/叠放 ROM 后要重跑“穿元件体”自检",
+      "detail": "Regs 加 Q0~Q3 后外观向下变高（System 体到 y=890），沿用实验4 的 RA4 分线器 y=900 会让总线短桩穿进 Regs 体；下移到 y=940。4 片 ROM 叠在 x=800、y=120~420 时，CU 的 C 输入 140px 引线横穿 ROM4 体，改 80px。board215.check() 报“导线穿元件体”时要移元件/缩短引线，不要改检查器。",
+      "evidence": "实验5：第一次生成报 rom@(800,420) (890,460)->(750,460)；修正后六项自检 0 错误"
     }
   ]
 }

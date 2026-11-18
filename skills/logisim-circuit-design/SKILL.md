@@ -64,6 +64,8 @@ python server/server.py --doctor      # 插件：报依赖与自检
 `python scripts/v271/netmap.py file.circ "电路名" --comp 七段译码器0~F`；
 `--overlap` 只查共线短接，`--grid` 只查斜线/非 10 倍长度（会 OOM，L11）。
 数码管类电路一条命令全检：`sevenseg.py check / table / demo`。
+改完想确认「改文字/改属性不会卡死」：`python scripts/v271/attrprobe.py file.circ "电路名"`
+（打印 `ATTR_OK` 即正常，超时说明有端口/导线差 1px，见 L13）。
 
 **2.15.0.2（实验课实际分发的 Logisim-ITA）实测补充——和上表仍有差异：**
 
@@ -408,6 +410,7 @@ d[8] clk r q[8] <set> <seq>
 | 数码管整块反相（该亮的不亮） | `active="high"` 被布尔解析成 `false`（L1） | 改 `active="true"`；`sevenseg.py check` 会报 |
 | 数码管字模乱、连 0~9 都不对 | 8 个输入脚按「北排 a~d」猜的（L2） | 按 a=(+20,0)…dp=(+30,+60) 重接 |
 | 打开/加载卡住、`OutOfMemoryError` | 斜线或非 10 倍长度导线让 `WireRepair` 死循环（L11） | `netmap.py --grid` 定位后拉直；GUI 慎保存 |
+| **改文字/改属性立刻卡死、内存暴涨** | 端口与导线端点差 1px，`WireRepair` 反复拆分（L13） | `attrprobe.py` 判定；改子电路 `circ-port` 的 x/y 让端口回网格 |
 | 中文引脚名显示成 □□□ | 字体没有 CJK 字形（Times New Roman，L5） | 改 `SansSerif bold 18` |
 | 多行注释挤成一行、压住元件 | Text 不支持 `&#10;`（L4） | 拆成多条单行 Text |
 | 子电路上出现被挤压的字 | 子电路设了 `clabel`，被画在小外观上（L6） | `clabel` 置空，父电路用 Text 标注 |
@@ -493,7 +496,7 @@ circ271_ports {"file":"D:/CPU.circ","circuit":"DM","component":"Splitter"}
 ```
 scripts/
   v50/      evolution 5.0 专用：lib8 / route8 / sim / verify / router / logisim_gen / mem_gen
-  v271/     2.7.1 与 2.16(ITA) 专用：circ271 / ita_probe / netcheck / netmap / sevenseg / segshot / ita/ITAProbe.java
+  v271/     2.7.1 与 2.16(ITA) 专用：circ271 / ita_probe / netcheck / netmap / sevenseg / segshot / attrprobe / ita/*.java
   v215/     2.15.0.2 专用：board215 / gen_* / verify_* / calib_* / probe_points
   common/   与版本无关：gui.py（找窗口 / 点击 / 滚轮缩放 / 截图；键盘不可靠，见 L9）
 ```
@@ -531,6 +534,8 @@ scripts/
 | `scripts/v271/netmap.py` | **端口级网表**：谁连到谁（`--comp` 过滤）/ `--overlap` 共线短接 / `--grid` 斜线与非 10 倍长度（L11） |
 | `scripts/v271/sevenseg.py` | **数码管**：`check` 段位 + `active` 极性、`table` 0~F 真值表、`demo` 生成 A~F 演示电路 |
 | `scripts/v271/segshot.py` | **截图复核**：按像素识别每个数码管亮了哪几段（PIL，`--expect A,b,C…`） |
+| `scripts/v271/attrprobe.py` | **改属性自检**：调用 `SetAttributeAction`（=界面改文字）判定 `WireRepair` 是否死循环（L13） |
+| `scripts/v271/ita/AttrProbe.java` | 上述探针的 Java 源码（自动编译；Simulator 线程非 daemon，需轮询 `ATTR_OK`） |
 | `scripts/v215/board215.py` | 2.15.0.2 实测几何 + Board 追加式构建器 + 六项正交布线自检；含 mux/cmp/const/ext/shifter/split 与 fan_bits/fan_stub |
 | `scripts/v215/gen_adder_lab2.py` | 实验2 加法器生成器：7 个电路，在原验证框架上追加（不覆盖原元件） |
 | `scripts/v215/verify_adder_lab2.py` | 加法器功能向量：穷举 + 随机，走 2.15 引擎 |

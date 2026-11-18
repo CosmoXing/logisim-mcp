@@ -70,6 +70,7 @@ ver = detect("xxx.circ")  # -> '5.0' / '2.16' / '2.7.1'
 | `v271/netmap.py` | 2.7.1 / 2.16 | **端口级网表**：谁连到谁；`--overlap` 查共线短接；`--grid` 查斜线/非 10 倍长度（会导致加载 OOM） |
 | `v271/sevenseg.py` | 2.7.1 / 2.16 | 数码管：`check` 段位与 `active` 极性、`table` 0~F 真值表、`demo` 生成 A~F 演示电路 |
 | `v271/segshot.py` | 2.7.1 / 2.16 | 从截图按像素识别数码管亮了哪几段（PIL） |
+| `v271/attrprobe.py` | 2.7.1 / 2.16 | 触发一次「改属性」验证 `WireRepair` 不死循环（「改文字就卡死」自检，L13） |
 | `v271/ita/ITAProbe.java` | 2.7.1 | Java 探针源码（自动编译） |
 | `common/gui.py` | 通用 | GUI 自动化：找窗口 / 点击 / 滚轮缩放 / 截图（按键会被别的窗口抢焦点，别用来输入文字，见 L9） |
 

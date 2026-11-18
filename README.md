@@ -222,7 +222,8 @@ Java       : /usr/bin/java
 > `a=(+20,0) b=(+30,0) c=(+20,+60) d=(+10,+60) e=(0,+60) f=(+10,0) g=(0,0) dp=(+30,+60)`；
 > `active` 是**布尔属性**，只能写 `true/false`（写 `high` 会被当成 `false` → 整块反相，且不报错）；
 > 导线必须横平竖直且长度为 10 的倍数，否则 `WireRepair` 死循环、加载直接 `OutOfMemoryError`。
-> 自检：`scripts/v271/sevenseg.py check|table|demo`、`netmap.py --overlap|--grid`。
+> 自检：`scripts/v271/sevenseg.py check|table|demo`、`netmap.py --overlap|--grid`、
+> `attrprobe.py`（触发一次改属性，判定「改文字就卡死」是否复发）。
 
 程序里可直接路由：
 

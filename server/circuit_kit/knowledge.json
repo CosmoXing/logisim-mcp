@@ -1006,6 +1006,12 @@
       "title": "组件端口顺序/属性类型直接拆 jar 看字节码",
       "detail": "jar xf Logisim-ITA.jar com/cburch/logisim/std/io/SevenSegment.class 后 javap -p -c，构造器里就是一串 Port(20,0)、Port(30,0)…，属性类型也能看到（Attributes.forBoolean(\"active\")）。比翻文档快。",
       "evidence": "L1/L2 的结论均来自 SevenSegment.class / Io.class 字节码"
+    },
+{
+      "id": "ita216-wirerepair-port-1px-hang",
+      "title": "端口与导线差 1px → 改任意属性都卡死（WireRepair 死循环）",
+      "detail": "改文字走 TextTool→SetAttributeAction→CircuitTransaction→WireRepair.run→doOverlaps；doOverlaps 按 Wire.iterator() 逐点建 HashMap。只要电路里有「端口与导线端点差 1px」「斜线」「长度非 10 倍数」的导线，修复会反复拆出 1px 短桩/斜线，点表无限膨胀 → 改一个字立刻卡死，进程吃到数 GB；无头加载却可能正常，容易误判成输入法问题。多比特端口的外观取整会让端口落在 ±1 偏移，且同一子电路输入/输出偏移不同，整体平移实例无法同时对齐两端，改外观 circ-port 的 x/y 最省事。",
+      "evidence": "实验7 main：奇校验编码输出口真实点 (401,201)、导线画在 (401,200)；jstack 栈顶 WireRepair.doOverlaps:176→HashMap.put，AWT-EventQueue 占 2.4GB；circ-port 平移(-1,-1) 使端口变 (400,200) 后 attrprobe 输出 ATTR_OK 0ms"
     }
 
   ]

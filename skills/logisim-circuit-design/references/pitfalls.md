@@ -823,7 +823,7 @@ K 组是 Logisim-ITA 2.15.0.2（实验2~6）；**L 组是 Logisim-ITA 2.16.1.0**
 
 ## L. Logisim-ITA 2.16.1.0（IO / 数码管 A~F，实验7）
 
-L1~L12 全部是实验7 交付过程中实测的；几何数值取自 `SevenSegment.class` 反编译（2.16），
+L1~L13 全部是实验7 交付过程中实测的；几何数值取自 `SevenSegment.class` 反编译（2.16），
 2.15 与 2.16 在这些点上行为一致。
 
 ### L1 `active="high"` 不是布尔值 → 数码管整块反相
@@ -880,3 +880,9 @@ L1~L12 全部是实验7 交付过程中实测的；几何数值取自 `SevenSegm
 ### L12 想不起组件端口顺序/属性类型，直接拆 jar 看字节码
 - **坑/规则**：`jar xf Logisim-ITA.jar com/cburch/logisim/std/io/SevenSegment.class` 再 `javap -p -c`，构造器里就是一串 `Port(20,0)`、`Port(30,0)…`，属性类型也能看到（`Attributes.forBoolean("active",...)`）。比翻文档快、比猜准。
 - **证据**：L1、L2 的结论都是从 `SevenSegment.class` / `Io.class` 的字节码读出来的。
+
+### L13 端口与导线差 1px → 改任意属性都卡死（WireRepair 死循环）
+- **坑/规则**：在界面里改文字走的是 `TextTool → SetAttributeAction → CircuitTransaction → WireRepair.run → doOverlaps`；`doOverlaps` 按 `Wire.iterator()` 逐点建 HashMap。只要电路里有「端口和导线端点差 1px」「斜线」「长度非 10 倍数」的导线，修复就会反复拆出 1px 短桩/斜线段，点表无限膨胀 —— 现象是「改一个字立刻卡死」，进程吃到几个 GB；而无头加载往往正常，极易误判成中文输入法问题。
+- **证据**：实验7 `main`：`奇校验编码` 输出口真实连接点 `(401,201)`（9 位端口的外观取整偏移），导线却画在 `(401,200)`。jstack 栈顶 `WireRepair.doOverlaps:176 → HashMap.put`，AWT-EventQueue 线程已占 2.4GB。把该子电路外观 `circ-port` 平移 (-1,-1)（端口变为 `(400,200)`）、导线改 400 后，`ATTR_OK 0ms`。
+- **工具**：`python scripts/v271/attrprobe.py file.circ "电路名"`（8 秒超时判定，正常打印 `ATTR_OK`，卡死返回码 1）；几何自查 `netmap.py --grid`；查悬空端口用 `netmap.py --comp <元件>` 看该元件是否只出现一个网络。
+- **补充**：多比特端口的外观取整会使端口落在 ±1 偏移上，且同一子电路的输入口与输出口偏移可能不同 —— **靠整体平移实例无法同时对齐两端**，改外观 `circ-port` 的 x/y（±1px，肉眼无感）是最省事的解法。

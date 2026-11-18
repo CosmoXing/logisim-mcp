@@ -21,6 +21,9 @@
   追加 12 条 `ita216-*`（83 → 95）。
 - 同步入库 `scripts/v215/gen_lab7.py` / `verify_lab7.py`：实验7 的 2.15 版生成器与穷举验证
   （2k+1奇校验 512 组、编码 256 组、解码 512 组、main 逐拍 trace 读随机屏蔽字）。
+- 新增 `scripts/v271/attrprobe.py` + `scripts/v271/ita/AttrProbe.java`：直接调用 Logisim 内部
+  `SetAttributeAction`（等价于界面里改文字）来判定 `WireRepair` 是否死循环；新增 **L13**
+  （端口与导线差 1px → 改任意属性都卡死，栈顶 `WireRepair.doOverlaps:176`）。
 
 ## 未发布 — 实验6 存储器实验（2.15.0.2）沉淀
 

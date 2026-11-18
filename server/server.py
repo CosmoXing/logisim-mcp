@@ -53,6 +53,7 @@ from circuit_kit import appearance as kit_app  # noqa: E402
 from circuit_kit import builder as kit_builder  # noqa: E402
 from circuit_kit import circ271 as kit_271  # noqa: E402
 from circuit_kit import geometry as kit_geo  # noqa: E402
+from circuit_kit import g39probe as kit_g39  # noqa: E402
 from circuit_kit import knowledge as kit_kb  # noqa: E402
 from circuit_kit import logisim_bridge as kit_bridge  # noqa: E402
 from circuit_kit import netlist as kit_net  # noqa: E402
@@ -929,22 +930,86 @@ TOOLS = [
         },
     },
     {
-        "name": "circ271_ports",
+        "name": "circ39_check",
         "description": (
-            "返回 2.7.1 / ITA 2.15·2.16 实测端口几何：元件坐标 + 每个端口的坐标/位宽/方向。"
-            "覆盖 Pin/Tunnel/Constant/Clock/Splitter（east/west 分支位置）/基本门（默认 5 输入，"
-            "输入口 x-30）/Comparator/Decoder/Multiplexer/RAM（str/cs/clk/oe/clr 五脚）/ROM/Register。"
-            "用于改布局或手写 .circ 时核对坐标，避免接错行；"
-            "ITA 2.15 补充：XOR 输入 x-40、NOT 输入 x-20、偶数输入中间留 20px。"
+            "用 Logisim 3.9 内核（无头）真实加载 .circ：报错与 GUI 弹窗同款（如 5.0 文件的"
+            "<mappings>/<toolbar> 里 <tool> 缺 lib 属性），并列出电路清单。"
+            "3.9 交付前的加载体检。需要 3.9 jar（LOGISIM39_JAR / logisim.local.json 的"
+            "logisim39_jar / 常见安装位置自动搜索），首次调用自动 javac 编译探针。"
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {"file": {"type": "string", "description": ".circ 文件绝对路径"}},
+            "required": ["file"],
+        },
+    },
+    {
+        "name": "circ39_save",
+        "description": (
+            "用 3.9 内核重新载入并保存 .circ —— 5.0 存盘转原生 3.9 格式的标准做法"
+            "（source 变 3.9.0、引脚 type=output 变 output=true），元件/导线数量不变。"
+            "out 留空则原子覆盖原文件（临时文件写好再替换）。"
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "file": {"type": "string", "description": "输入 .circ 路径"},
+                "out": {"type": "string", "description": "输出路径；留空=覆盖原文件"},
+            },
+            "required": ["file"],
+        },
+    },
+    {
+        "name": "circ39_run",
+        "description": (
+            "用 3.9 内核跑脚本化多拍时序功能测试（比 -w 向量强：能验时序）。"
+            "steps 分号分隔：pin=val 设引脚（支持 0x）、t 打一拍（clk 引脚自动 0→1→0）、"
+            "r 读全部输出引脚。watch 传坐标列表可在每个 r 步附加打印线值（调试布线）。"
+            "正式验证一律走顶层 main（对子电路单独设引脚不完全可靠）。"
         ),
         "inputSchema": {
             "type": "object",
             "properties": {
                 "file": {"type": "string"},
                 "circuit": {"type": "string", "description": "电路名，默认 main"},
-                "component": {"type": "string", "description": "只列名称包含该子串的元件（可选）"},
+                "steps": {"type": "string",
+                          "description": '如 "clk=0,wen=1,waddr=5,wdata=0x11;clk=1;clk=0;wen=0,raddr1=5;r"'},
+                "watch": {"type": "array", "items": {"type": "string"},
+                          "description": '如 ["(560,260)","(150,940)"]，可选'},
+                "timeout": {"type": "integer", "description": "秒，默认 300"},
             },
-            "required": ["file"],
+            "required": ["file", "steps"],
+        },
+    },
+    {
+        "name": "circ39_debug",
+        "description": (
+            "3.9 内核布线级调试工具箱（mode 选择）："
+            "wires=导出加载后导线（与 XML diff 找被 WireRepair 裁掉的线）；"
+            "onet=列出包含坐标点的网络全部成员；multi=扫多驱动网（真实短路）；"
+            "nets=未接线端口扫描；insts=某类元件实例端口（精确工厂名）；"
+            "ends=按名字子串过滤元件端口；bounds=元件包围盒（查元件体压线）；"
+            "pins=全部 Pin 加载后属性（确认 output/radix）；"
+            "vals=设引脚后读指定坐标线值（位宽+err 标记）。"
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "file": {"type": "string"},
+                "circuit": {"type": "string", "description": "电路名，nets 可传 all（默认）"},
+                "mode": {"type": "string",
+                         "enum": ["wires", "onet", "multi", "nets", "insts", "ends",
+                                  "bounds", "pins", "vals", "overlap"],
+                         "description": "调试模式"},
+                "x": {"type": "integer", "description": "onet/vals 用：坐标 x"},
+                "y": {"type": "integer", "description": "onet/vals 用：坐标 y"},
+                "points": {"type": "array", "items": {"type": "string"},
+                           "description": 'vals 用，如 ["(560,260)"]'},
+                "inputs": {"type": "string", "description": 'vals 用，如 "wen=1,waddr=5"'},
+                "factory": {"type": "string", "description": "insts 用：精确工厂名"},
+                "name": {"type": "string", "description": "ends 用：名字子串"},
+            },
+            "required": ["file", "mode"],
         },
     },
 ]
@@ -1203,7 +1268,15 @@ def call_tool(name, args):
             "切换内核": "设置环境变量 LOGISIM_JAR 指向目标 jar 即可",
             "扩展工具": ["circ_geometry", "circ_probe", "circ_audit", "circ_sim", "circ_build",
                          "circ_kb", "circ_appearance",
-                         "circ271_check", "circ271_sim", "circ271_ports"],
+                         "circ271_check", "circ271_sim", "circ271_ports",
+                         "circ39_check", "circ39_save", "circ39_run", "circ39_debug"],
+            "3.9探针": {
+                "工具": ["circ39_check", "circ39_save", "circ39_run", "circ39_debug"],
+                "内核": (kit_g39.find_jar39()
+                         or "未找到（设 LOGISIM39_JAR 或在 logisim.local.json 写 logisim39_jar）"),
+                "语义": "用 3.9 本体内核无头驱动：真实加载报错、5.0→3.9 重存、脚本化多拍时序、"
+                        "加载后导线/单网成员/多驱动网/端口几何/坐标线值。自绘网表与真引擎不一致时以它为准",
+            },
             "2.7.1支持": {
                 "工具": ["circ271_check", "circ271_sim", "circ271_ports"],
                 "语义": "按 2.7.1 实测：Splitter 分支 y、门默认 5 输入、RAM 五控制脚、Decoder 禁用输出、Register en",
@@ -1485,6 +1558,59 @@ def call_tool(name, args):
         except SystemExit as exc:
             return False, str(exc)
         return True, _json_text(rows)
+
+    if name in ("circ39_check", "circ39_save", "circ39_run", "circ39_debug"):
+        f = os.path.abspath(args["file"])
+        if not os.path.isfile(f):
+            return False, f"文件不存在: {f}"
+        try:
+            if name == "circ39_check":
+                out = kit_g39.check(f)
+            elif name == "circ39_save":
+                out = kit_g39.save(f, args.get("out", ""))
+            elif name == "circ39_run":
+                out = kit_g39.run(f, args.get("circuit", "main"), args["steps"],
+                                  watch=args.get("watch"),
+                                  timeout=int(args.get("timeout", 300) or 300))
+            else:
+                mode = args.get("mode", "")
+                cn = args.get("circuit", "main") or "main"
+                if mode == "wires":
+                    out = kit_g39.wires(f, cn)
+                elif mode == "onet":
+                    if args.get("x") is None or args.get("y") is None:
+                        return False, "onet 需要 x,y 坐标"
+                    out = kit_g39.onet(f, cn, int(args["x"]), int(args["y"]))
+                elif mode == "multi":
+                    out = kit_g39.multi(f, cn)
+                elif mode == "nets":
+                    out = kit_g39.nets(f, args.get("circuit", "all") or "all")
+                elif mode == "insts":
+                    if not args.get("factory"):
+                        return False, "insts 需要 factory（精确工厂名，如 Register）"
+                    out = kit_g39.insts(f, cn, args["factory"])
+                elif mode == "ends":
+                    if not args.get("name"):
+                        return False, "ends 需要 name（名字子串，如 Gate）"
+                    out = kit_g39.ends(f, cn, args["name"])
+                elif mode == "bounds":
+                    out = kit_g39.bounds(f, cn)
+                elif mode == "pins":
+                    out = kit_g39.pins(f, cn)
+                elif mode == "vals":
+                    pts = args.get("points") or []
+                    if not pts:
+                        return False, "vals 需要 points（坐标列表）"
+                    out = kit_g39.vals(f, cn, args.get("inputs", "") or "", pts)
+                elif mode == "overlap":
+                    out = kit_g39.overlap(f)
+                else:
+                    return False, "mode 必须是 wires/onet/multi/nets/insts/ends/bounds/pins/vals/overlap"
+        except RuntimeError as exc:
+            return False, str(exc)
+        except subprocess.TimeoutExpired:
+            return False, f"探针超时（> {args.get('timeout', 300)}s）"
+        return True, out.strip()
 
     if name == "circ_kb":
         act = args.get("action")

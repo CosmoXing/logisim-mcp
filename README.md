@@ -201,6 +201,10 @@ Java       : /usr/bin/java
 | `circ271_check` | **2.7.1 / ITA 2.15·2.16** 静态体检：按 2.7.1 实测几何/语义重建网表，查位宽、驱动、穿体、sel/en 接入方向 |
 | `circ271_sim` | **2.7.1 / ITA 2.15·2.16** 网表仿真：驱动输入 Pin → 打时钟 N 拍 → 读引脚 / Tunnel（DM、GRF 等原始元件电路） |
 | `circ271_ports` | **2.7.1 / ITA 2.15·2.16** 端口几何：Splitter 分支、门、RAM 五控制脚、Decoder/Mux 的实测坐标 |
+| `circ39_check` | **3.9** 内核真实加载体检：报错与 GUI 弹窗同款（缺 lib 的 tool 等）+ 电路清单 |
+| `circ39_save` | **3.9** 内核重存：5.0 存盘 → 原生 3.9 格式（元件/导线数不变，out 留空原子覆盖） |
+| `circ39_run` | **3.9** 内核脚本化多拍时序测试：`pin=val` / `t` 打拍 / `r` 读输出，watch 坐标逐点观察 |
+| `circ39_debug` | **3.9** 布线级调试箱：wires（加载后导线）/ onet（单网成员）/ multi（多驱动网）/ nets（未接线端口）/ insts / ends / bounds / pins / vals / **overlap**（共线重叠扫描） |
 
 ## 版本支持：5.0 / 2.7.1 / 2.16 / 2.15
 
@@ -212,7 +216,7 @@ Java       : /usr/bin/java
 | `5.0` | 5.0 几何 | `circuit_kit/geometry.py`，工具 `circ_*` / `circuit_*` |
 | `2.16` / `2.7` | 2.7.1 几何 | `circuit_kit/circ271.py`，工具 `circ271_*` |
 | `2.15` | ITA 几何：AND/OR 输入 `x-30`、XOR `x-40`、**NOT `x-20`**、偶数输入中间 20px 空档；MUX 需 `enable=false`，Comparator/BitExtender/Shifter/南向 Splitter 见技能 `references/geometry.md` 第 11 节 | 静态检查用 `circ271_*`；功能验证用 `scripts/v271/ita_probe.py`，构建用 `scripts/v215/board215.py`，实验1 用 `gen_lab1.py`，ALU 用 `gen_alu_lab3.py` + `verify_alu_lab3.py` |
-| `3.9` | 3.9 几何 | 未落地为代码，差异表见 [docs/VERSIONS.md](docs/VERSIONS.md) |
+| `3.9` | 3.9 几何 | `circuit_kit/g39probe.py` + `circ39_check / circ39_save / circ39_run / circ39_debug`（3.9 本体内核无头探针；迁移格式见 pitfalls L14，布线陷阱见 M 组） |
 
 > 2.15 说明：`circ271_check` 的门体模型按原始 2.7.1（输入 x-50）建模，对 2.15/2.16 会把
 > 20px 输入短线误判为“导线穿元件体”，属已知误报；以 Logisim 自身 `ERRCOUNT` 与

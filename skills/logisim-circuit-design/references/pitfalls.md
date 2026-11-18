@@ -970,3 +970,52 @@ L1~L13 全部是实验7 交付过程中实测的；几何数值取自 `SevenSegm
   比对时只比数据行）。
 - **本例**：`测试/2.11.circ` 声明 13 个库只用到 3 个（Wiring/Gates/I-O），
   删到 3 个 + 去掉 mappings/toolbar 后 3.9 秒开、无任何弹窗。
+---
+
+## M. Logisim 3.9 内核探针（无头驱动 + 生成电路布线陷阱）
+
+配套 MCP 工具 `circ39_check / circ39_save / circ39_run / circ39_debug`
+（源码 `server/java/src/g39probe/`，首次调用自动编译；完整上下文见 `logisim39-casebook.md`）。
+自绘网表与真引擎结论冲突时，一律以这些探针为准。
+
+### M1 分线器 `incoming` 必须等于总线位宽
+写成 1 会把整条总线当 1 位，全断。`fanout`=分支数、`incoming`=总线位宽。
+
+### M2 Register 端口几何（3.9 实测）：D=+30、en=+50、clk=+70
+同一侧自上而下 D/en/clk，`clr=+30/+90`、`Q=+60/+30`。en/clk 接反=写了不生效。
+用 `circ39_debug insts Register` 量，别凭记忆。3 输入与门端口 `(x-50, y-20/y/y+20)`。
+
+### M3 共线重叠（不共享端点）= 加载时合并 = 跨网短路
+两根同 y 横线/同 x 竖线重叠哪怕 1px，加载时合并成一根：
+共享端点=冗余无害；不共享=真短路，表现为一条线断供（U）+ 另一条被错接。
+实例：raddr2 合并线与 bank1 ridx1 支线重叠 40px → ridx2 干线断供、读口恒 0。
+检查：`circ39_debug overlap`（纯 XML，区分真短路/冗余）。十字交叉不连通、端点/端口才连通。
+
+### M4 元件体压线 → WireRepair 裁线
+Ground 压在时钟干线上，加载后干线被裁断。元件放两干线之间的空档。
+
+### M5 通道竖线端点落在别的线上 = T 短路
+端点/端口落在导线上才连通（十字交叉不算）；布通道先查终点是不是别人的端点。
+
+### M6 Splitter 是无源直通，扫多驱动网时按 io 计
+3.9 里 Splitter 两端 EndData 都 `isOutput()==true`；扇出→合并同网是正常接法。
+`circ39_debug multi` 已按此排除，自写工具别把 Splitter 端口当驱动源（否则全是误报）。
+
+### M7 G39Seq 探针语义四坑
+①设值后必须 `markComponentAsDirty`+`markPointAsDirty` 再 propagate，且全部引脚设完统一传播；
+②clk 是 Pin 时 `t` = 手动 0→1→0，有 Clock 组件才用 `toggleClocks`；
+③未设引脚=U 非 0，clk 初值 U→1 不算上升沿，脚本先 `clk=0`；
+④子电路作根时引脚驱动不可靠，正式验证走顶层 main。
+另外：**中段坐标读不出值**（图节点只在端点/结点），`-` 不是断线，换端点读。
+
+### M8 XML 导线 ≠ 加载后导线
+WireRepair 会裁穿体线、合并共线段、拆 T 结点。布线争议一律
+`circ39_debug wires` 导出加载后导线与 XML diff，缺的那条就是被裁的。
+
+### M9 迁移收尾六步
+`circ39_check`（无报错）→ 补 lib（L14）→ `circ39_save` 重存 → `overlap` 真短路=0 →
+`multi` 逐电路=0 → `nets all` 只剩"设计上不用"的端口 → `circ39_run` 顶层 main 验功能。
+
+### M10 GUI 配套
+clk 是引脚时 Ctrl+K/自动仿真**不产生时钟沿**，须手动点 0→1→0；多比特引脚设 radix
+（数据 16、地址 10unsigned）；画布整体出界→平移坐标；树双击不进→改 `<main name="X"/>` 复制件查看。

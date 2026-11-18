@@ -935,132 +935,179 @@
       "detail": "页1 位数扩展图中地址端 8 位 → 256×16→256×32，地址 8 位、每单元 32 位；页2 1K×16→4K×32 是 10→12 位。两个例子的地址位数不同，写答案时不要统一写成 10/12。",
       "evidence": "实验6 问答电路：页1 写 8 位，页2 写 10→12 位"
     },
-{
+    {
       "id": "ita216-sevenseg-active-boolean",
       "title": "数码管 active 是布尔属性，写 high 会反相",
       "detail": "Io.ATTR_ACTIVE 由 Attributes.forBoolean 创建，XML 只认 true/false。写 high/low 会被 Boolean.valueOf 解析成 false，表现为该亮的段灭、该灭的段亮，且 ERRCOUNT 仍为 0，位宽/网表检查都查不出来。",
       "evidence": "实验7 七段显示0~F：D=1010 只亮 d 段；7 处改 true 后正常显示 A"
     },
-{
+    {
       "id": "ita216-sevenseg-port-map",
       "title": "7-Segment Display 的 8 个输入脚坐标（2.16）",
       "detail": "a=(+20,0) b=(+30,0) c=(+20,+60) d=(+10,+60) e=(0,+60) f=(+10,0) g=(0,0) dp=(+30,+60)，外框 Bounds(-5,0,40,60)；SEGMENTS[] 顺序 a,b,c,d,e,f,g（值 bit0~6，bit7=dp）。按直觉「北排 4 个 = a,b,c,d」接线会错 5 段。",
       "evidence": "SevenSegment.class 反编译 + 实验7 段位核对（sevenseg.py check 全绿）"
     },
-{
+    {
       "id": "ita216-subappear-port-packing",
       "title": "无 appear 的子电路端口按 10px 打包，不能用内部坐标平移",
       "detail": "没有自定义外观时，Logisim 把输入排左边、输出排右边，间距固定 10px，顺序=内部 Pin 按 y 排序；内部 Pin 可能是 20px 步长，照内部坐标接线会全部悬空。",
       "evidence": "七段译码器0~F 内部输出 y=400~520（步长 20），实例端口是 (500,300)...(500,360)"
     },
-{
+    {
       "id": "ita216-text-no-newline",
       "title": "Text 组件不支持 &#10; 换行",
       "detail": "一段 Text 里写 &#10; 不会换行，Logisim 把整段当一行画出来，还会压住右边元件。多行注释要拆成多个 Text 逐行摆。",
       "evidence": "实验7 main 注释一整行压到「错误指示」LED；拆成 5 条单行 Text 后正常"
     },
-{
+    {
       "id": "ita216-cjk-label-font",
       "title": "中文引脚名要用带 CJK 字形的字体",
       "detail": "Times New Roman bolditalic 18 没有中文字形，引脚名显示成 □□□；改 SansSerif bold 18 正常，Dialog plain 12 也可用。",
       "evidence": "实验7 main 的 屏蔽字/传输数据/输出/正确/错误 曾全是方框"
     },
-{
+    {
       "id": "ita216-clabel-on-appearance",
       "title": "子电路 clabel 会画在外观块上并被裁切",
       "detail": "子电路设了 clabel 后 Logisim 把它画在外观上；外观只有 60×40 时文字被压扁，看着像元件名称没正确显示。应把 clabel 留空，改在父电路用 Text 标注。",
       "evidence": "9位随机干扰 红块上出现被挤压的「随机干扰」"
     },
-{
+    {
       "id": "ita216-wire-overlap-vs-cross",
       "title": "共线重叠=短接，十字交叉=不连通",
       "detail": "同水平/垂直且区间真重叠会短路；端点落在另一根线中段（T 接）才连通；双方都只是内点不连通。排线要给每路信号独立的水平层与竖直通道。",
       "evidence": "实验7 main/七段显示0~F 重排后 netmap --overlap 全 0，功能 20/20"
     },
-{
+    {
       "id": "ita216-netmap-port-pairs",
       "title": "端口级核对要用 netmap，不能只数线",
       "detail": "netcheck 只报位宽冲突，不报接错位置；数码管段位、分线器分支、子电路引脚必须按「端口 A 连到端口 B」核对。",
       "evidence": "一次把译码器输出上下顺序看反，差点改坏正确接法；netmap --comp 一跑即暴露"
     },
-{
+    {
       "id": "ita216-gui-keyboard-stolen",
       "title": "GUI 自动化：按键会被别的窗口抢走",
       "detail": "本机 GetForegroundWindow 返回 Logisim，但 keybd_event / PostMessage(WM_CHAR) 仍落进别的窗口（浏览器），点击有效。模拟打字不可靠，中文字符更送不进去；改文字/改输入值应直接改文件。",
       "evidence": "多次输入 abc 落到 Chrome 标签；SendMessageTimeout 存活检查一直正常"
     },
-{
+    {
       "id": "ita216-gui-zoom-direction",
       "title": "截图缩放用 shift+滚轮，Ctrl 组合键不可靠",
       "detail": "gui.wheel(h, n, shift=True, dy=+120) 放大、dy=-120 缩小；Ctrl+0 / Ctrl+- 本机不生效。窗口宽约 1720px，电路宽 >1000 要先缩到 ~50%，看单个数码管放大到 ~190%。",
       "evidence": "实验7 全套 25% 一次入镜；190% 才看清 A 段亮灭"
     },
-{
+    {
       "id": "ita216-diagonal-wire-wirerepair-oom",
       "title": "斜线/非 10 倍长度导线让 WireRepair 死循环，加载 OOM",
       "detail": "WireRepair.doOverlaps 用 Wire.iterator() 逐点建 HashMap；斜线或长度非 10 倍数会让修复反复拆分、表无限增长，抛 java.lang.OutOfMemoryError: Java heap space。GUI 里只是「打开时卡一下」，无头探针直接退出。",
       "evidence": "main 出现 (401,200)-(401,201) + (401,201)-(440,200) 后 ita_probe 加载 OOM；改回单根后 main 不变式 20/20"
     },
-{
+    {
       "id": "ita216-javap-port-discovery",
       "title": "组件端口顺序/属性类型直接拆 jar 看字节码",
       "detail": "jar xf Logisim-ITA.jar com/cburch/logisim/std/io/SevenSegment.class 后 javap -p -c，构造器里就是一串 Port(20,0)、Port(30,0)…，属性类型也能看到（Attributes.forBoolean(\"active\")）。比翻文档快。",
       "evidence": "L1/L2 的结论均来自 SevenSegment.class / Io.class 字节码"
     },
-{
+    {
       "id": "ita216-wirerepair-port-1px-hang",
       "title": "端口与导线差 1px → 改任意属性都卡死（WireRepair 死循环）",
       "detail": "改文字走 TextTool→SetAttributeAction→CircuitTransaction→WireRepair.run→doOverlaps；doOverlaps 按 Wire.iterator() 逐点建 HashMap。只要电路里有「端口与导线端点差 1px」「斜线」「长度非 10 倍数」的导线，修复会反复拆出 1px 短桩/斜线，点表无限膨胀 → 改一个字立刻卡死，进程吃到数 GB；无头加载却可能正常，容易误判成输入法问题。多比特端口的外观取整会让端口落在 ±1 偏移，且同一子电路输入/输出偏移不同，整体平移实例无法同时对齐两端，改外观 circ-port 的 x/y 最省事。",
       "evidence": "实验7 main：奇校验编码输出口真实点 (401,201)、导线画在 (401,200)；jstack 栈顶 WireRepair.doOverlaps:176→HashMap.put，AWT-EventQueue 占 2.4GB；circ-port 平移(-1,-1) 使端口变 (400,200) 后 attrprobe 输出 ATTR_OK 0ms"
     },
-{
+    {
       "id": "ita215-transistor-unidirectional",
       "title": "三极管是单向开关（in→out），下拉网络把 GND 接 in 侧",
       "detail": "2.15 Transistor 端口：in=(x-40,y)、out=(x,y)、gate=(x-20,y-20)，数值只从 in 流到 out。CMOS 下拉按 Q→管→GND 接，Q 永远拉不到 0（悬空 U/E）；应 GND 接 in、Q 接 out，上拉同理 VCC 接 in。",
       "evidence": "实验1 2_晶体管门：初版 A=B=1 时 Q=U；改 GND→in 后与非/或非真值表全对"
     },
-{
+    {
       "id": "ita215-transistor-output-channel",
       "title": "两个晶体管的输出侧别接在同一 x / 同一 y 上",
       "detail": "同一网里 p 管输出与 n 管输出接到同一竖线（同 x、上下相接）会被并成一整条，一个驱动源是 Z、另一个是有效值，整网变 U。每个驱动源给独立通道，错开 10px 再拐到干线。",
       "evidence": "实验1 NAND p2 漏与 n2 漏同在 x=X+180，A=1,B=0 输出 U；n 侧改 x+220 后恢复 1"
     },
-{
+    {
       "id": "ita215-splitter8-ports",
       "title": "8 位分线器位口是 x+80-10i（南）/ x-10-10i（北）",
       "detail": "2.15 实测：8 位分线器南向位口 x+80-10i、北向 x-10-10i（均 y±20）；≤4 位才是 x+10-10i。按 4 位公式接 8 位，后 4 位全悬空。",
       "evidence": "实验1 3_分离器：初版 D3~D7 全 U；修正后 D=0xA5 → 10100101，合并回 0xA5"
     },
-{
+    {
       "id": "ita215-arith-ports-cin-cout",
       "title": "Adder 的 Cout 是输入脚；Mul/Div 的附加输入要接 0",
       "detail": "2.15 Adder/Subtractor：A=(x-40,y-10) B=(x-40,y+10) S=(x,y) Cin=(x-20,y-20) Cout=(x-20,y+20)（Cout 也是输入脚）。Multiplier/Divider 的 (x-20,y-20) 是 width 位宽的附加输入（C/Upper），悬空则输出 U，要接 Constant 0；(x-20,y+20) 是附加输出。",
       "evidence": "实验1 4_运算器：Cin 与 Upper 接 0 后，6±3 / 6×3 / 7÷2 全部正确"
     },
-{
+    {
       "id": "ita215-counter-with-max-counts-up",
       "title": "Counter 设了 max 是向上计数",
       "detail": "“2 位默认向下计数”只适用于未设 max；width=4、max=0x9 实测 0→9→0 向上，可直接当累加计数器。",
       "evidence": "实验1 6_计数器：CLK 每拍 Q=0,1,2…，到 9 回 0"
     },
-{
+    {
       "id": "ita215-vec-ascii-pin-names",
       "title": "向量文件里的中文引脚名会被截断",
       "detail": ".vec 是 UTF-8，但 Java 按平台字符集（GBK）读，中文引脚名乱码且尾部字节丢弃，报 vector header pin not found in circuit: 1Y。引脚名用 ASCII，中文说明放 Text 注释。",
       "evidence": "实验1 初版 1Y与门 被解析成 1Y；改 ASCII 后一次通过"
     },
-{
+    {
       "id": "ita215-appear-anchor-plus3",
       "title": "自定义外观锚点存左上角，端口偏移要按 anchor+3 算",
       "detail": "circ-anchor 存 6×6 框左上角，Logisim 以中心（x+3,y+3）为原点：实例端口 = loc + (端口中心 − (anchor+3))。按 anchor 直算会整体差 3px，端口全部悬空（输入无效、输出全 x），而 ita_probe 的 ends 仍报“正确”坐标。外观文字写成 <text font-family=... font-size=.. text-anchor=middle x= y=>内容</text>。",
       "evidence": "实验1 5_运算器封装：Y 全 x、封装箱小方块与线头差 3px；偏移从 (-87,-37) 改回 (-90,-40) 后 9/3/0x12/2"
     },
-{
+    {
       "id": "ita215-text-escape-amp",
       "title": "生成 .circ 时文本必须转义 & < >",
       "detail": "Text 里写 Y = A || (B && C) 会让 XML 解析失败（报“元素类型必须由匹配的结束标记终止”）。生成器对 text 属性统一做 &amp; &lt; &gt; 替换。",
       "evidence": "实验1 8a_A或B与C 首次生成报 [Fatal Error] :1372:45，转义后正常"
+    },
+    {
+      "id": "g39-probe-tools",
+      "title": "3.9 无头探针族（circ39_*）",
+      "detail": "circ39_check 加载体检 / circ39_save 重存 / circ39_run 脚本化多拍时序 / circ39_debug 布线调试（wires/onet/multi/nets/insts/ends/bounds/pins/vals/overlap）。自绘网表与真引擎冲突时以探针为准。",
+      "evidence": "3.1 重设计版：自绘/观察误判两次，最终以探针坐标级核对定位"
+    },
+    {
+      "id": "g39-register-ports",
+      "title": "3.9 Register 端口：D=+30、en=+50、clk=+70",
+      "detail": "同一侧自上而下 D/en/clk，clr=+30/+90、Q=+60/+30。en 与 clk 接反=写了永远不生效。用 circ39_debug insts Register 实测，别凭记忆。",
+      "evidence": "3.1 重设计版 Bank8：en/clk 接反导致写入全失效"
+    },
+    {
+      "id": "g39-splitter-incoming",
+      "title": "分线器 incoming 必须=总线位宽",
+      "detail": "fanout=分支数、incoming=总线位宽。incoming 写 1 会把整条总线当 1 位，全断。",
+      "evidence": "3.1 重设计版生成器写成 1，探针发现全部引脚 U"
+    },
+    {
+      "id": "g39-collinear-overlap",
+      "title": "共线重叠（不共享端点）=加载时合并=跨网短路",
+      "detail": "同 y 横线/同 x 竖线重叠 1px 即被 WireRepair 合并成一根：共享端点=冗余无害；不共享=真短路，表现为一条线断供（U）+另一条被错接。用 circ39_debug overlap 扫描。",
+      "evidence": "ridx2 合并线与 bank1 ridx1 支线重叠 40px → 读口恒 0 + bank1 ridx1 错接"
+    },
+    {
+      "id": "g39-wirerepair-diff",
+      "title": "XML 导线 ≠ 加载后导线",
+      "detail": "WireRepair 会裁穿体线、合并共线段、拆 T 结点。布线争议一律用 circ39_debug wires 导出加载后导线与 XML diff。",
+      "evidence": "Ground 压 clk 干线 → 干线被裁断；(400,540)-(540,540) 被合并改写"
+    },
+    {
+      "id": "g39-multidrive-splitter",
+      "title": "Splitter 无源直通：扫多驱动网时按 io 计",
+      "detail": "3.9 里 Splitter 两端 EndData 都 isOutput()==true，扇出→合并同网是正常接法。多驱动检查必须排除 Splitter/Tunnel 端口，否则全是误报。",
+      "evidence": "G39NetList 初版把比较器空闲 gt/lt 与分线器对全部误报"
+    },
+    {
+      "id": "g39-seq-semantics",
+      "title": "无头探针设值/打拍语义四坑",
+      "detail": "①Pin.setValue 后必须 markComponentAsDirty+markPointAsDirty 再 propagate，全部引脚设完统一传播；②clk 是 Pin 时 t=手动 0→1→0，有 Clock 才用 toggleClocks；③未设引脚=U 非 0，clk 初值 U→1 不算上升沿；④子电路作根时引脚驱动不可靠，正式验证走顶层 main。中段坐标读不出值（图节点只在端点/结点）。",
+      "evidence": "G39Seq 调试全程踩过"
+    },
+    {
+      "id": "g39-radix-pin",
+      "title": "多比特引脚设 radix：数据 16、地址 10unsigned",
+      "detail": "32 位引脚默认二进制显示，GUI 输入/读数都易错。Pin 加 <a name=\"radix\" val=\"16\"/>（数据）或 10unsigned（地址）。",
+      "evidence": "3.1 寄存器堆 wdata/rdata 原为二进制，输入测试数据显示错的即此因"
     }
-
   ]
 }

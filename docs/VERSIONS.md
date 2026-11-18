@@ -13,7 +13,7 @@ head -3 xxx.circ | grep -o 'source="[^"]*"'
 | `5.0` | Logisim-evolution 5.0 | **5.0** 几何（默认） |
 | `2.16` | Logisim-ITA 2.16.1.0 | **2.7.1** 几何 |
 | `2.7` | 经典 Logisim 2.7.1 | **2.7.1** 几何 |
-| `3.9` | Logisim 3.9 | **3.9** 几何（未落地为代码，见下表） |
+| `3.9` | Logisim 3.9 | **3.9** 几何（`circ39_*` 无头探针，见下表与第八节） |
 
 代码里也可以直接路由：
 
@@ -124,3 +124,21 @@ ver = detect("xxx.circ")  # -> '5.0' / '2.16' / '2.7.1'
   端口 = `loc + (端口中心 − (anchor+3))`；差 3px 整块端口悬空（K59）。
 - 新增工具：`scripts/v215/gen_lab1.py` —— 实验1 十个电路（时钟LED / CMOS 三极管门 / 8 位分离器 /
   运算器+封装 / 计数器 / 扩展器 / 两个逻辑练习 / 3-8 译码器），零隧道，几何全部实测。
+
+---
+
+## 八、3.9 内核探针（circ39_*，2026-11-18 沉淀）
+
+3.9 几何与 5.0 实测一致（见上表），但格式迁移与布线陷阱有独立坑（pitfalls L14 + M 组）。
+新增 `server/java/src/g39probe/` 12 个 Java 探针（首次调用自动 javac）+ `circuit_kit/g39probe.py` 封装：
+
+| 工具 | 作用 |
+|---|---|
+| `circ39_check` | 3.9 内核真实加载体检（报错与 GUI 同款） |
+| `circ39_save` | 3.9 内核重存（5.0 → 原生 3.9 格式，原子覆盖可选） |
+| `circ39_run` | 脚本化多拍时序：`pin=val` / `t` / `r`，watch 坐标 |
+| `circ39_debug` | wires / onet / multi / nets / insts / ends / bounds / pins / vals / **overlap** |
+
+jar 定位：`LOGISIM39_JAR` → `logisim.local.json` 的 `logisim39_jar` → 常见安装位置。
+`overlap` 为纯 XML 扫描（真短路 / 冗余重叠分类）；`multi` 已把 Splitter/Tunnel 端按 io 计。
+关键实测：Register 端口 D=+30、en=+50、clk=+70；WireRepair 会裁穿体线、合并共线重叠、拆 T 结点。

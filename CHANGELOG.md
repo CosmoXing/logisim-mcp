@@ -1,5 +1,30 @@
 # 更新记录
 
+## 未发布 — 3.9 内核无头探针工具族（circ39_*）沉淀
+
+- 新增 MCP 工具四件（`server/server.py` + `server/circuit_kit/g39probe.py` +
+  `server/java/src/g39probe/` 12 个 Java 探针，首次调用自动 javac，jar 按
+  `LOGISIM39_JAR` → `logisim.local.json` 的 `logisim39_jar` → 常见安装位置定位）：
+  - `circ39_check`：3.9 内核真实加载体检（报错与 GUI 弹窗同款 + 电路清单）；
+  - `circ39_save`：3.9 内核重存（5.0 存盘 → 原生 3.9 格式，out 留空原子覆盖）；
+  - `circ39_run`：脚本化多拍时序功能测试（`pin=val` / `t` 打拍 / `r` 读输出，
+    watch 坐标逐点观察，比 `-w` 向量强：能验时序）；
+  - `circ39_debug`：布线级调试工具箱 wires/onet/multi/nets/insts/ends/bounds/pins/vals/overlap。
+    其中 `overlap` 为纯 XML 共线重叠扫描（真短路=加载时被合并导致跨网短路；冗余重叠=共享端点前缀，无害）。
+- 探针修出的两个真实缺陷（3.1 重设计版寄存器堆）：
+  1. 旁路区重复造 r0 比较器链 → nz 网双驱动（multi 抓到，G39NetList 已把 Splitter/Tunnel 按 io 计排除误报）；
+  2. ridx2 合并线与 bank1 ridx1 支线共线重叠 40px → 加载合并后 ridx2 干线断供、
+     读口恒 0、bank1 ridx1 被错接（overlap + G39Wires diff 抓到；此前的"写读成功"全是
+     wdata 泄漏进读通路的假象）。修复生成器 `tools/gen_rf31_v3.py` 走线后 **32 地址全量
+     写读回归 32/32**（两读口独立 + r0 恒 0 + 同拍旁路 + wen 门控全过）。
+- 固化 M1~M10（pitfalls）：分线器 incoming=总线位宽、Register D=+30/en=+50/clk=+70、
+  共线重叠分类、元件体压线、通道端点 T 短路、Splitter 无源直通、G39Seq 语义四坑
+  （markDirty / clk 引脚手动打拍 / U 非 0 / 子电路根不可靠）、XML 导线≠加载后导线、
+  迁移收尾六步、GUI 配套（radix / clk 手点 / 画布出界平移）。
+- 文档：`references/logisim39-casebook.md` 新增；pitfalls 新增 M 组（102 → 112 条）；
+  SKILL.md 的路径表 / 工具表 / description 同步；`docs/VERSIONS.md` 补 3.9 探针；
+  README 工具表补 circ39_*；knowledge.json 追加 `g39-*` 条目。
+
 ## 未发布 — 实验1 熟悉 Logisim 的基本使用（2.15.0.2）沉淀
 
 - 新增 `scripts/v215/gen_lab1.py`：一次生成实验1 的 10 个电路（时钟LED / CMOS 三极管门 /

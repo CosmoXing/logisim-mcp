@@ -422,10 +422,12 @@ def run_test_vector(file_path, circuit_name, vectors):
     ver = version_text()
     m = re.match(r"(\d+)", ver or "")
     major = int(m.group(1)) if m else 0
-    if major and major < 5:
+    # 3.9 起就有 -w，且解析顺序与 5.0 相同：-w <电路名> <向量文件> <电路文件>
+    # （2026-11-18 用 3.9.0 实测：8 条向量 通过 8 / 失败 0）
+    if major and major < 3:
         return False, (
-            f"当前内核 {ver} 不支持测试向量模式：-w 在 5.0 起才按「<电路名> <向量文件> <电路文件>」解析。\n"
-            "改法：用 circuit_verify（真值表比对），或把 LOGISIM_JAR 指向 5.0+ 的 jar。"
+            f"当前内核 {ver} 没有测试向量模式（-w 从 evolution 3.x 起才有）。\n"
+            "改法：用 circuit_verify（真值表比对），或把 LOGISIM_JAR 指向 3.x / 5.x 的 jar。"
         )
     info = parse_circuit(file_path)
     circ = next((c for c in info["circuits"] if c["name"] == circuit_name), None)
@@ -682,9 +684,10 @@ TOOLS = [
     {
         "name": "circuit_test_vector",
         "description": (
-            "用 Logisim 5.0+ 的原生测试向量引擎跑用例（-w），返回通过/失败计数与失败明细。"
+            "用 Logisim-evolution 的原生测试向量引擎跑用例（-w，3.9 与 5.0 都支持，解析顺序相同），"
+            "返回通过/失败计数与失败明细。"
             "注意：实测 -w 每一行都从初始状态重新求值，因此**只能验证组合逻辑**；"
-            "时序电路请用 circ_sim（网表仿真）。3.9 会直接报版本不支持。"
+            "时序电路请用 circ_sim（网表仿真）。"
         ),
         "inputSchema": {
             "type": "object",

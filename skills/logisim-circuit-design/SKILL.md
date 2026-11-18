@@ -31,13 +31,21 @@ logisim_info                          # MCP：报 jar/Java/无头能力
 python server/server.py --doctor      # 插件：报依赖与自检
 ```
 
-| 项 | 3.9 | 5.0（本 skill 默认） | 2.7.1 |
+| 项 | 3.9.0（实测＝5.0） | 5.0（本 skill 默认） | 2.7.1 |
 |---|---|---|---|
-| 引脚写法 | `<a name="output" val="true"/>` | `<a name="type" val="input"/>` / `val="output"` | `<a name="output" val="true"/>`（输出） |
-| 门 `size` | 40 | 50 | 50；输入在 `x-50` |
-| AND/OR 输入口 | `loc.x-20` | `loc.x-50` | `loc.x-50`，纵向 40px 均布（2 输入 `y±20`） |
-| NAND/NOR/XOR 输入口 | `loc.x-20` | `loc.x-60` | `loc.x-50`（2.7.1 门体宽 40） |
-| NOT 输入口 | `loc.x-20` | `loc.x-30` | `loc.x-30` |
+| 引脚写法 | `<a name="type" val="input"/>` / `val="output"` | 同左 | `<a name="output" val="true"/>`（输出） |
+| 门 `size` | 50 | 50 | 50；输入在 `x-50` |
+| AND/OR 输入口 | `loc.x-50` | `loc.x-50` | `loc.x-50`，纵向 40px 均布（2 输入 `y±20`） |
+| NAND/NOR/XOR 输入口 | `loc.x-60` | `loc.x-60` | `loc.x-50`（2.7.1 门体宽 40） |
+| NOT 输入口 | `loc.x-30` | `loc.x-30` | `loc.x-30` |
+| 向量 CLI | `-w <电路> <向量> <circ>` | `-w <向量> <circ>` | 无 `-w`，用 `ita_probe.py` |
+
+**换默认内核**（同一台机可能有多个版本）：
+- MCP 进程：`~/.workbuddy/mcp.json` → `mcpServers.logisim.env.LOGISIM_JAR`
+- 脚本/本地 CLI：`<plugin>/logisim.local.json` → `jar`（`launcher` 可指向 jpackage 的 exe）
+- 优先级：`LOGISIM_JAR` 环境变量 > `logisim.local.json` > `runtime/` > 数据目录 > 系统安装
+- 换完必须**重启 MCP 进程**（改的是启动环境变量），否则工具仍用旧内核。
+
 | 子电路端口 | `loc.x-30` 起、10px | 按 facing 分边，锚点落在东边第一个口 | 按侧/顺序 10px 打包，与内部 Pin 坐标无关 |
 | Splitter 分支 | `(20, -10*(n-i))` | 取决于 appear | east `y-10*fanout+10*i`；west `y+10*(i+1)` |
 | 验证工具 | `-t table` | `circ_sim` / `-w` / `circ_audit` | `circ271_check` / `circ271_sim` |

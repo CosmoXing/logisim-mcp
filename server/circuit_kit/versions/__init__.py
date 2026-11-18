@@ -5,7 +5,7 @@
 
 | 版本 | 实现模块 | 关键差异 |
 |---|---|---|
-| 3.9 | （未实现，见 docs/VERSIONS.md） | 门 `size=40`，输入口 `x-20` |
+| 3.9 | `..geometry`（实测与 5.0 一致） | 无差异；仅 CLI 顺序不同 |
 | 5.0（evolution） | `..geometry` | 门宽 50/60/70，输入口 `x-50`…`x-70` |
 | 2.7.1 / 2.16（含 Logisim-ITA） | `..circ271` | 门输入 `x-30, y±10`；Splitter `b0` 是低位组；外观矩形须内缩 |
 
@@ -29,8 +29,9 @@ from .. import geometry as v50
 __all__ = ["get", "parse_circ_version", "supported", "VERSIONS"]
 
 VERSIONS = {
-    "3.9": None,          # 预留：几何表在 docs/VERSIONS.md，尚未落地为代码
-    "3.9.0": None,
+    # 3.9 实测与 5.0 几何完全一致（12 类元件逐项比对），直接复用同一实现
+    "3.9": v50,
+    "3.9.0": v50,
     "5.0": v50,
     "5.0.0": v50,
     "2.7.1": v271,
@@ -42,6 +43,7 @@ VERSIONS = {
 
 _ALIAS = {
     "3.9": "3.9",
+    "3": "5.0",
     "5": "5.0",
     "5.0": "5.0",
     "2.7": "2.7.1",
@@ -51,7 +53,7 @@ _ALIAS = {
 
 def supported() -> list[str]:
     """已实现的版本号（不含占位）。"""
-    return ["5.0", "2.7.1", "2.16"]
+    return ["3.9", "5.0", "2.7.1", "2.16"]
 
 
 def get(version: str):

@@ -7,7 +7,7 @@ ctypes 直调 user32 + PIL.ImageGrab 全部可用——本模块就是这条路�
     import gui
     gui.open_circ(r"D:/作业/2.3.circ")            # 后台启动 Logisim 载入电路
     h, title = gui.wait_window("Logisim", 25)     # 轮询等窗口出现
-    gui.wheel(h, 6, ctrl=True, dy=-120)           # Ctrl+滚轮缩小看全图
+    gui.wheel(h, 6, shift=True, dy=-120)          # shift+滚轮缩小看全图（dy=+120 放大）
     im = gui.shot("_out.png", h)                  # 截窗口区域
     gui.close(h)                                  # 发 WM_CLOSE
 
@@ -17,6 +17,9 @@ ctypes 直调 user32 + PIL.ImageGrab 全部可用——本模块就是这条路�
   2. Ctrl+滚轮 = 画布缩放；Shift+滚轮 = 横向滚动。
   3. 后台任务里启动的 GUI 在任务结束时被回收——给用户看要提示重开。
   4. .circ 默认无文件关联，双击无效；必须命令行启动。
+  5. 按键别指望：本机 GetForegroundWindow() 会返回 Logisim，但 keybd_event / PostMessage(WM_CHAR)
+     仍落进别的窗口（浏览器地址栏）。要改文字/改输入值就改文件，不要自动化键盘（pitfalls L9）。
+  6. 缩放：shift+滚轮 dy=+120 放大、dy=-120 缩小；Ctrl+0 / Ctrl+- 本机不生效（pitfalls L10）。
 """
 import ctypes
 import ctypes.wintypes as w

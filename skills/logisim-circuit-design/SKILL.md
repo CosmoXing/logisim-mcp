@@ -50,12 +50,20 @@ python server/server.py --doctor      # 插件：报依赖与自检
 | 分线器位口 | `b_i=(x+20, y+10*(i-fanout+1))`；**b0 是低位组**，3 位/2 位别搞反 |
 | 译码器 | `sel=(x,y)`、`en=(x-10,y)`、`out_i=(x+20, y-10*(cnt-i))` |
 | 子电路端口 | `loc + (x + (portW-1)//2 - 2, y + portH//2 - 3)` |
+| 无 `<appear>` 的子电路 | 端口在左右两边按 **10px** 打包，顺序 = 内部 Pin 按 y 排序；**不能**拿内部坐标平移（L3） |
+| 数码管 8 个脚 | `a=(+20,0) b=(+30,0) c=(+20,+60) d=(+10,+60) e=(0,+60) f=(+10,0) g=(0,0) dp=(+30,+60)`；`active` 是布尔属性，只能 `true/false`（写 `high` = 整块反相，L1/L2） |
+| 导线网格 | 必须横平竖直且长度是 10 的倍数；斜线/非 10 倍会让 `WireRepair` 死循环 → 加载 OOM（L11） |
+| 文字组件 | Text 不支持 `&#10;` 换行（多行拆多个 Text）；中文标签用 `SansSerif bold 18`（L4/L5） |
 | 外观矩形 | **必须比端口内缩 10px**，否则端口被静默丢弃（J1） |
 | 验证 | **没有 `-w` 向量引擎**，用 `scripts/v271/ita_probe.py` |
 
 排线还要记住：**端口落在别的导线上就一定会连**（T 接），主干通道必须避开所有端口坐标。
 位宽对不上时跑 `python scripts/v271/netcheck.py file.circ "电路名"`，
 它按真实端口坐标建网，一次列全冲突点所属元件（J5）。
+要核对**谁连到谁**（数码管段位、分线器分支、子电路引脚）跑
+`python scripts/v271/netmap.py file.circ "电路名" --comp 七段译码器0~F`；
+`--overlap` 只查共线短接，`--grid` 只查斜线/非 10 倍长度（会 OOM，L11）。
+数码管类电路一条命令全检：`sevenseg.py check / table / demo`。
 
 **2.15.0.2（实验课实际分发的 Logisim-ITA）实测补充——和上表仍有差异：**
 
@@ -397,6 +405,12 @@ d[8] clk r q[8] <set> <seq>
 | 写 `0x3000` 后 `0x0000` 被改 | 单块 12 位地址 RAM + 无越界门控，地址回绕 | 3×1024×32 + `ALU<0x3000` 门控 + `ALU[13:2]`（J12） |
 | `circ_audit` 对 2.7.1 报大量不支持 | 5.0 几何/语义不适用 | 换 `circ271_check` / `circ271_sim` / `circ271_ports` |
 | 评测 trace 错位、某寄存器“多写” | 写使能线漏一段，`en` 悬空=每拍写（J14） | 逐寄存器扫描定位，补齐 en 走线 |
+| 数码管整块反相（该亮的不亮） | `active="high"` 被布尔解析成 `false`（L1） | 改 `active="true"`；`sevenseg.py check` 会报 |
+| 数码管字模乱、连 0~9 都不对 | 8 个输入脚按「北排 a~d」猜的（L2） | 按 a=(+20,0)…dp=(+30,+60) 重接 |
+| 打开/加载卡住、`OutOfMemoryError` | 斜线或非 10 倍长度导线让 `WireRepair` 死循环（L11） | `netmap.py --grid` 定位后拉直；GUI 慎保存 |
+| 中文引脚名显示成 □□□ | 字体没有 CJK 字形（Times New Roman，L5） | 改 `SansSerif bold 18` |
+| 多行注释挤成一行、压住元件 | Text 不支持 `&#10;`（L4） | 拆成多条单行 Text |
+| 子电路上出现被挤压的字 | 子电路设了 `clabel`，被画在小外观上（L6） | `clabel` 置空，父电路用 Text 标注 |
 
 ## 8. 完整案例：两位十三进制计数器
 
@@ -479,8 +493,9 @@ circ271_ports {"file":"D:/CPU.circ","circuit":"DM","component":"Splitter"}
 ```
 scripts/
   v50/      evolution 5.0 专用：lib8 / route8 / sim / verify / router / logisim_gen / mem_gen
-  v271/     2.7.1 与 2.16(ITA) 专用：circ271 / ita_probe / netcheck / ita/ITAProbe.java
-  common/   与版本无关：gui.py（找窗口、点击、截图）
+  v271/     2.7.1 与 2.16(ITA) 专用：circ271 / ita_probe / netcheck / netmap / sevenseg / segshot / ita/ITAProbe.java
+  v215/     2.15.0.2 专用：board215 / gen_* / verify_* / calib_* / probe_points
+  common/   与版本无关：gui.py（找窗口 / 点击 / 滚轮缩放 / 截图；键盘不可靠，见 L9）
 ```
 
 **判据是 `.circ` 的 `source=`，不是你装的 Logisim 版本。**
@@ -500,7 +515,7 @@ scripts/
 | `references/circ-format.md` | `.circ` XML 结构、库索引、组件属性、toolbar、版本差异 |
 | `references/verification.md` | CLI 参数、`.vec` 格式、用例设计、双工程策略、GUI 截图 |
 | `references/appearance.md` | 子电路外观：spec、自动排版、保端口/重排、保存校验 |
-| `references/pitfalls.md` | 实战坑表：A-G 组（4 位规模）+ H 组（8 位总线/展平/Windows 环境/外观与 GUI 自动化）+ I 组（存储器/工程头/connect 盲区）+ J 组（Logisim 2.7.1）+ K 组（Logisim-ITA 2.15，K1~K19 + K30~K52；K20~K29 见 controller215-casebook） |
+| `references/pitfalls.md` | 实战坑表：A-G 组（4 位规模）+ H 组（8 位总线/展平/Windows 环境/外观与 GUI 自动化）+ I 组（存储器/工程头/connect 盲区）+ J 组（Logisim 2.7.1）+ K 组（Logisim-ITA 2.15，K1~K19 + K30~K52；K20~K29 见 controller215-casebook）+ L 组（Logisim-ITA 2.16：数码管端口/active 布尔/子电路 10px 端口/斜线 OOM/GUI 键盘） |
 | `references/adder215-casebook.md` | 实验2「串行 + 快速加法器」2.15 实战：半加/全加/4位/8位可控加减、CLA、16 位级联、C15/C16 语义、验证矩阵 |
 | `references/alu215-casebook.md` | 实验3 8位 ALU（带比较器）2.15 实战：移位/比较/算术/逻辑、标志语义、16604 行验证、K12~K19 新坑、布局压缩记录 |
 | `scripts/v50/logisim_gen.py` | XML 生成器：pin / gate / sub / splitter / display / wire / project |
@@ -513,6 +528,9 @@ scripts/
 | `scripts/v271/ita/ITAProbe.java` | **2.16/2.7.1 headless 探针**：加载/设引脚/打时钟/读输出（`--list/--set/--vector/--trace/--ends/--errors`）；`ProbeLoader` 把加载异常打成 `LOADERR` |
 | `scripts/v271/ita_probe.py` | 探针 Python 封装：自动编译，`list_pins/eval_pins/run_vector(trace=True)/ends/errors` |
 | `scripts/v271/netcheck.py` | **位宽冲突定位**：真实端口坐标 + 导线图建网，一次列全冲突点 |
+| `scripts/v271/netmap.py` | **端口级网表**：谁连到谁（`--comp` 过滤）/ `--overlap` 共线短接 / `--grid` 斜线与非 10 倍长度（L11） |
+| `scripts/v271/sevenseg.py` | **数码管**：`check` 段位 + `active` 极性、`table` 0~F 真值表、`demo` 生成 A~F 演示电路 |
+| `scripts/v271/segshot.py` | **截图复核**：按像素识别每个数码管亮了哪几段（PIL，`--expect A,b,C…`） |
 | `scripts/v215/board215.py` | 2.15.0.2 实测几何 + Board 追加式构建器 + 六项正交布线自检；含 mux/cmp/const/ext/shifter/split 与 fan_bits/fan_stub |
 | `scripts/v215/gen_adder_lab2.py` | 实验2 加法器生成器：7 个电路，在原验证框架上追加（不覆盖原元件） |
 | `scripts/v215/verify_adder_lab2.py` | 加法器功能向量：穷举 + 随机，走 2.15 引擎 |

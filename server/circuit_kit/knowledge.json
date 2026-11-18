@@ -934,6 +934,79 @@
       "title": "存储器扩展问答的地址位数别混",
       "detail": "页1 位数扩展图中地址端 8 位 → 256×16→256×32，地址 8 位、每单元 32 位；页2 1K×16→4K×32 是 10→12 位。两个例子的地址位数不同，写答案时不要统一写成 10/12。",
       "evidence": "实验6 问答电路：页1 写 8 位，页2 写 10→12 位"
+    },
+{
+      "id": "ita216-sevenseg-active-boolean",
+      "title": "数码管 active 是布尔属性，写 high 会反相",
+      "detail": "Io.ATTR_ACTIVE 由 Attributes.forBoolean 创建，XML 只认 true/false。写 high/low 会被 Boolean.valueOf 解析成 false，表现为该亮的段灭、该灭的段亮，且 ERRCOUNT 仍为 0，位宽/网表检查都查不出来。",
+      "evidence": "实验7 七段显示0~F：D=1010 只亮 d 段；7 处改 true 后正常显示 A"
+    },
+{
+      "id": "ita216-sevenseg-port-map",
+      "title": "7-Segment Display 的 8 个输入脚坐标（2.16）",
+      "detail": "a=(+20,0) b=(+30,0) c=(+20,+60) d=(+10,+60) e=(0,+60) f=(+10,0) g=(0,0) dp=(+30,+60)，外框 Bounds(-5,0,40,60)；SEGMENTS[] 顺序 a,b,c,d,e,f,g（值 bit0~6，bit7=dp）。按直觉「北排 4 个 = a,b,c,d」接线会错 5 段。",
+      "evidence": "SevenSegment.class 反编译 + 实验7 段位核对（sevenseg.py check 全绿）"
+    },
+{
+      "id": "ita216-subappear-port-packing",
+      "title": "无 appear 的子电路端口按 10px 打包，不能用内部坐标平移",
+      "detail": "没有自定义外观时，Logisim 把输入排左边、输出排右边，间距固定 10px，顺序=内部 Pin 按 y 排序；内部 Pin 可能是 20px 步长，照内部坐标接线会全部悬空。",
+      "evidence": "七段译码器0~F 内部输出 y=400~520（步长 20），实例端口是 (500,300)...(500,360)"
+    },
+{
+      "id": "ita216-text-no-newline",
+      "title": "Text 组件不支持 &#10; 换行",
+      "detail": "一段 Text 里写 &#10; 不会换行，Logisim 把整段当一行画出来，还会压住右边元件。多行注释要拆成多个 Text 逐行摆。",
+      "evidence": "实验7 main 注释一整行压到「错误指示」LED；拆成 5 条单行 Text 后正常"
+    },
+{
+      "id": "ita216-cjk-label-font",
+      "title": "中文引脚名要用带 CJK 字形的字体",
+      "detail": "Times New Roman bolditalic 18 没有中文字形，引脚名显示成 □□□；改 SansSerif bold 18 正常，Dialog plain 12 也可用。",
+      "evidence": "实验7 main 的 屏蔽字/传输数据/输出/正确/错误 曾全是方框"
+    },
+{
+      "id": "ita216-clabel-on-appearance",
+      "title": "子电路 clabel 会画在外观块上并被裁切",
+      "detail": "子电路设了 clabel 后 Logisim 把它画在外观上；外观只有 60×40 时文字被压扁，看着像元件名称没正确显示。应把 clabel 留空，改在父电路用 Text 标注。",
+      "evidence": "9位随机干扰 红块上出现被挤压的「随机干扰」"
+    },
+{
+      "id": "ita216-wire-overlap-vs-cross",
+      "title": "共线重叠=短接，十字交叉=不连通",
+      "detail": "同水平/垂直且区间真重叠会短路；端点落在另一根线中段（T 接）才连通；双方都只是内点不连通。排线要给每路信号独立的水平层与竖直通道。",
+      "evidence": "实验7 main/七段显示0~F 重排后 netmap --overlap 全 0，功能 20/20"
+    },
+{
+      "id": "ita216-netmap-port-pairs",
+      "title": "端口级核对要用 netmap，不能只数线",
+      "detail": "netcheck 只报位宽冲突，不报接错位置；数码管段位、分线器分支、子电路引脚必须按「端口 A 连到端口 B」核对。",
+      "evidence": "一次把译码器输出上下顺序看反，差点改坏正确接法；netmap --comp 一跑即暴露"
+    },
+{
+      "id": "ita216-gui-keyboard-stolen",
+      "title": "GUI 自动化：按键会被别的窗口抢走",
+      "detail": "本机 GetForegroundWindow 返回 Logisim，但 keybd_event / PostMessage(WM_CHAR) 仍落进别的窗口（浏览器），点击有效。模拟打字不可靠，中文字符更送不进去；改文字/改输入值应直接改文件。",
+      "evidence": "多次输入 abc 落到 Chrome 标签；SendMessageTimeout 存活检查一直正常"
+    },
+{
+      "id": "ita216-gui-zoom-direction",
+      "title": "截图缩放用 shift+滚轮，Ctrl 组合键不可靠",
+      "detail": "gui.wheel(h, n, shift=True, dy=+120) 放大、dy=-120 缩小；Ctrl+0 / Ctrl+- 本机不生效。窗口宽约 1720px，电路宽 >1000 要先缩到 ~50%，看单个数码管放大到 ~190%。",
+      "evidence": "实验7 全套 25% 一次入镜；190% 才看清 A 段亮灭"
+    },
+{
+      "id": "ita216-diagonal-wire-wirerepair-oom",
+      "title": "斜线/非 10 倍长度导线让 WireRepair 死循环，加载 OOM",
+      "detail": "WireRepair.doOverlaps 用 Wire.iterator() 逐点建 HashMap；斜线或长度非 10 倍数会让修复反复拆分、表无限增长，抛 java.lang.OutOfMemoryError: Java heap space。GUI 里只是「打开时卡一下」，无头探针直接退出。",
+      "evidence": "main 出现 (401,200)-(401,201) + (401,201)-(440,200) 后 ita_probe 加载 OOM；改回单根后 main 不变式 20/20"
+    },
+{
+      "id": "ita216-javap-port-discovery",
+      "title": "组件端口顺序/属性类型直接拆 jar 看字节码",
+      "detail": "jar xf Logisim-ITA.jar com/cburch/logisim/std/io/SevenSegment.class 后 javap -p -c，构造器里就是一串 Port(20,0)、Port(30,0)…，属性类型也能看到（Attributes.forBoolean(\"active\")）。比翻文档快。",
+      "evidence": "L1/L2 的结论均来自 SevenSegment.class / Io.class 字节码"
     }
+
   ]
 }

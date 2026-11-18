@@ -6,7 +6,9 @@ H 组是 8 位总线乘法器（2 万+ 导线、展平/分层两种形态）新�
 `scripts/route8.py`、`scripts/sim.py`；H14–H19 是八进制两位数加法器（模块外观 + restart 掩码 +
 紧凑布局）新增的；I 组是 3.2 存储器实验新增（工程头库、引脚入网、connect 自检、RAM/ROM、
 低位交叉字节序、autosave、audit 边界）；J 组是 32 位 CPU（Logisim 2.7.1）纠错新增，
-完整上下文见 `cpu271-casebook.md`，工具为 MCP 的 `circ271_check / circ271_sim / circ271_ports`。
+完整上下文见 `cpu271-casebook.md`，工具为 MCP 的 `circ271_check / circ271_sim / circ271_ports`；
+K 组是 Logisim-ITA 2.15.0.2（实验2~6）；**L 组是 Logisim-ITA 2.16.1.0**（实验7 IO/数码管），
+工具为 `scripts/v271/netmap.py`、`sevenseg.py`、`segshot.py`。
 
 ---
 
@@ -818,3 +820,63 @@ H 组是 8 位总线乘法器（2 万+ 导线、展平/分层两种形态）新�
 ### K52 问答的地址位数别混
 - **坑/规则**：页1 位数扩展图中地址端 8 位 → 256×16→256×32，地址 8 位、每单元 32 位；页2 1K×16→4K×32 是 10→12 位。两个例子的地址位数不同，写答案时不要统一写成 10/12。
 - **证据**：实验6 问答电路：页1 写 8 位，页2 写 10→12 位
+
+## L. Logisim-ITA 2.16.1.0（IO / 数码管 A~F，实验7）
+
+L1~L12 全部是实验7 交付过程中实测的；几何数值取自 `SevenSegment.class` 反编译（2.16），
+2.15 与 2.16 在这些点上行为一致。
+
+### L1 `active="high"` 不是布尔值 → 数码管整块反相
+- **坑/规则**：`Io.ATTR_ACTIVE` 由 `Attributes.forBoolean("active", ...)` 创建，XML 只认 `true` / `false`。写成 `high` 会被 `Boolean.valueOf` 解析成 `false`，表现为「该亮的段灭、该灭的段亮」；`ERRCOUNT` 仍为 0，`netcheck` / `circ271_check` 也查不出来，最容易被误判成「段位接错」。
+- **证据**：实验7 `七段显示0~F`，D=1010 时只亮 d 段；把 7 处 `active="high"` 改成 `true` 后正常显示 A。
+- **工具**：`sevenseg.py check` 会打印 `active` 取值并对非法值报警。
+
+### L2 7-Segment Display 的 8 个输入脚（2.16 实测）
+- **坑/规则**：a=(+20,0)、b=(+30,0)、c=(+20,+60)、d=(+10,+60)、e=(0,+60)、f=(+10,0)、g=(0,0)、dp=(+30,+60)，外框 `Bounds(-5,0,40,60)`；`SEGMENTS[]` 顺序 a,b,c,d,e,f,g（值 bit0~bit6，bit7=dp）。按直觉「北排 4 个 = a,b,c,d」接线会错掉 5 段。
+- **证据**：早期版本把 c,d 接到北排、e,f,g 接南排，字模整体错位；按上表重接后 a→a…g→g。
+- **工具**：`sevenseg.py check`（段位）/ `sevenseg.py table`（0~F 真值表）。
+
+### L3 无 `<appear>` 的子电路：端口按 10px 打包，不能拿内部 Pin 坐标平移
+- **坑/规则**：没有自定义外观时，Logisim 把输入排在左边、输出排在右边，间距固定 10px，顺序 = 内部 Pin 按 y 排序。内部 a 在 y=400、b 在 420（步长 20），实例上却是 `loc.y+0,10,20…`。照内部坐标接线会全部悬空。
+- **证据**：`七段译码器0~F` 内部输出 y=400~520（步长 20），实例端口是 (500,300),(500,310)…(500,360)。
+- **工具**：`ita_probe.py ends` 拿真实端口，别自己算。
+
+### L4 Text 组件不支持 `&#10;` 换行
+- **坑/规则**：一段 Text 里写 `&#10;` 不会换行，Logisim 把整段当一行画出来，还会向右压住别的元件。多行注释必须拆成多个 Text，逐行摆。
+- **证据**：实验7 main 的思考题注释原本一整行压到「错误指示」LED 上；拆成 5 条单行 Text 后正常。
+
+### L5 Pin / Text 的中文标签必须用带 CJK 字形的字体
+- **坑/规则**：`Times New Roman bolditalic 18` 没有中文字形 → 引脚名显示成 □□□；改 `SansSerif bold 18` 正常。`Dialog plain 12` 也有 CJK，可放心用。
+- **证据**：实验7 main 的 屏蔽字 / 传输数据 / 输出 / 正确 / 错误 曾全是方框。
+
+### L6 子电路的 `clabel` 会画在外观块上
+- **坑/规则**：子电路设了 `<a name="clabel" val="随机干扰"/>`，Logisim 就把这行字画在外观上；外观只有 60×40 时文字被挤压裁切，看着像「元件名称没正确显示」。要么把 clabel 留空（`val=""`）改在父电路用 Text 标注，要么把外观做大。
+- **证据**：`9位随机干扰` 红块上出现被压扁的「随机干扰」。
+
+### L7 共线重叠 = 短接；十字交叉 = 不连通
+- **坑/规则**：同水平/垂直且区间**真重叠** → 短路；一条的端点落在另一条中段（T 接）→ 连通；双方都只是内点 → 不连通。不同区间并排（同 y 不重叠）是合法的，可放心当作并行通道。排线时给每路信号一个独立的水平层 + 独立竖直通道。
+- **工具**：`netmap.py`（默认列端口级网表、`--overlap` 只查短接）。
+
+### L8 端口级核对用 netmap，别只看「线画上去了」
+- **坑/规则**：`netcheck.py` 只报位宽冲突，不报「接错位置」。数码管段位、分线器分支、子电路引脚这类必须按「端口 A 到底连到端口 B」核对；光看截图或数线根数都会漏。
+- **证据**：一次误判把译码器输出的上下顺序看反，差点把本来正确的接法改坏；`netmap.py --comp` 一跑就露馅（a→a…g→g）。
+- **工具**：`python netmap.py file.circ "电路名" --comp 七段译码器0~F`
+
+### L9 GUI 自动化：按键会被别的窗口抢走
+- **坑/规则**：本机 `GetForegroundWindow()` 返回 Logisim，但 `keybd_event` 与 `PostMessage(WM_CHAR)` 仍落进别的窗口（浏览器标签页），**点击是有效的**。所以「模拟打字」不可靠，中文字符更送不进去。需要改文字/改输入值时直接改文件，不要指望自动化键盘。
+- **证据**：多次输入 "abc" 落到 Chrome 标签；同时 `SendMessageTimeout` 存活检查一直正常 —— 说明窗口没卡，只是键盘没进去。
+- **工具**：`common/gui.py` 只用点击 / 滚轮 / 截图。
+
+### L10 截图缩放：shift+滚轮两向可用，Ctrl 组合键不可靠
+- **坑/规则**：`gui.wheel(h, n, shift=True, dy=+120)` 放大，`dy=-120` 缩小；`Ctrl+0` / `Ctrl+-` 在本机不生效。窗口宽约 1720px，电路宽 >1000 时先缩到 ~50% 再截；要看单个数码管就放大到 190% 左右。
+- **证据**：全套电路 25% 一次入镜；放大到 190% 才看清 A 段的亮灭。
+
+### L11 斜线 / 非 10 倍数的导线 → WireRepair 死循环，加载 OOM
+- **坑/规则**：`WireRepair.doOverlaps` 用 `Wire.iterator()` 逐点建 HashMap；一旦出现斜线（dx、dy 同时非 0）或长度不是 10 的倍数，修复会反复拆分，表无限增长 → `java.lang.OutOfMemoryError: Java heap space`。GUI 里表现为「打开/保存时卡一下」，无头探针则直接 OOM 退出。
+- **证据**：main 里出现 `(401,200)-(401,201)`（1px 短桩）+ `(401,201)-(440,200)`（斜线）后，`ita_probe` 加载直接 OOM；改回 `(401,200)-(440,200)` 立刻恢复，`main 不变式 20/20`。
+- **工具**：`python netmap.py file.circ "电路名" --grid`（纯几何，不需要加载 Logisim）。
+- **补充**：这类坏线常由「GUI 保存时 WireRepair 拆分」产生。批量生成后先跑 `--grid`，再用 GUI 打开；除非必要不要在 GUI 里保存交付文件。
+
+### L12 想不起组件端口顺序/属性类型，直接拆 jar 看字节码
+- **坑/规则**：`jar xf Logisim-ITA.jar com/cburch/logisim/std/io/SevenSegment.class` 再 `javap -p -c`，构造器里就是一串 `Port(20,0)`、`Port(30,0)…`，属性类型也能看到（`Attributes.forBoolean("active",...)`）。比翻文档快、比猜准。
+- **证据**：L1、L2 的结论都是从 `SevenSegment.class` / `Io.class` 的字节码读出来的。

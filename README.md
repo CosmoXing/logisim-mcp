@@ -218,6 +218,12 @@ Java       : /usr/bin/java
 > 20px 输入短线误判为“导线穿元件体”，属已知误报；以 Logisim 自身 `ERRCOUNT` 与
 > `ita_probe` 向量为准。`circ271_check` 检测到 `source="2.15/2.16"` 时会在首行给出提示。
 
+> 2.16 说明（IO/数码管类电路）：`7-Segment Display` 的 8 个输入脚是
+> `a=(+20,0) b=(+30,0) c=(+20,+60) d=(+10,+60) e=(0,+60) f=(+10,0) g=(0,0) dp=(+30,+60)`；
+> `active` 是**布尔属性**，只能写 `true/false`（写 `high` 会被当成 `false` → 整块反相，且不报错）；
+> 导线必须横平竖直且长度为 10 的倍数，否则 `WireRepair` 死循环、加载直接 `OutOfMemoryError`。
+> 自检：`scripts/v271/sevenseg.py check|table|demo`、`netmap.py --overlap|--grid`。
+
 程序里可直接路由：
 
 ```python
@@ -434,7 +440,7 @@ Java 桥是可选通道：没有 JDK、没有编译产物或启动失败时，`c
 │   ├── java/src/logisim/bridge/     Java 桥：BridgeMain / BridgeServer / Commands / LogisimAdapter / Edt / Json
 │   └── circuit_kit/                geometry / router / netlist / builder / audit / knowledge / appearance / logisim_bridge / circ271
 ├── runtime/bridge/                 编译产物 logisim-bridge.jar（gitignore）；会话状态与日志的兜底目录
-├── skills/logisim-circuit-design/  随包技能：SKILL.md + 7 份参考 + 4 个脚本 + 示例电路
+├── skills/logisim-circuit-design/  随包技能：SKILL.md + 14 份参考 + 30 个脚本 + 示例电路
 ├── tools/                          selftest / build_bridge / build_zip / install / sync_skill / check_release
 ├── docs/                           架构说明、插件规范、截图
 └── examples/                       可直接打开的示例电路（含两位 13 进制计数器）
@@ -450,7 +456,7 @@ Java 桥是可选通道：没有 JDK、没有编译产物或启动失败时，`c
 | [`docs/DESIGN-NOTES.md`](docs/DESIGN-NOTES.md) | 从 0 到 1 的取舍：为什么不用隧道、为什么失败要显性 |
 | `skills/.../references/counter13-casebook.md` | 十三进制计数器复盘：13 个坑 + 排查决策树 |
 | `skills/.../references/memory-casebook.md` | 64KB ROM/RAM 低位交叉：结构、RAM/ROM 端口、生成器、37/37 验证、12 坑 |
-| `skills/.../references/pitfalls.md` | 实测坑表（A-K 组；J 组为 Logisim 2.7.1，K 组为 ITA 2.15） |
+| `skills/.../references/pitfalls.md` | 实测坑表（A-L 组；J 组为 Logisim 2.7.1，K 组为 ITA 2.15，L 组为 ITA 2.16 的数码管/文本/GUI 键盘） |
 | `skills/.../references/cpu271-casebook.md` | 2.7.1 32 位 CPU 纠错复盘：DM 三错、ROM、验证链与 10 条语义坑 |
 | `skills/.../references/alu215-casebook.md` | 2.15 8 位 ALU（带比较器）复盘：结构、标志语义、16604 行验证、K12~K19 与布局压缩 |
 

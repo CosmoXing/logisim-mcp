@@ -67,8 +67,11 @@ ver = detect("xxx.circ")  # -> '5.0' / '2.16' / '2.7.1'
 | `v271/circ271.py` | 2.7.1 | 2.7.1 语义层（同 `server/circuit_kit/circ271.py`） |
 | `v271/ita_probe.py` | 2.7.1 | headless 探针封装（`list/eval/vector/ends/errors`） |
 | `v271/netcheck.py` | 2.7.1 | 按真实端口坐标建网 → 位宽冲突定位 |
+| `v271/netmap.py` | 2.7.1 / 2.16 | **端口级网表**：谁连到谁；`--overlap` 查共线短接；`--grid` 查斜线/非 10 倍长度（会导致加载 OOM） |
+| `v271/sevenseg.py` | 2.7.1 / 2.16 | 数码管：`check` 段位与 `active` 极性、`table` 0~F 真值表、`demo` 生成 A~F 演示电路 |
+| `v271/segshot.py` | 2.7.1 / 2.16 | 从截图按像素识别数码管亮了哪几段（PIL） |
 | `v271/ita/ITAProbe.java` | 2.7.1 | Java 探针源码（自动编译） |
-| `common/gui.py` | 通用 | GUI 自动化：找窗口 / 点击 / 送键 / 截图 |
+| `common/gui.py` | 通用 | GUI 自动化：找窗口 / 点击 / 滚轮缩放 / 截图（按键会被别的窗口抢焦点，别用来输入文字，见 L9） |
 
 ## 四、怎么选
 
@@ -83,4 +86,16 @@ ver = detect("xxx.circ")  # -> '5.0' / '2.16' / '2.7.1'
 - 外观矩形 100×70、端口落在左边界 → **4 个端口全部消失**（`getEnds()` 返回空，且不报错）。
 - 端口连接点偏移实测：`width=32,height=8` → `(+13,+1)`；`width=1` → `(-2,+1)`；`width=5,height=10` → `(0,+2)`。
 - **端口落在别的导线上一定会连**（T 接）；主干通道必须避开所有端口 x/y。
-  本项目曾因 4 处这样的重叠，出现 `位宽不匹配 (4)`。
+- **7-Segment Display（IO 库）8 个输入脚**：`a=(+20,0) b=(+30,0) c=(+20,+60) d=(+10,+60)`
+  `e=(0,+60) f=(+10,0) g=(0,0) dp=(+30,+60)`，外框 `Bounds(-5,0,40,60)`；
+  `SEGMENTS[]` 顺序 a,b,c,d,e,f,g，值 bit0~bit6，bit7=dp（取自 `SevenSegment.class`）。
+- **`active` 是布尔属性**（`Attributes.forBoolean`）：只能写 `true` / `false`；
+  写 `high` / `low` 会被解析成 `false` → 数码管整块反相，且 `ERRCOUNT` 仍为 0。
+- **没有 `<appear>` 的子电路**：实例端口在左右两边按 **10px 打包**，顺序 = 内部 Pin 按 y 排序，
+  与内部 Pin 坐标（可能是 20px 步长）无关，**不能用平移公式推算**。
+- **导线必须横平竖直、长度为 10 的倍数**：斜线或非 10 倍长度的线会让 `WireRepair.doOverlaps`
+  死循环，2.16 加载直接 `OutOfMemoryError`（GUI 里只是「卡一下」）。用
+  `scripts/v271/netmap.py --grid` 先扫一遍。
+- 新增工具（2.16/2.7.1 通用）：`scripts/v271/netmap.py`（端口级网表 / `--overlap` 短接 /
+  `--grid` 网格）、`sevenseg.py`（数码管 `check` / `table` / `demo`）、
+  `segshot.py`（截图像素识别数码管亮段）。

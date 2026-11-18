@@ -1,5 +1,25 @@
 # 更新记录
 
+## 未发布 — 实验7 IO 接口（Logisim-ITA 2.16.1.0）沉淀
+
+- 新增 `scripts/v271/netmap.py`：端口级网表（并查集 + T 接规则），
+  `--comp` 只看某元件的网、`--overlap` 查共线短接、`--grid` 查斜线与非 10 倍长度。
+- 新增 `scripts/v271/sevenseg.py`：数码管 `check`（a~g 段位 + `active` 极性）、
+  `table`（D=0~15 对标准字模）、`demo`（生成 N 只数码管 A~F 演示电路）。
+- 新增 `scripts/v271/segshot.py`：按截图像素识别每个数码管亮了哪几段（`--expect`）。
+- 固化 L1~L12：`active="high"` 被布尔解析成 `false` → 数码管整块反相；7-Segment
+  Display 8 脚坐标与 `SEGMENTS[]` 顺序；无 `<appear>` 子电路按 10px 打包端口；
+  Text 不支持 `&#10;`；中文标签需 CJK 字体；子电路 `clabel` 压在外观上；
+  共线重叠=短接而十字交叉不连；端口级核对用 netmap；GUI 按键被抢焦点；
+  shift+滚轮缩放方向；斜线导致 `WireRepair` 死循环 OOM；`javap` 拆 jar 查端口与属性类型。
+- 修 `实验7 IO接口实验.circ`：`七段显示0~F` 的 7 处 `active` 改布尔值；
+  main 里被 WireRepair 拆坏的 1px 短桩 + 斜线恢复成 `(401,200)-(440,200)`；
+  新增 `思考题1 A~F显示` 电路（6 组 常数 10~15 → 译码器 → 数码管）。
+  验收：`ERRCOUNT 0`、`main 不变式 20/20`、`sevenseg check` 全绿、`table` 16/16。
+- 文档：`references/pitfalls.md` 新增 L 组；`SKILL.md` 的 2.16 表 / 症状表 / 脚本表 /
+  资源表同步；`docs/VERSIONS.md` 补 2.16 实测项与脚本归属；`knowledge.json`
+  追加 12 条 `ita216-*`（83 → 95）。
+
 ## 未发布 — 实验6 存储器实验（2.15.0.2）沉淀
 
 - 新增 `scripts/v215/gen_lab6.py`（素材 2.7.1 工程上完成 D1 字扩展 + 16×16 姓名显示 +

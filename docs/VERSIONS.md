@@ -34,7 +34,7 @@ ver = detect("xxx.circ")  # -> '5.0' / '2.16' / '2.7.1'
 | 分线器位口 | `(20, -40…-10)`（fanout=4） | 同左 | **`b_i=(x+20, y+10*(i-fanout+1))`**；**b0 是低位组** |
 | 译码器 | 同 5.0 | `sel=(x,y)`、`en=(x-10,y)`、`out_i=(x+20,y-10*(cnt-i))` | 同左 |
 | 子电路外观端口 | 同 5.0 | 按 facing 分边 | **`loc+(x+(w-1)//2-2, y+h//2-3)`**；矩形须比端口**内缩 10px**，否则端口被丢弃 |
-| 时序验证 | `-w <电路> <向量> <circ>`（**顺序与 5.0 相反**） | `-w <向量> <circ>` | **无 `-w`**，用 `scripts/ita_probe.py` |
+| 时序验证 | `-w <电路> <向量> <circ>` | 同左 | **无 `-w`**，用 `scripts/ita_probe.py` |
 
 > **3.9 与 5.0 实测一致**（2026-11-18，用外观桥对 AND/OR/XOR/NOT/Pin/Tunnel/Splitter/Register/
 > Counter/D Flip-Flop/Constant/Clock 逐项比对端口坐标，全部相同；`-n` / `-t tty --save` 也在）。
@@ -86,7 +86,7 @@ ver = detect("xxx.circ")  # -> '5.0' / '2.16' / '2.7.1'
 3. **2.16 / 2.7.1** → MCP 的 `circ271_*`，skill 的 `scripts/v271/`；
    时序电路必须用 `ita_probe.py`（`-tty table` 只能跑组合）。
 4. **3.9** → 几何与 5.0 实测一致，`versions.get("3.9")` 直接路由到 5.0 实现；
-   唯一要注意 CLI 顺序：3.9 是 `-w <电路> <向量> <circ>`，5.0 是 `-w <向量> <circ>`。
+   向量 CLI 与 5.0 相同：`-w <电路> <向量> <circ>`（两个版本实测都接受）。
 
 ## 五、2.16 实测补充（本文档新增）
 

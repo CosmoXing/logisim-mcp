@@ -38,7 +38,7 @@ python server/server.py --doctor      # 插件：报依赖与自检
 | AND/OR 输入口 | `loc.x-50` | `loc.x-50` | `loc.x-50`，纵向 40px 均布（2 输入 `y±20`） |
 | NAND/NOR/XOR 输入口 | `loc.x-60` | `loc.x-60` | `loc.x-50`（2.7.1 门体宽 40） |
 | NOT 输入口 | `loc.x-30` | `loc.x-30` | `loc.x-30` |
-| 向量 CLI | `-w <电路> <向量> <circ>` | `-w <向量> <circ>` | 无 `-w`，用 `ita_probe.py` |
+| 向量 CLI | `-w <电路> <向量> <circ>` | 同左 | 无 `-w`，用 `ita_probe.py` |
 
 **换默认内核**（同一台机可能有多个版本）：
 - MCP 进程：`~/.workbuddy/mcp.json` → `mcpServers.logisim.env.LOGISIM_JAR`

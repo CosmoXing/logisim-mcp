@@ -211,12 +211,17 @@ Java       : /usr/bin/java
 |---|---|---|
 | `5.0` | 5.0 几何 | `circuit_kit/geometry.py`，工具 `circ_*` / `circuit_*` |
 | `2.16` / `2.7` | 2.7.1 几何 | `circuit_kit/circ271.py`，工具 `circ271_*` |
-| `2.15` | ITA 几何：AND/OR 输入 `x-30`、XOR `x-40`、**NOT `x-20`**、偶数输入中间 20px 空档；MUX 需 `enable=false`，Comparator/BitExtender/Shifter/南向 Splitter 见技能 `references/geometry.md` 第 11 节 | 静态检查用 `circ271_*`；功能验证用 `scripts/v271/ita_probe.py`，构建用 `scripts/v215/board215.py`，ALU 用 `gen_alu_lab3.py` + `verify_alu_lab3.py` |
+| `2.15` | ITA 几何：AND/OR 输入 `x-30`、XOR `x-40`、**NOT `x-20`**、偶数输入中间 20px 空档；MUX 需 `enable=false`，Comparator/BitExtender/Shifter/南向 Splitter 见技能 `references/geometry.md` 第 11 节 | 静态检查用 `circ271_*`；功能验证用 `scripts/v271/ita_probe.py`，构建用 `scripts/v215/board215.py`，实验1 用 `gen_lab1.py`，ALU 用 `gen_alu_lab3.py` + `verify_alu_lab3.py` |
 | `3.9` | 3.9 几何 | 未落地为代码，差异表见 [docs/VERSIONS.md](docs/VERSIONS.md) |
 
 > 2.15 说明：`circ271_check` 的门体模型按原始 2.7.1（输入 x-50）建模，对 2.15/2.16 会把
 > 20px 输入短线误判为“导线穿元件体”，属已知误报；以 Logisim 自身 `ERRCOUNT` 与
 > `ita_probe` 向量为准。`circ271_check` 检测到 `source="2.15/2.16"` 时会在首行给出提示。
+
+> 2.15 补充（实验1）：三极管是**单向 in→out** 开关，CMOS 下拉网络要把 GND 接在 `in` 侧；
+> 8 位分线器的位口是 `x+80-10i`（南）/`x-10-10i`（北），≤4 位才是 `x+10-10i`；
+> Multiplier/Divider 的附加输入（C / Upper）悬空会让输出变 `U`，需接 Constant 0；
+> 自定义外观的端口偏移按 `circ-anchor + 3`（锚点框中心）算。详见 `references/pitfalls.md` K53~K60。
 
 > 2.16 说明（IO/数码管类电路）：`7-Segment Display` 的 8 个输入脚是
 > `a=(+20,0) b=(+30,0) c=(+20,+60) d=(+10,+60) e=(0,+60) f=(+10,0) g=(0,0) dp=(+30,+60)`；

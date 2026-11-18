@@ -88,6 +88,12 @@ python server/server.py --doctor      # 插件：报依赖与自检
 | RAM | A `(x-140,y)`、D `(x-140,y+20)`、Q `(x,y)`；底部 str/cs/clk/oe/clr = `-110/-90/-70/-50/-30`；**cs=0、oe=1** 才读出 |
 | ROM | A `(x-140,y)`、Q `(x,y)`、cs `(x-90,y+40)`；cs=0 输出有效 |
 | Tunnel | `facing` 必须写 `east/west/north/south`；写 `e/w` 会加载报错并可能 WireRepair 卡死 |
+| 三极管 | `type=p/n`，**单向 in→out**：`in=(x-40,y)`、`out=(x,y)`、`gate=(x-20,y-20)`；下拉网络 GND 接 **in** 侧（K53），两个驱动源不要同 x 相接（K54） |
+| 分线器 8 位 | 南向位口 `x+80-10i`、北向 `x-10-10i`；≤4 位才是 `x+10-10i`（K55） |
+| Adder / Subtractor | A=(x-40,y-10) B=(x-40,y+10) S=(x,y) Cin=(x-20,y-20)；**Cout 也是输入脚**，别接（K56） |
+| Multiplier / Divider | A/B 同上、Out=(x,y)，另有 width 位宽的附加 in (x-20,y-20) / out (x-20,y+20)；附加 in 悬空→`U`，要接 Constant 0（K56） |
+| Counter | `width=4,max=0x9` 实测 0→9→0 **向上**计数（K57） |
+| 子电路外观锚点 | `circ-anchor` 存 6×6 框左上角，Logisim 取中心 → 端口 = `loc + (端口中心 − (anchor+3))`；差 3px 整块端口悬空（K59） |
 | 验证 | 2.15 **没有** `-t stats` / `-w`；用 `scripts/v271/ita_probe.py`、`scripts/v215/verify_adder_lab2.py`、`verify_alu_lab3.py` |
 | 构建 | `scripts/v215/board215.py`（实测几何 + Board + 六项自检）+ `gen_adder_lab2.py` / `gen_alu_lab3.py` / `gen_ctrl_lab4.py` |
 | 内嵌 jar | 2.15 用 Launch4j 打包 exe，可从 `PK\x03\x04` 偏移整段切出 jar 喂探针 |
@@ -497,7 +503,7 @@ circ271_ports {"file":"D:/CPU.circ","circuit":"DM","component":"Splitter"}
 scripts/
   v50/      evolution 5.0 专用：lib8 / route8 / sim / verify / router / logisim_gen / mem_gen
   v271/     2.7.1 与 2.16(ITA) 专用：circ271 / ita_probe / netcheck / netmap / sevenseg / segshot / attrprobe / ita/*.java
-  v215/     2.15.0.2 专用：board215 / gen_* / verify_* / calib_* / probe_points
+  v215/     2.15.0.2 专用：board215 / gen_lab1 / gen_* / verify_* / calib_* / probe_points
   common/   与版本无关：gui.py（找窗口 / 点击 / 滚轮缩放 / 截图；键盘不可靠，见 L9）
 ```
 
@@ -518,7 +524,7 @@ scripts/
 | `references/circ-format.md` | `.circ` XML 结构、库索引、组件属性、toolbar、版本差异 |
 | `references/verification.md` | CLI 参数、`.vec` 格式、用例设计、双工程策略、GUI 截图 |
 | `references/appearance.md` | 子电路外观：spec、自动排版、保端口/重排、保存校验 |
-| `references/pitfalls.md` | 实战坑表：A-G 组（4 位规模）+ H 组（8 位总线/展平/Windows 环境/外观与 GUI 自动化）+ I 组（存储器/工程头/connect 盲区）+ J 组（Logisim 2.7.1）+ K 组（Logisim-ITA 2.15，K1~K19 + K30~K52；K20~K29 见 controller215-casebook）+ L 组（Logisim-ITA 2.16：数码管端口/active 布尔/子电路 10px 端口/斜线 OOM/GUI 键盘） |
+| `references/pitfalls.md` | 实战坑表：A-G 组（4 位规模）+ H 组（8 位总线/展平/Windows 环境/外观与 GUI 自动化）+ I 组（存储器/工程头/connect 盲区）+ J 组（Logisim 2.7.1）+ K 组（Logisim-ITA 2.15，K1~K19 + K30~K60；K20~K29 见 controller215-casebook）+ L 组（Logisim-ITA 2.16：数码管端口/active 布尔/子电路 10px 端口/斜线 OOM/GUI 键盘） |
 | `references/adder215-casebook.md` | 实验2「串行 + 快速加法器」2.15 实战：半加/全加/4位/8位可控加减、CLA、16 位级联、C15/C16 语义、验证矩阵 |
 | `references/alu215-casebook.md` | 实验3 8位 ALU（带比较器）2.15 实战：移位/比较/算术/逻辑、标志语义、16604 行验证、K12~K19 新坑、布局压缩记录 |
 | `scripts/v50/logisim_gen.py` | XML 生成器：pin / gate / sub / splitter / display / wire / project |
@@ -537,6 +543,7 @@ scripts/
 | `scripts/v271/attrprobe.py` | **改属性自检**：调用 `SetAttributeAction`（=界面改文字）判定 `WireRepair` 是否死循环（L13） |
 | `scripts/v271/ita/AttrProbe.java` | 上述探针的 Java 源码（自动编译；Simulator 线程非 daemon，需轮询 `ATTR_OK`） |
 | `scripts/v215/board215.py` | 2.15.0.2 实测几何 + Board 追加式构建器 + 六项正交布线自检；含 mux/cmp/const/ext/shifter/split 与 fan_bits/fan_stub |
+| `scripts/v215/gen_lab1.py` | 实验1「熟悉 Logisim 基本使用」生成器：时钟LED/CMOS 三极管门/8 位分离器/运算器+封装/计数器/扩展器/两个逻辑练习/3-8 译码器（10 电路，零隧道，内含本组 K53~K60 的实测几何） |
 | `scripts/v215/gen_adder_lab2.py` | 实验2 加法器生成器：7 个电路，在原验证框架上追加（不覆盖原元件） |
 | `scripts/v215/verify_adder_lab2.py` | 加法器功能向量：穷举 + 随机，走 2.15 引擎 |
 | `scripts/v215/calib_lab3.py` | 实验3 元件标定：MUX 2/4/8:1、Comparator、Bit Extender、Shifter、2/3/8 位 Splitter 真实端口 |

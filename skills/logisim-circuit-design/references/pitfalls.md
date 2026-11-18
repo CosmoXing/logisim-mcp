@@ -919,3 +919,29 @@ L1~L13 全部是实验7 交付过程中实测的；几何数值取自 `SevenSegm
 - **证据**：实验7 `main`：`奇校验编码` 输出口真实连接点 `(401,201)`（9 位端口的外观取整偏移），导线却画在 `(401,200)`。jstack 栈顶 `WireRepair.doOverlaps:176 → HashMap.put`，AWT-EventQueue 线程已占 2.4GB。把该子电路外观 `circ-port` 平移 (-1,-1)（端口变为 `(400,200)`）、导线改 400 后，`ATTR_OK 0ms`。
 - **工具**：`python scripts/v271/attrprobe.py file.circ "电路名"`（8 秒超时判定，正常打印 `ATTR_OK`，卡死返回码 1）；几何自查 `netmap.py --grid`；查悬空端口用 `netmap.py --comp <元件>` 看该元件是否只出现一个网络。
 - **补充**：多比特端口的外观取整会使端口落在 ±1 偏移上，且同一子电路的输入口与输出口偏移可能不同 —— **靠整体平移实例无法同时对齐两端**，改外观 `circ-port` 的 x/y（±1px，肉眼无感）是最省事的解法。
+
+### L14 5.0 文件在 3.9 打开报「内置库不可用 / 找不到工具 [mapping] [toolbar]」
+- **症状**：3.9 打开时连弹两个框——
+  1. `2.11: 内置库"FPArithmetic"在此版本中不可用。`
+  2. `在库中找不到工具 [mapping]` ×3、`[toolbar]` ×N（列表可滚动）
+  电路本身没问题，Logisim 会"部分加载"，但用户会以为文件坏了。
+- **根因**（三条互相独立，要一起清）：
+  1. 5.0 写文件时会把**全部**库声明进去（`#FPArithmetic`/`#TCL`/`#Soc`…），
+     哪怕一个元件都没用；3.9 没有这些库就直接报错；
+  2. `<mappings>` 里的 `<tool map=... name=.../>` 在 5.0 不带 `lib=`，
+     3.9 要求 `<tool lib="8" name="Poke Tool" map="Button2"/>`，缺 lib 会报找不到工具；
+  3. `<toolbar>` 同理，条目必须带 `lib=`，否则每条都报错。
+- **解决**（离线改写 XML，不动电路）：
+  ```python
+  used = set(re.findall(r'<comp lib="(\d+)"', src))
+  # lib 只留用到的；带 <tool> 子块的压成自闭合 <lib desc=... name=.../>
+  # 整段删掉 <mappings>…</mappings> 与 <toolbar>…</toolbar>
+  # <project source="5.0.0"> 改成 source="3.9.0"
+  ```
+  **lib 的 `name` 不要求连续**（3.9 接受 0/1/6），所以删库后不必重新编号，
+  `<comp lib="6">` 原样保留即可。
+- **验证**：3.9 `-t stats` 无报错；同一电路的 `-t table --toplevel-circuit BCD`
+  在 3.9 与 5.0 下 **512 行数据逐行相同**（表头写法不同：3.9 是 `a`，5.0 是 `a[4]`，
+  比对时只比数据行）。
+- **本例**：`测试/2.11.circ` 声明 13 个库只用到 3 个（Wiring/Gates/I-O），
+  删到 3 个 + 去掉 mappings/toolbar 后 3.9 秒开、无任何弹窗。

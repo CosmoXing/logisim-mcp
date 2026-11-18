@@ -19,6 +19,8 @@
 - 文档：`references/pitfalls.md` 新增 L 组；`SKILL.md` 的 2.16 表 / 症状表 / 脚本表 /
   资源表同步；`docs/VERSIONS.md` 补 2.16 实测项与脚本归属；`knowledge.json`
   追加 12 条 `ita216-*`（83 → 95）。
+- 同步入库 `scripts/v215/gen_lab7.py` / `verify_lab7.py`：实验7 的 2.15 版生成器与穷举验证
+  （2k+1奇校验 512 组、编码 256 组、解码 512 组、main 逐拍 trace 读随机屏蔽字）。
 
 ## 未发布 — 实验6 存储器实验（2.15.0.2）沉淀
 

@@ -935,11 +935,36 @@ L1~L13 全部是实验7 交付过程中实测的；几何数值取自 `SevenSegm
   ```python
   used = set(re.findall(r'<comp lib="(\d+)"', src))
   # lib 只留用到的；带 <tool> 子块的压成自闭合 <lib desc=... name=.../>
-  # 整段删掉 <mappings>…</mappings> 与 <toolbar>…</toolbar>
   # <project source="5.0.0"> 改成 source="3.9.0"
+  # <mappings>/<toolbar> 不要整段删，见下面的坑
   ```
   **lib 的 `name` 不要求连续**（3.9 接受 0/1/6），所以删库后不必重新编号，
   `<comp lib="6">` 原样保留即可。
+- **⚠️ 别顺手把 `<mappings>` / `<toolbar>` 整段删掉**：
+  删了虽然不报错，但 `2.11.circ` 打开后**项目工具条会变空**（只剩画布，没有手形/引脚/门），
+  用户会以为"功能栏没了"。正确做法是**保留结构、给每条 `<tool>` 补 `lib="<库id>"`**：
+  ```xml
+  <mappings>
+    <tool lib="8" name="Poke Tool" map="Button2"/>
+    <tool lib="8" name="Menu Tool" map="Button3"/>
+  </mappings>
+  <toolbar>
+    <tool lib="8" name="Poke Tool"/>
+    <tool lib="8" name="Edit Tool"/>
+    <tool lib="8" name="Wiring Tool"/>
+    <tool lib="8" name="Text Tool"/>
+    <sep/>
+    <tool lib="0" name="Pin"><a name="facing" val="west"/></tool>
+    <tool lib="0" name="Pin"><a name="facing" val="west"/><a name="type" val="output"/></tool>
+    <sep/>
+    <tool lib="1" name="AND Gate"/> … <sep/>
+    <tool lib="5" name="D Flip-Flop"/><tool lib="5" name="Register"/>
+  </toolbar>
+  ```
+  库 id 对照：`#Wiring`→0、`#Gates`→1、`#Memory`→5、`#I/O`→6、`#Base`→8
+  （工具条里的 Poke/Edit/Wiring/Text 属 `#Base`，D-FF/Register 属 `#Memory`，
+  用到的库即使没有元件引用也要**保留声明**，否则工具条那几条又会报"找不到工具"）。
+  5.0 的 `Image` 工具 3.9 没有，去掉即可。
 - **验证**：3.9 `-t stats` 无报错；同一电路的 `-t table --toplevel-circuit BCD`
   在 3.9 与 5.0 下 **512 行数据逐行相同**（表头写法不同：3.9 是 `a`，5.0 是 `a[4]`，
   比对时只比数据行）。

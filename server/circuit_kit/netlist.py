@@ -179,11 +179,13 @@ def instance_ports(child):
     """
     if child.aports:
         by_pin = {(x, y): label for (label, x, y, _f, _k, _w) in child.pins}
+        ax, ay = getattr(child, "anchor", (0, 0))
         out = {}
         for _dir, px, py, sx, sy in child.aports:
             label = by_pin.get((px, py))
             if label is not None:
-                out[label] = (sx, sy)
+                # circ-port 的符号坐标相对 <circ-anchor>，实例 loc 就是锚点落点
+                out[label] = (sx - ax, sy - ay)
         if out:
             return out
     return sub_port_offsets([(l, x, y, f) for (l, x, y, f, k, w) in child.pins])
@@ -199,6 +201,7 @@ class Circuit:
         self.name = name
         self.comps, self.wires, self.pins = [], [], []
         self.aports = []   # 自定义外观的符号端口：[(dir, pin_x, pin_y, sym_x, sym_y)]
+        self.anchor = (0, 0)   # <circ-anchor>：circ-port 的 x/y 是相对它的，不是相对 loc
 
 
 def _point(text):
@@ -222,6 +225,12 @@ def parse(path):
                                   kind, int(attrs.get("width", 1))))
         appear = c.find("appear")
         if appear is not None:
+            anchor = appear.find("circ-anchor")
+            if anchor is not None:
+                try:
+                    circ.anchor = (int(anchor.get("x", 0)), int(anchor.get("y", 0)))
+                except (TypeError, ValueError):
+                    pass
             for cp in appear.findall("circ-port"):
                 try:
                     px, py = _point(cp.get("pin"))

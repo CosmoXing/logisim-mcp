@@ -156,3 +156,15 @@ jar 定位：`LOGISIM39_JAR` → `logisim.local.json` 的 `logisim39_jar` → �
 - 生成器：`scripts/v39/gen32.py`（5 电路：main / RAMModule / rom64k / bank8 / rom_test）。
 - 工具：`scripts/v39/restore_block.py`（把某电路块从一个 3.9 文件拼回另一个）。
 - 已知未解：把 ROM 经 SEL+32 位 Mux 并入 `main` 后写使能网变 E（见 pitfalls M13）。
+
+## 九、2.15 I/O 库（实验7）实测补充
+
+- **TTY**：D(0,-10)、CLK(0,0)、WR(10,10)、RST(20,10)；`Char bit width` 只接受 7/16（写 8 直接 LOADERR）。
+- **Keyboard**：CLK(0,0)、RST(10,10)、RD(20,10)、AVL(130,10)、DATA(140,10)。
+- **7-Segment Display**：a(+20,0) b(+30,0) c(+20,60) d(+10,60) e(0,60) f(+10,0) g(0,0) dp(+30,60)；`active=true`。
+- **Button/LED** 端口都在 (0,0)；**DotMatrix** 列口 (10i,0)，16×16 行模式是 16 个 16 位口。
+- **无头读 TTY**：Clock 换 `CLK` Pin 打拍，反射 `TtyState.getRowString`；`Simulator.tick()` 不产生状态。
+- **门遇 U 输出 E**（非 U）：TTY 写使能用 `T3 ? WM : 0` 的 MUX，别用 AND。
+- **新增/改名引脚必须引线再挂同名 Tunnel**，只写 label 不会并网。
+- 工具：`scripts/v215/geo_probe.py`、`tty_read.py`、`patch_clock.py`；
+  生成/拆分：`gen_lab7_io.py`、`gen_lab7_tty.py`、`split_cpu_1/2/3_*.py`。

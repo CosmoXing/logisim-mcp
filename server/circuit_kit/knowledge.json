@@ -1,1143 +1,1221 @@
 {
-  "schema_version": 2,
-  "version": 4,
-  "geometry": {
-    "_note": "端口偏移相对元件 loc，单位像素。来源：logisim-evolution v5.0.0 源码 + 实测复核。",
-    "gate": {
-      "formula": "输入口 x = -(size + bonus + negatedOutput*10)，输出口 = (0,0)；默认 size=50",
-      "default_size": 50,
-      "widths": {
-        "AND": 50,
-        "OR": 50,
-        "NAND": 60,
-        "NOR": 60,
-        "XOR": 60,
-        "XNOR": 70,
-        "NOT": 30
-      },
-      "inputs_2": [
-        [
-          -50,
-          -20
-        ],
-        [
-          -50,
-          20
-        ]
-      ],
-      "y_spacing": 20
-    },
-    "dff": {
-      "_note": "classic 外观",
-      "ports": {
-        "D": [
-          -40,
-          20
-        ],
-        "CLK": [
-          -40,
-          0
-        ],
-        "Q": [
-          0,
-          0
-        ],
-        "NQ": [
-          0,
-          20
-        ],
-        "R": [
-          -10,
-          30
-        ],
-        "S": [
-          -30,
-          30
-        ]
-      },
-      "body": [
-        -40,
-        -10,
-        0,
-        30
-      ]
-    },
-    "splitter4": {
-      "_note": "5.0 实测：east 分线 b0 在 -10*n，不是 -20；west 用 splitter.west",
-      "ports": {
-        "in": [
-          0,
-          0
-        ],
-        "b0": [
-          20,
-          -40
-        ],
-        "b1": [
-          20,
-          -30
-        ],
-        "b2": [
-          20,
-          -20
-        ],
-        "b3": [
-          20,
-          -10
-        ]
-      },
-      "body": [
-        0,
-        -40,
-        21,
-        1
-      ]
-    },
-    "subcircuit": {
-      "formula": "按 facing 分边、10px 间距；锚点落在东边第一个口。2 入 3 出：西 (X-30,Y)/(X-30,Y+10)，东 (X,Y)/(X,Y+10)/(X,Y+20)"
-    },
-    "register32": {
-      "_note": "5.0 实测；clr 为异步清零",
-      "ports": {
-        "D": [
-          0,
-          30,
-          32
-        ],
-        "en": [
-          0,
-          50,
-          1
-        ],
-        "clk": [
-          0,
-          70,
-          1
-        ],
-        "clr": [
-          30,
-          90,
-          1
-        ],
-        "Q": [
-          60,
-          30,
-          32
-        ]
-      },
-      "body": [
-        0,
-        0,
-        60,
-        90
-      ]
-    },
-    "decoder": {
-      "_note": "n 位译码器；sel/en 都在底部，只能从下往上接",
-      "ports": {
-        "sel": [
-          0,
-          0
-        ],
-        "en": [
-          -10,
-          0
-        ],
-        "out_i": [
-          20,
-          "-10*(2^n-i)"
-        ]
-      },
-      "body": [
-        -20,
-        "-10*(2^n+1)",
-        40,
-        "10*(2^n+1)+10"
-      ]
-    },
-    "mux": {
-      "_note": "5.0 实测；位宽用 width 属性，默认 32",
-      "2:1": {
-        "in0": [
-          -30,
-          -10
-        ],
-        "in1": [
-          -30,
-          10
-        ],
-        "sel": [
-          -20,
-          20
-        ],
-        "out": [
-          0,
-          0
-        ],
-        "body": [
-          -30,
-          -20,
-          30,
-          40
-        ]
-      },
-      "4:1": {
-        "in0..3": [
-          -40,
-          "-20..10"
-        ],
-        "sel": [
-          -20,
-          20
-        ],
-        "out": [
-          0,
-          0
-        ],
-        "body": [
-          -40,
-          -30,
-          40,
-          60
-        ]
-      },
-      "8:1": {
-        "in0..7": [
-          -40,
-          "-40..30"
-        ],
-        "sel": [
-          -20,
-          40
-        ],
-        "out": [
-          0,
-          0
-        ],
-        "body": [
-          -40,
-          -50,
-          40,
-          100
-        ]
-      }
-    },
-    "comparator": {
-      "_note": "width 属性决定比较位数",
-      "ports": {
-        "a": [
-          -40,
-          -10
-        ],
-        "b": [
-          -40,
-          10
-        ],
-        "gt": [
-          0,
-          -10
-        ],
-        "eq": [
-          0,
-          0
-        ],
-        "lt": [
-          0,
-          10
-        ]
-      },
-      "body": [
-        -40,
-        -20,
-        40,
-        40
-      ]
-    },
-    "constant": {
-      "ports": {
-        "out": [
-          0,
-          0
-        ]
-      },
-      "body": [
-        -35,
-        -8,
-        35,
-        16
-      ]
-    },
-    "pin": {
-      "_note": "端口就是 loc；标签画在框外侧",
-      "east": {
-        "port": [
-          0,
-          0
-        ],
-        "body": [
-          -50,
-          -10,
-          50,
-          20
-        ]
-      },
-      "west": {
-        "port": [
-          0,
-          0
-        ],
-        "body": [
-          0,
-          -10,
-          50,
-          20
-        ]
-      }
-    },
-    "splitter": {
-      "_note": "b0 永远在最上；appear=left/center/right 决定出口在 bus 上方、居中还是下方（默认 left）。east+left: y=-10n 起；east+center: y=-10*floor(n/2) 起；east+right: y=+10 起；west 镜像",
-      "east": {
-        "bus": [
-          0,
-          0
-        ],
-        "bit_k": [
-          20,
-          "-10*(n-k)"
-        ],
-        "body": [
-          0,
-          "-10*n",
-          21,
-          "10*n+1"
-        ]
-      },
-      "west": {
-        "bus": [
-          0,
-          0
-        ],
-        "bit_k": [
-          -20,
-          "10*(k+1)"
-        ],
-        "body": [
-          -20,
-          0,
-          21,
-          "10*n+1"
-        ]
-      }
-    },
-    "ram8": {
-      "_note": "Memory/RAM 5.0 实测（16K×8）。addrWidth=14,dataWidth=8,enables=byte,type=volatile,trigger=rising,asyncread=true,databus=bibus,clearpin=false；EN 是输出使能，接 1。",
-      "ports": {
-        "A": [
-          0,
-          10
-        ],
-        "D": [
-          0,
-          90
-        ],
-        "Q": [
-          240,
-          90
-        ],
-        "WE": [
-          0,
-          50
-        ],
-        "EN": [
-          0,
-          60
-        ],
-        "CLK": [
-          0,
-          70
-        ]
-      },
-      "port_widths": {
-        "A": 14,
-        "D": 8,
-        "Q": 8,
-        "WE": 1,
-        "EN": 1,
-        "CLK": 1
-      },
-      "body": [
-        0,
-        0,
-        240,
-        250
-      ],
-      "attrs": {
-        "addrWidth": 14,
-        "dataWidth": 8,
-        "enables": "byte",
-        "type": "volatile",
-        "trigger": "rising",
-        "asyncread": "true",
-        "databus": "bibus",
-        "clearpin": "false"
-      }
-    },
-    "rom32": {
-      "_note": "Memory/ROM 5.0 实测（16K×32）。contents 写成 addr/data: 14 32 + 十六进制值列表；少写的地址按 0 填充。",
-      "ports": {
-        "A": [
-          0,
-          10
-        ],
-        "Q": [
-          240,
-          60
-        ]
-      },
-      "port_widths": {
-        "A": 14,
-        "Q": 32
-      },
-      "body": [
-        0,
-        0,
-        240,
-        220
-      ],
-      "attrs": {
-        "addrWidth": 14,
-        "dataWidth": 32,
-        "line": "single",
-        "misaligned": "false"
-      }
-    },
-    "bit_extender": {
-      "_note": "Wiring/Bit Extender：端口固定，位宽由 in_width/out_width 决定；零扩展用 type=zero。",
-      "ports": {
-        "in": [
-          -40,
-          0
-        ],
-        "out": [
-          0,
-          0
-        ]
-      },
-      "body": [
-        -40,
-        -20,
-        0,
-        20
-      ],
-      "attrs": {
-        "in_width": "输入位宽",
-        "out_width": "输出位宽",
-        "type": "zero|sign"
-      }
-    }
+ "schema_version": 2,
+ "version": 4,
+ "geometry": {
+  "_note": "端口偏移相对元件 loc，单位像素。来源：logisim-evolution v5.0.0 源码 + 实测复核。",
+  "gate": {
+   "formula": "输入口 x = -(size + bonus + negatedOutput*10)，输出口 = (0,0)；默认 size=50",
+   "default_size": 50,
+   "widths": {
+    "AND": 50,
+    "OR": 50,
+    "NAND": 60,
+    "NOR": 60,
+    "XOR": 60,
+    "XNOR": 70,
+    "NOT": 30
+   },
+   "inputs_2": [
+    [
+     -50,
+     -20
+    ],
+    [
+     -50,
+     20
+    ]
+   ],
+   "y_spacing": 20
   },
-  "pitfalls": [
-    {
-      "id": "gate-port-offset",
-      "title": "5.0 门输入口在 loc.x-50，不是 -20",
-      "detail": "size 默认 50；带反相圈的与非/或非/同或再加 10（-60）。3.9 示例文件用的是 -20，直接照抄会整体错位 30px。",
-      "evidence": "源码 AbstractGate.getInputOffset + 真值表实测"
-    },
-    {
-      "id": "subcircuit-ports",
-      "title": "子电路实例端口不是 (X+50,Y+60+10i)",
-      "detail": "DefaultClassicAppearance 按 facing 分边、10px 间距，锚点落在东边第一个口；8 引脚时端口全挤在 50px 内。",
-      "evidence": "源码 + 2 入 3 出 / 1 入 3 出实测"
-    },
-    {
-      "id": "port-crossing-short",
-      "title": "导线穿过元件端口会造成短路",
-      "detail": "布线时所有元件端口必须列为禁入点，尤其是触发器的 Q(0,0) 与 ~Q(0,20) —— 一根竖线穿过两者就把输出短接。",
-      "evidence": "本次 Q/~Q 短接、EN 撞 NAND.b 两次事故"
-    },
-    {
-      "id": "wire-connect-rule",
-      "title": "连通判定：连接点必须落在端点或端口上",
-      "detail": "纯内点交叉不导通；同网端点相接会被合并。校验器必须按这个规则建模，否则会误判为已连通。",
-      "evidence": "W 系列对照实验（内点交叉全部不导通）"
-    },
-    {
-      "id": "vector-row-reset",
-      "title": "Logisim -w 默认每行重置；<set>/<seq> 才保留状态",
-      "detail": "没有 <set>/<seq> 时，-w 每行都从初始状态重新求值，两级触发器链的 q1 永远传不过去；加上 <set>/<seq> 后按组保留电路状态（含子电路实例），可以测多拍时序。CLK 用 0→1 两行制造上升沿，写行期望值用 <DC>；时序仍建议用 circ_sim 交叉复核。",
-      "evidence": "两级 DFF 链 + 3.2 存储器 main 37 行 / ram64k 16 行"
-    },
-    {
-      "id": "not-gate-exception",
-      "title": "NOT 门输入口在 -30（不是 -50/-60）",
-      "detail": "NOT 门画框是 -30..-10、宽度按 30 处理；线端落在 -20 或 -30 都能通，-40 及更远直接悬空。能用与非门或 ~Q 时优先避开 NOT。",
-      "evidence": "6 组偏移扫描 + Logisim 真值表"
-    },
-    {
-      "id": "not-default-inputs",
-      "title": "NOT 门省略 inputs 属性时默认 1 个输入",
-      "detail": "自己生成的 .circ 里若 <comp name=\"NOT Gate\"/> 不带 inputs，按 2 输入解析会让输入口错位 20px 直接悬空。",
-      "evidence": "自检用例：隧道电路首轮报 E"
-    },
-    {
-      "id": "wire-repair-snap",
-      "title": "落在门包围盒内的线端会被吸附",
-      "detail": "5.0 的 AbstractGate 实现 WireRepair：线端落在门包围盒内会被吸到输入口，所以 -20 也能连、-60 一定悬空。布线仍应精确落在端口上，别依赖吸附。",
-      "evidence": "NOT/AND 偏移扫描对比"
-    },
-    {
-      "id": "ripple-edge-detection",
-      "title": "异步级联要用逐触发器边沿检测",
-      "detail": "仿真器若按同一拍统一采样所有触发器，行波/异步级联会算错（q1 会跟着 q0 一起翻）。正确做法：每拍内循环逐个比较各自 CLK 的前后值，0→1 才采样 D，然后重新收敛。",
-      "evidence": "circ_sim 两级 DFF 级联实测"
-    },
-    {
-      "id": "toolbar-empty",
-      "title": "空 <toolbar/> 会让顶部工具条消失",
-      "detail": "Logisim 不会回退到默认工具；必须写 Poke/Edit/Wiring/Text 四项 + <sep/>，否则用户打开只看到画布。",
-      "evidence": "32x32 寄存器堆交付时用户反馈“拖拽/连线按钮没了”"
-    },
-    {
-      "id": "net-connectivity-gap",
-      "title": "10px 断口：端口都碰到了线，整网却悬空",
-      "detail": "只校验“每个端口被某段线碰到”不够。r1l 总线画到 (630,240)、主干从 (630,250) 开始，读地址整条悬空，8:1 选择端 U，rdata1 全 U。生成器必须用并查集查整网连通性（共享端点/端点搭线），不通过不落盘。",
-      "evidence": "FourEights four.vec 22 行失败；加连通性自检后一次抓到"
-    },
-    {
-      "id": "decoder-bottom-ports",
-      "title": "译码器 sel/en 在底部，只能从下往上接",
-      "detail": "5.0 实测 sel=(0,0)、en=(-10,0)，包围盒 (-20,-10*(2^n+1),40,10*(2^n+1)+10)；输出 x=+20，从 y-10*2^n 到 y-10（最上 out0）。横线接 sel 会先撞到 10px 外的 en。",
-      "evidence": "probe_component Decoder 3/2 位 + 真值表 4 行"
-    },
-    {
-      "id": "splitter-facing-order",
-      "title": "分线器 east/west 都是 b0 在最上",
-      "detail": "east 分线 (20,-10*(n-k))，west 分线 (-20,10*(k+1))，两者 b0 都在最上。把 5 位拆成 3+2：east 拆分 → west 合并，天然左进右出，1 位端口等高直连。",
-      "evidence": "probe_component Splitter west + 合并真值表 3 行"
-    },
-    {
-      "id": "appearance-pin-map",
-      "title": "外观 circ-port 的 pin= 是内部坐标，x y 才是父电路坐标",
-      "detail": "重新生成时改内部 Pin 必须同步 pin=，x y 不能动；否则父电路导线整体脱开、全 U。probe_component 返回符号端口坐标与位宽，但它按内部 Pin 的 y 排序推名字，改布局后名字会错位，只能信坐标/位宽。",
-      "evidence": "EightRegs 内部重排后 geo 探测：名字顺序变了，但坐标/位宽正确"
-    },
-    {
-      "id": "probe-off-net",
-      "title": "诊断探针差 10px 会给出假 U",
-      "detail": "把 clk 探针接在 (650,330)，真正的分线是 (670,330)→(700,330)，读出 U 误判“时钟没到”。探针必须先按几何表确认落点在某条线段内部或端点上。",
-      "evidence": "diag3/diag4 探针两次假 U"
-    },
-    {
-      "id": "vector-reset-edge-same-row",
-      "title": "向量里释放复位与时钟上升沿不能放同一行",
-      "detail": "同一行 reset 1→0、clk 0→1，寄存器可能仍按复位中处理，写不进去；复位释放单独一行（clk=0），下一行再给上升沿，配合 <set>/<seq> 分组。",
-      "evidence": "tdup 两实例对照：同拍释放+上升沿 → 读回 0"
-    },
-    {
-      "id": "pin-label-spacing",
-      "title": "有标签的引脚 20px 密排会互相压住",
-      "detail": "父电路 7 个输入引脚 20px 间距，waddr/wdata/wen/clk 标签叠成一团。引脚拉到 40px，用正交折线扇入模块 20px 端口；竖线按“越靠上的引脚走越右”排序可零交叉。",
-      "evidence": "main 截图前后对照"
-    },
-    {
-      "id": "subcircuit-bypass-redundant",
-      "title": "子电路内部旁路会让父电路旁路变冗余",
-      "detail": "EightRegs 内部已有 (raddr==waddr && wen) → wdata 的旁路；FourEights 顶层再比一次 5 位地址，逻辑等价却多两个比较器、两个与门、两个 2:1。先确认子模块是否已处理同址旁路，避免重复实现。",
-      "evidence": "32x32 寄存器堆层次设计复盘"
-    },
-    {
-      "id": "splitter-appear-layout",
-      "title": "分线器 appear=center/right 会改变位端口高度",
-      "detail": "east+left（默认）：b0 在 -10n；east+center：起点 -10*floor(n/2)；east+right：起点 +10；west 镜像。builder 的 SPLITTER4 写的是 appear=center，必须按 center 算，否则线头差 10~20px，数码管读数会变成 U。",
-      "evidence": "probe_component Splitter 6 组 (facing×appear) + half_adder 回归"
-    },
-    {
-      "id": "missing-plexers-lib",
-      "title": "工程头缺 #Plexers 会让 Mux/Decoder 全变成未识别元件",
-      "detail": "lib8.project() 默认只声明 #Wiring/#Gates/#Memory/#I/O/#Base（0~4）；用了 Multiplexer/Decoder（lib=5）时必须手动补 <lib desc='#Plexers' name='5'/>。缺库不会在 -w 时报错，而是把 mux 输出当 U，表现为整机 DOUT 全 U；GUI 打开则提示“找不到库 5”。",
-      "evidence": "3.2 存储器 main 37 行全 U；补库后 37/37"
-    },
-    {
-      "id": "pin-must-be-in-net",
-      "title": "建了 Pin 不等于入网：A/DIN 漏接会让地址/数据全 U",
-      "detail": "生成器里 add_pin() 只创建引脚元件，必须显式把 pin 坐标加入某条 net。3.2 的 ram64k 先后漏了 A 和 DIN 两根：A 漏接时地址 U；DIN 漏接时写数据 U，RAM 写不进、读回全 FF。生成后应断言每个声明的 Pin 至少出现在一条 net 的端点里。",
-      "evidence": "ram64k 写测试 16 行全失败，补 din_in 后 16/16"
-    },
-    {
-      "id": "connect-verify-blindspot",
-      "title": "lib8.Board.connect() 不写 _net_terms，verify_nets 对它是空验证",
-      "detail": "route8.verify_nets() 只检查 z/w 路由注册的 _net_terms；connect() 只写 self.nets 和 term。于是断线/漏接的 connect 网也能“通过”自检。正确做法：自己记录每根 connect 网的预期端点，用并查集检查所有端点在同一连通块；verify_short 只查短路，查不出开路。",
-      "evidence": "3.2 ram64k 漏 DIN 时 verify_nets/verify_short 均通过，功能测试才暴露"
-    },
-    {
-      "id": "little-endian-bank-map",
-      "title": "4 bank 低位交叉先定字节序：bank0 是 LSB",
-      "detail": "bank i 存地址 4k+i 的字节时，字 0x11223344 的 byte0=0x44、byte1=0x33、byte2=0x22、byte3=0x11。按大端写期望值会把“mux 接反”误判成故障。测试向量里先写清 bank 映射与字节序，再写期望值。",
-      "evidence": "3.2 ROM 字节读 A=1 期望写成 0x22，实际 0x33；修正期望后 6/6"
-    },
-    {
-      "id": "autosave-load-error",
-      "title": ".circ.autosave 会让 -t stats 报“加载电路文件出错”",
-      "detail": "GUI 会话异常退出或未保存时会留下 .<文件名>.autosave。此时 -w 可能仍能跑，但 -t stats 直接报加载失败。无头运行前先关闭 GUI，删除同目录的 .circ.autosave，再重跑。",
-      "evidence": "3.2.circ stats 报错；删除 .3.2.circ.autosave 后 stats_exit=0"
-    },
-    {
-      "id": "audit-partial-memory",
-      "title": "circ_audit 对 RAM/ROM/Bit Extender 只给 partial，dangling 不可全信",
-      "detail": "网表重建不支持 Memory 库的 RAM/ROM 和 Wiring 的 Bit Extender，会把正常连接报成 dangling，结论标 partial。存储器/总线电路不能拿它当最终判据；以生成器几何自检 + Logisim -w 功能向量为准。",
-      "evidence": "3.2.circ audit partial，列出 Splitter/Mux/Constant 多条假 dangling；-w 37/37"
-    },
-    {
-      "id": "handwritten-debug-circ-hang",
-      "title": "手写调试 .circ 可能让 Logisim 卡死或弹窗",
-      "detail": "临时手拼的 .circ 很容易出现非法线、端口压线或宽度冲突，-w 会长时间无响应/弹窗，headless 下只能 kill Java。调试电路也应由生成器产出，或至少用 probe/audit 先过一遍；调试文件放 %TEMP%，不要放交付目录。",
-      "evidence": "temp_romout.circ 的 -w 卡住，两个 Java 进程需强制结束"
-    },
-    {
-      "id": "appearance-preview-vs-circuit",
-      "title": "circ_appearance preview 截的是外观视图，不是 circuit view",
-      "detail": "preview 会切到 Edit Circuit Appearance，main 没有自定义外观时只看到空框。要截主电路布局，需打开 GUI 后保持 circuit view，用 System.Drawing/PrintWindow 截窗口；子电路符号才用 preview。shot.py/wincap.py 依赖 PIL，环境没有 PIL 时会失败。",
-      "evidence": "3.2 main.png 是空外观框；改用全屏截图得到 main_circuit.png"
-    },
-    {
-      "id": "memory-port-map",
-      "title": "RAM/ROM 5.0 实测端口：A(0,10)/D(0,90)/Q(240,90)/WE(0,50)/EN(0,60)/CLK(0,70)",
-      "detail": "16K×8 RAM：addrWidth=14,dataWidth=8,enables=byte,type=volatile,trigger=rising,asyncread=true,databus=bibus,clearpin=false；体 240×250，EN 是 OE，接 1。16K×32 ROM：A(0,10)、Q(240,60)，体 240×220。circ_geometry 现已补 ram8/rom32 条目；其他位宽用 circ_probe。",
-      "evidence": "probe_component RAM/ROM 三组实测 + bank8 7/7"
-    },
-    {
-      "id": "splitter-equal-branches",
-      "title": "Splitter 分支等宽：16→14+2 要 8×2 拆分再 7×2 合并",
-      "detail": "Logisim 的 fanout 分支宽度固定为 incoming/fanout，不能直接拆成 2 位+14 位。做法：16 位用 fanout=8 拆成 8 个 2 位分支，b0 作字节通道，b1..b7 用 fanout=7/incoming=14 的 west 合并成 14 位字地址。b0 永远在最上。",
-      "evidence": "3.2 ram64k/rom64k 地址链；ROM 字读 6/6"
-    },
-    {
-      "id": "rom-contents-format",
-      "title": "ROM contents 格式：addr/data: 14 32 + 十六进制值列表",
-      "detail": "属性值写成 addr/data: <addrBits> <dataBits> 后跟十六进制值列表；只写前 64 个字时其余地址按 0 填充。32 位 ROM 每值 8 位十六进制，8 位 ROM 每值 2 位，不要写 0x 前缀。",
-      "evidence": "3.2 ROM 预置 64 字 0x11223344+i*0x01010101，A=0/4 读回正确"
-    },
-    {
-      "id": "vector-set-seq-hierarchy",
-      "title": "-w 的 <set>/<seq> 可跨子电路保留状态，但列名/列数必须严格匹配",
-      "detail": "同一 <set> 内按 <seq> 递增执行，状态会保留到下一行，子电路实例内部状态也保留；CLK 用 0→1 两行制造上升沿，写行期望值用 <DC>。列名对不上时 Logisim 静默跳过，必须确认“通过数 == 数据行数”。",
-      "evidence": "3.2 main 37 行 + ram64k 16 行 + bank8 7 行全过；列名错时曾静默跳过"
-    },
-    {
-      "id": "version-sniff-trap",
-      "title": "别用 .circ 的 source 属性判断 Logisim 版本",
-      "detail": "`<project source=\"2.16.1.0.exe\">` 只是保存时那个 exe 的文件名；同一台机器上可能同时存在 2.15.0.2 的 exe 与 2.16.1.0 的 jar。要拿真实版本，用 `javap -c -p -cp <jar> com.cburch.logisim.Main` 看 static 初始化里的 `LogisimVersion.get(major,minor,release,rev)`。",
-      "evidence": "实验2：上传的 logisim.exe 标题栏 2.15.0.2，而待修目录的 .circ 全是 2.16.1.0.exe 保存的"
-    },
-    {
-      "id": "replace-frame-breaks-appear",
-      "title": "整块替换给定框架电路会丢 Pin/Tunnel/外观",
-      "detail": "把老师给的验证电路整段替换成新生成的 <circuit>，会丢掉原有 Pin、Tunnel、Probe、Splitter 与 <appear>；加载时报 `Appearance element circ-port not found`，文件打不开。正确做法是保留原电路内容，只把新元件/导线追加到 `</circuit>` 之前。",
-      "evidence": "实验2 加法器：四个框架被替换后 7 个电路全部无法加载"
-    },
-    {
-      "id": "ita215-gate-ports",
-      "title": "2.15.0.2 门端口：AND/OR x-30、XOR x-40、NOT x-20",
-      "detail": "实测 Logisim-ITA 2.15.0.2：AND/OR 输入口 `(x-30, y±…)`，XOR 输入口 `x-40`，NOT 输入口 `x-20`（不是 -30）。NOT 写成 -30 时输入悬空，输出直接 E。",
-      "evidence": "实验2：NOT 接错后 Overflow 恒为 E，其余输出正常"
-    },
-    {
-      "id": "ita215-even-inputs-gap",
-      "title": "偶数输入门的中间空档是 20px",
-      "detail": "2 输入：y-10 / y+10；4 输入：y-20 / y-10 / y+10 / y+20（中间跳过 y）；5 输入：y-20 … y+20 每 10px 一个。按“10px 均布”算偶数输入会整体错位。",
-      "evidence": "实验2 并行进位器：4 输入与门端口错 10px"
-    },
-    {
-      "id": "ita-subappearance-anchor",
-      "title": "子电路外观锚点映射：loc + (端口中心 − 锚点中心)",
-      "detail": "`circ-port` 的 x/y 是端口框左上角，映射时要用中心：端口中心 = (x + width//2, y + height//2)，锚点中心 = (circ-anchor.x + 3, circ-anchor.y + 3)。实例端口 = 实例 loc + 两者中心之差。用左上角直接相减会差 1~2px，表现为“看着接上了其实差了 1px”。",
-      "evidence": "实验2：按该公式一次算准 5 个子电路实例的全部端口"
-    },
-    {
-      "id": "ita-subcomp-no-lib",
-      "title": "2.x 子电路实例的 <comp> 不写 lib",
-      "detail": "`<comp loc=\"(400,300)\" name=\"并行进位器\"/>` 即可；写成 `lib=\"8\"` 会去查不存在的库，加载报「库“8”中缺少组件」。库编号 0-6 是内置库，用户电路按出现顺序隐式编号。",
-      "evidence": "实验2 标定外观时第一次写成 lib=\"8\" 直接加载失败"
-    },
-    {
-      "id": "circ271-false-body-hit",
-      "title": "circ271_check 对 2.15 报“导线穿元件体”是误报",
-      "detail": "circ271 按原始 2.7.1 建模（门输入 x-50、门体更宽），而 ITA 2.15/2.16 的输入口在 x-30；20px 输入短线会被判成穿体。2.15 的真实判定以 Logisim 自身 `ERRCOUNT` 与 ita_probe 向量为准。",
-      "evidence": "实验2：并行进位器被报 45 条穿体，实际 ERRCOUNT 0、512/512 通过"
-    },
-    {
-      "id": "netcheck-probe-zero-width",
-      "title": "netcheck.py 的 Probe 位宽 0 假冲突",
-      "detail": "Probe 没有数据位宽，ita_probe 报告 width=0；netcheck 会把它和 4/8/16 位隧道判成冲突。每个带 6 个探针的验证框架都会稳定报 6 条假冲突，忽略即可。",
-      "evidence": "实验2：三个框架电路各 6 条 [0,4]/[0,8]/[0,16] 假冲突"
-    },
-    {
-      "id": "vector-column-count",
-      "title": "向量行字段数必须等于表头列数",
-      "detail": "少写一列时 ita_probe 报 `bad-column-count`，整表 fail；如果列名对不上则直接报 header pin not found。4 位全加器 13 列（9 入 + 4 出），只给 3 个十进制数会 512 行全灭。",
-      "evidence": "实验2：第一次 4 位全加器 512 行全部失败"
-    },
-    {
-      "id": "group-gp-msb-first",
-      "title": "G*/P* 期望值要从 MSB 往 LSB 递推",
-      "detail": "组进位生成 `G* = G4 + P4·G3 + P4·P3·G2 + P4·P3·P2·G1`，`P* = P4·P3·P2·P1`。从 LSB 累加会算成 `G0 + P0·G1 …`，4 并行加法器与 16 位的 G*/P* 会大面积失败。",
-      "evidence": "实验2：改正后 4 并行 512/512、16 位 508/508"
-    },
-    {
-      "id": "launch4j-jar-extract",
-      "title": "Launch4j 的 exe 要取内嵌 jar 才能喂探针",
-      "detail": "ITA 2.15 分发的是 Launch4j 单文件 exe。内嵌 jar 就是 `PK\\x03\\x04` 偏移到文件尾的整段字节；切出来可直接作为 classpath。另：加载失败时 GUI 对话框会吞异常，用 `scripts/v215/LoadTest.java` 覆写 `Loader.showError` 打印真实报错。",
-      "evidence": "实验2：从 logisim.exe 切出 4,264,607 字节 jar，探针正常工作"
-    },
-    {
-      "id": "ita215-tunnel-facing-full",
-      "title": "Tunnel 的 facing 必须写全称",
-      "detail": "Tunnel 的 `facing` 只认 east/west/north/south。生成器把 side 短码 e/w/n/s 直接写进 XML 时，加载报 `attribute value (e) is not valid for facing [Tunnel(...)]`，该隧道不参与连网；更隐蔽的是后续 WireRepair 可能死循环，探针 300s 超时。所有短码必须先映射成完整单词。",
-      "evidence": "实验3 ALU：fan_stub 写入 e/w 后 B 总线全 U，SUB 用例 300s 超时；修正后 16604 行全过"
-    },
-    {
-      "id": "ita215-splitter-dangling-backdrive",
-      "title": "分线器位口悬空会反推总线",
-      "detail": "分线器不是纯扇出。位口悬空时它会从位侧向总线反推 0/U，和输入 Pin 抢驱动，表现为 Pin 有值但总线是 0/U。只拆低 3 位时，其余位必须接假负载（如 5 输入 OR，输出不接），或者不要用分线器、直接给总线打隧道分支。",
-      "evidence": "实验3 ALU：A/B 总线各挂 8 位分线器但大部分位口悬空，模块输入全错；删 B 分线器 + 给 A 的 a3~a7 加假负载后恢复"
-    },
-    {
-      "id": "ita215-probeloader-loaderr",
-      "title": "无头加载会吞真实错误",
-      "detail": "Loader.showError 在 headless 下弹 JOptionPane → HeadlessException，真实的非法属性/库缺失被吞掉。探针里用 ProbeLoader extends Loader 覆写 showError，把原因打成 LOADERR ...。“能打开但结果怪/超时”先看 LOADERR，不要先怀疑布线。",
-      "evidence": "实验3：Tunnel facing 写 e 的真实报错被 HeadlessException 盖住，只看到 300s 超时；ProbeLoader 上线后一次定位"
-    },
-    {
-      "id": "ita215-probe-stale-pin",
-      "title": "--probe / --dump 在 Pin/Tunnel 上可能读到旧值",
-      "detail": "CircuitState.getValue(loc) 在输入 Pin、Tunnel 端口上不一定是网络真值；据此判断断线会误判。判断功能用 --vector 比输出引脚，或对子电路单独 --set 验证；中间网用临时输出 Pin 或子电路引脚观测。",
-      "evidence": "实验3：A/B 输入 Pin 处 dump 恒 0，但子电路单独 eval 正确"
-    },
-    {
-      "id": "ita215-shifter-variable-distance",
-      "title": "内置 Shifter 有可变距离口，但不输出移出位",
-      "detail": "2.15 的 Shifter 属性 shift=ll/lr/ar/rl/rr，8 位数据对应 3 位距离口，端口为 data(x-40,y-10)、distance(x-40,y+10)、out(x,y)。移位器模块可用 3 个 Shifter + 4:1；但 Shifter 不出移出位，SOL 要另算：左移 X[8-N]、右移 X[N-1]，N=0 为 0，用两个 8:1 + 2:1(S1) + AND(S1|S0)。",
-      "evidence": "实验3：移位器 1984/1984，N=0/1/2/7 与 ll/lr/ar 全核对"
-    },
-    {
-      "id": "ita215-mux-enable-false",
-      "title": "MUX 忘记 enable=false",
-      "detail": "2.15 Multiplexer 默认带使能脚；不显式 enable=false 时，悬空的 en 会让输出 U/E。关掉后：2:1 数据 (x-30,y±10)、4:1 (x-40,y-20+10i)、8:1 (x-40,y-40+10i)；sel 分别在 (x-20,y+20)/(x-20,y+40)；out (x,y)。",
-      "evidence": "实验3：所有 MUX 统一 enable=false，移位/逻辑/比较/结果选择全部一次通过"
-    },
-    {
-      "id": "ita215-compare-result-not-only-flags",
-      "title": "比较结果不是“只出标志”",
-      "detail": "实验3 比较器图是 A/B → Comparator → >/=/< → 4:1(S1S0) → 1→8 扩展器。所以 ALU 比较模式的 S 是 0x01/0x00；CF=A<B、ZF=A=B，SF/OF 无效。把 S 固定 0 会漏掉实验要求的“输出比较结果”。",
-      "evidence": "实验3：比较器 1452/1452，A>B/A=B/A<B 的 Y、CF、ZF 全对"
-    },
-    {
-      "id": "ita215-inc-nec-b-zero",
-      "title": "INC/NEC 要先把 B 置 0",
-      "detail": "算术 1010/1011 不是 A+B。令 zero_b = S3 & ~S2 & S1，把 B_eff 置 0，再走 B'=B_eff⊕Sub、Cin'=Cin⊕Sub；INC(Cin=1,Sub=0)=A+1，NEC(Cin=1,Sub=1)=A+0xFF+0=A-1。OF 用 (A7==Bx7)&(A7!=S7)，CF=Cout。",
-      "evidence": "实验3：ALU 算术 3704/3704，含 0x7F→0x80、0x80→0x7F 的 OF=1 边界"
-    },
-    {
-      "id": "ita215-register-ports-enable",
-      "title": "2.15 Register 端口与写使能：别用 CLK 做门控",
-      "detail": "端口 D(-30,0)、en(-30,+10)、clk(-20,+20)、clr(-10,+20)、preset(-10,-20)、cs(-30,-10)、Q(0,0)；体 (-30,-20)..(0,+20)。cs 低有效；en=FALSE 才禁止加载；clr/preset 高有效。用 CLK 做使能门控（en=译码&R/W&CLK）会在上升沿看到旧 en=0，寄存器不写；正确做法 en=译码&R/W，clk=CLK/T3。",
-      "evidence": "实验4：Regs 16 行全过；CLK 门控版写入随机失败"
-    },
-    {
-      "id": "ita215-adder-unusable",
-      "title": "2.15 内置 Adder 的 Cout 是输入脚",
-      "detail": "lib=3 name=Adder 的 5 个端口里 Cout 被声明成输入脚（(x-20,-20)=Cin、(x-20,+20)=Cout），全接 0 后 S 仍为 U。PC 加法改用全加器子电路行波进位；8 位用两个 4 位全加器。",
-      "evidence": "实验4：PC 14 行 + 0xFF 进位用例全过"
-    },
-    {
-      "id": "ita215-counter-counts-down",
-      "title": "2.15 Counter 默认向下计数",
-      "detail": "lib=4 name=Counter，width=2、trigger=rising，max/goal 省略或 max=3,goal=wrap，复位后序列都是 0→3→2→1→0。要 T0~T3 向上计数，用两个 1 位 Register 自搭：D0=~Q0、D1=Q1 xor Q0，再门级 2-4 译码。",
-      "evidence": "实验4：CLK 模块 12 行全过"
-    },
-    {
-      "id": "ita215-ram-cs-oe",
-      "title": "2.15 RAM：cs 低有效、oe 高有效",
-      "detail": "lib=4 name=RAM（bus=separate）：A(-140,0)、D(-140,+20)、Q(0,0)、str(-110,+40)、cs(-90,+40)、clk(-70,+40)、oe(-50,+40)、clr(-30,+40)。cs 低有效、oe 高有效；cs=0,oe=1 才能读出 Q，oe=0 时 Q=U。str=1 且 clk 上升沿写入；写使能不要串 CLK。",
-      "evidence": "实验4/5：STORE/LOAD 正常，RAMQ 不再 U"
-    },
-    {
-      "id": "ita215-rom-cs-contents",
-      "title": "2.15 ROM 的 cs 与 contents 写法",
-      "detail": "lib=4 name=ROM：A(-140,0)、D(0,0)、cs(-90,+40)，cs=0 输出有效。contents 是元素文本：addr/data: 3 16 换行后跟十六进制字，不是属性；4 位地址写 addr/data: 4 16 后跟 16 个字。",
-      "evidence": "实验4 8 字 ROM、实验5 4×16 字 ROM 均一次加载成功"
-    },
-    {
-      "id": "ita215-splitter-multibranch",
-      "title": "2.15 多分支 Splitter 的 fanout/incoming/bit 分组",
-      "detail": "fanout=分支数、incoming=总位数；bit{i} 的值是第 i 位所属分支（0=最右）。端口位置只与分支数有关：b_i=(x+off-10i, y±20)，off=((fanout+1)//2-1)*10。例：16→2（8/8）branch0 在 (x,y+20)、branch1 在 (x-10,y+20)。位口悬空会反推总线（见 K13）。",
-      "evidence": "实验4：S-Regs/S-op/PC 拆分全部按此建模"
-    },
-    {
-      "id": "ita215-subcircuit-appearance-pin",
-      "title": "子电路外观的 circ-port pin 必须是内部 Pin 的真实 loc",
-      "detail": "<circ-port pin=\"120,100\"/> 的坐标必须等于子电路内 Pin 的 loc；写错不报错，Logisim 会把该端口按默认外观压到符号顶边（10px 密排），表现为父电路连线对不上、内部全 U。改完用 ita_probe.ends 在父电路核对实例端口坐标。",
-      "evidence": "实验4：外观正确后 System 19 行全过；写错时子电路全 U"
-    },
-    {
-      "id": "ita215-xyz-bit-order",
-      "title": "2.15 指令 XYZ 位序：X=bit15、Y=bit14、Z=bit13",
-      "detail": "[15:13] 按 X(bit15)、Y(bit14)、Z(bit13) 读，才与 PDF 真值表的 3 位组合一致；按 bit13→X 接线会把 001 与 100 对调，JP 误触发。",
-      "evidence": "实验4：ID 8 行穷举全过"
-    },
-    {
-      "id": "ita215-manual-set-unreliable",
-      "title": "2.15 探针手工 --set 不可靠",
-      "detail": "2.15 的 --set 单次求值经常读到全 0（引脚值没落到网上）；时序/组合验证一律走 --vector，必要时加 --trace 逐行打印所有引脚。判断功能用输出引脚比对，不要用 --probe 的中间网。",
-      "evidence": "实验4/5：--set 读回 0；--vector 同电路全过"
-    },
-    {
-      "id": "ita215-tunnel-pin-spacing",
-      "title": "2.15 隧道/引脚的可视间距",
-      "detail": "隧道标签盒从 loc 向 facing 方向伸出约 8*字数+8 × 26px，紧贴端口会压住引脚本体。引脚引出用 Board.lead() 默认 80px；同侧多脚 fan_stub 横向 20+30i、纵向交替 ±25；fan_bits 30px；MUX out/sel 40px；寄存器用 wire_reg()（cs/preset 悬空）；子电路 circ-port pin 必须写真实 loc。",
-      "evidence": "实验4：Regs/PC/ID 可视重叠降到 0，整体 80→33 处"
-    },
-    {
-      "id": "ita215-sign-extend-imm-offset",
-      "title": "4 位立即数和跳转偏移必须符号扩展",
-      "detail": "2.15 Bit Extender 默认 type=\"zero\"，会把 -8 变 +8、-5 变 +11；实验5 的 MOV -8/-4/-3 和 JMP -5 全部依赖补码。XML 写 <a name=\"type\" val=\"sign\"/>，Board.ext(loc,4,8,sign=True) 已支持；跳转偏移取 IR[3:0] 符号扩展，不能取 IR[7:0]。",
-      "evidence": "实验5：零扩展版例1 R2=0x50；改 sign 后 600 行全过"
-    },
-    {
-      "id": "ita215-sregs-field-order",
-      "title": "S-Regs 位序：C-Reg=IR[7:6]、SA=IR[5:4]、SB=IR[3:2]",
-      "detail": "实验4 的系统连接把 S-Regs 接成 bit2-3=C-Reg、bit4-5=SA、bit6-7=SB，方向反了。实验5 必须用 IR[7:6]=C-Reg、IR[5:4]=SA、IR[3:2]=SB、IR[3:0] 兼作立即数（与 SB 重叠）。用 2008/0040/4038 自查：2008 C-Reg=00，0040 C-Reg=01/SA=00/SB=00，4038 SA=11/SB=10。",
-      "evidence": "实验5 改正后例1/2/3/4 全过；实验4 只做模块级验证，未跑完整程序"
-    },
-    {
-      "id": "ita215-shift-one-bit",
-      "title": "实验5 的移位是“移 1 位”，不是 A[2:0] 位",
-      "detail": "实验3 ALU 用 N=A[2:0]、X=B；实验5 的 SLL/SHR/SAR 例题都是移 1 位，机器码没有独立移位数（0244 的 SA/SB 只是源寄存器）。系统里加 8 位 2:1 MUX：S3S2=00（MOV/移位）给 ALU 的 A 送 0x01，否则送 RA；不要改实验3 ALU 本体。",
-      "evidence": "实验5 例1：R0 F8→F0、R1 F8→C0，ADD 后 R2=B0"
-    },
-    {
-      "id": "ita215-comparator-twoscomplement",
-      "title": "Comparator 的有符号模式是 twosComplement，不是 signed",
-      "detail": "2.15 Comparator 的 mode 只有 unsigned 和 twosComplement 两个合法值（javap 可见 SIGNED_OPTION 的 key 为 twosComplement）。写 mode=\"signed\" 不报错但比较器输出全 U。实验5 例4 要 2 > -3，需把“比较器”子电路的 mode 改为 twosComplement；实验3 文件保持 unsigned。",
-      "evidence": "实验5：unsigned 时 2>0xFD 判成 A<B；twosComplement 后 GT=1，三分支全过"
-    },
-    {
-      "id": "ita215-ir-fetch-t1",
-      "title": "复位后 T0 已为 1，IR 用 T0 取指会漏第 0 条指令",
-      "detail": "计数器被 RST 清 0 时 T0 立即为 1；释放 RST 后 T0 仍是 1，第一个 T0 上升沿要等一整轮，此时 PC 已在 T3 加 1，IR 取到 ROM[1]。把 IR 时钟改接 T1：释放复位后的第一个 CLK 上升沿（计数器 0→1）取 ROM[0]，PC 仍为 0。",
-      "evidence": "实验4 系统首拍 IRQ=0x8030（ROM[1]）；实验5 改 T1 后首条 2008 正确"
-    },
-    {
-      "id": "ita215-jump-no-flag-update",
-      "title": "跳转指令必须关闭 Flag 使能，否则连续 JZ/JC 失效",
-      "detail": "Flag 的 D 接 ALU 标志；en 恒 1 时，JZ/JC 自己的 S-op（高字节 0，即 MOV B）会在 T3 冲掉 CMP 刚锁存的 CF/ZF。例4 LT 路径：CMP 置 CF=1 → JZ 把 CF 清 0 → JC 不跳。接成 Flag en = ~(JP|JZ|JC)；PC 与 Flag 同在 T3 沿，PC 取沿前 Flag Q，CMP 结果对两条跳转都有效。",
-      "evidence": "实验5：不加门控例4 -3<2 得 R2=1；加门控后 R2=0，三分支全过"
-    },
-    {
-      "id": "ita215-inc-sa-field",
-      "title": "INC/NEC 的 SA 必须指向源寄存器；15FC 才是 INC R3",
-      "detail": "INC（S-op=10101）的 A 通道由 SA 选。0x15FC：C-Reg=11、SA=11 → A=R3、写 R3；0x15C0：SA=00 → 把 R0+1 写进 R3，不是 R3 自增。PDF 的 15fc 是对的，不要化简成 15c0。",
-      "evidence": "实验5 例3：15FC 使 R3 0→1→2→3→4；15C0 则 R3 被写成 R0+1"
-    },
-    {
-      "id": "ita215-four-rom-prog",
-      "title": "4 片 ROM + 4:1 MUX 的 Prog 选通与 contents 写法",
-      "detail": "ROM addrWidth=4、dataWidth=16，contents 为 addr/data: 4 16 后跟 16 个十六进制字；未用字填 0000（MOV R0,R0，无副作用）。4 片 D 经隧道 P0D~P3D 进 16 位 4:1 MUX，select 接 Prog[2]。ROM 端口 A(-140,0)、D(0,0)、cs(-90,+40)，cs=0 使能；PA4=PC[3:0] 用 8→2 分线器（groups=[0,0,0,0,1,1,1,1]，分支 0 为低 4 位）。",
-      "evidence": "实验5：Prog=0/1/2/3 跑出例1/2/3/4，600 行全过"
-    },
-    {
-      "id": "ita215-model-vector-sign-hex-ascii",
-      "title": "模型化验证：负数 8 位补码、向量值写 0x、临时文件名 ASCII",
-      "detail": "Python 模型的 imm8 要转 0..255 补码（imm4 if imm4<8 else imm4+240），PC 偏移另存有符号值；否则 %x 输出 0xfffffff8，与 8 位引脚的 0xf8 不符。.vec 不带 0x/0b 的 token 按十进制解析（8030=0x1F5E）。向量文件名含中文/空格/* 会触发 OSError [Errno 22]。",
-      "evidence": "实验5：首轮 8+2+16 行“失败”全是 0xfffffff8 对 0xf8；修正后全过"
-    },
-    {
-      "id": "ita215-per-cycle-vector-hierarchy",
-      "title": "逐拍向量可穿透多层子电路；复位/边沿映射固定",
-      "detail": "ITAProbe.deepPropagate 能处理 System→CU→IR 的多层时序子电路，无需展平。复位序列 (0,1)→(1,1)→(0,1)→(0,0)，之后 CLK 1/0 交替；e%4==1 为 T1 取指、3 为 T3 写回。Regs 不受 RST 清零（新仿真初值 0），RAM 初值 0 不清零，PC/IR/Flag/CLK 计数器受 RST 清零。",
-      "evidence": "实验4 系统 10 行、实验5 六场景 600 行，均直接跑 系统连接"
-    },
-    {
-      "id": "ita215-layout-regression-body",
-      "title": "新增观测脚/叠放 ROM 后要重跑“穿元件体”自检",
-      "detail": "Regs 加 Q0~Q3 后外观向下变高（System 体到 y=890），沿用实验4 的 RA4 分线器 y=900 会让总线短桩穿进 Regs 体；下移到 y=940。4 片 ROM 叠在 x=800、y=120~420 时，CU 的 C 输入 140px 引线横穿 ROM4 体，改 80px。board215.check() 报“导线穿元件体”时要移元件/缩短引线，不要改检查器。",
-      "evidence": "实验5：第一次生成报 rom@(800,420) (890,460)->(750,460)；修正后六项自检 0 错误"
-    },
-    {
-      "id": "ita215-material-source-header",
-      "title": "2.7.1 素材的 source 头不能改成 2.15 头",
-      "detail": "实验6 素材是 <project source=\"2.7.1\">。把 source 改成 2.15.0.2.exe（其余 XML 不动）后，16*16姓名显示的 17 行向量全挂——2.15 加载器对 2.7.1 子电路实例/引脚的兼容处理被跳过，子电路内部全 U。保持 2.7.1 头，用 2.15.0.2 引擎 ita_probe 加载/验证。",
-      "evidence": "实验6：2.7.1 头 17/17；改 2.15 头后 0/17，D1 单独求值仍对"
-    },
-    {
-      "id": "ita215-reuse-rom-element",
-      "title": "新造的 ROM 可能输出 U，直接复用素材 ROM 元素",
-      "detail": "用 ElementTree 新建 <comp lib=\"4\" name=\"ROM\">（addrWidth=4、dataWidth=16、contents 文本）放进 2.7.1 素材电路时，地址/内容都正确但 Q 恒为 U；把同样内容写进素材里已工作的 ROM 元素（copy.deepcopy 后只改 contents）就正常。直接借工作元素，别跟序列化细节较劲。",
-      "evidence": "实验6：新建 ROM Q=U；deepcopy 32×32 示例 ROM 后 Q=0xB6AB"
-    },
-    {
-      "id": "ita215-no-midwire-t",
-      "title": "测试引脚不要在线段中段打 T",
-      "detail": "在 (100,210)->(130,210) 的中间 (115,210) 引竖线，探针读到 U，ROM 也跟着 U；Logisim 的 T 接在 CircuitState 传播里并不总是可靠。测试引脚应从元件端口再引一条线（同一端口允许多条线），或用同名隧道接。",
-      "evidence": "实验6：中段 T 后 OCODE=U；改从 ROM Q 端口直接向上引线后 OCODE=0xB6AB"
-    },
-    {
-      "id": "ita215-tunnel-on-wire",
-      "title": "隧道不能放在已有导线上",
-      "detail": "测试 QW/WH 时把隧道放在 (300,100)/(300,120)，正好压在 ROM→机内转区位码的 16 位竖线上，把 16 位网和 7 位网短接，整条显示链变 U。放隧道前先看该坐标有没有导线/端口；测试隧道放空白区，靠同名标签连接。",
-      "evidence": "实验6：QW 隧道压 x=300 竖线后 OCODE 都变 U；移到 (250,100)/(250,120) 后恢复"
-    },
-    {
-      "id": "ita215-subcircuit-port-wire-start",
-      "title": "子电路输出线必须从真实端口坐标起",
-      "detail": "例：机内转区位码 实例在 (380,50)，输出端口是 (380,50)/(380,70)；生成器把线画成 (400,50)->(420,50)，差 20px，转换输出悬空，后级字库全 U。接线前用 ita_probe.ends 核对子电路实例端口，不要凭外观矩形估算。",
-      "evidence": "实验6：起点从 400 改回 380 后 OQW=0x16、OWH=0x0B，显示链恢复"
-    },
-    {
-      "id": "ita215-counter-q-carry-short",
-      "title": "Counter 的 Q 与 carry 同边，竖线会短接",
-      "detail": "2.15/2.7.1 Counter 的 Q 在 (x,y)、carry 在 (x,y+10)，都在右侧。从 Q 竖直向下引测试线会穿过 carry 端口，Q/carry 短接，计数器和后级都变 U。测试线应向右再拐，或从其他端口引。",
-      "evidence": "实验6：Q 向下引线后 OCNT=U；改为从 ROM 侧读地址后恢复"
-    },
-    {
-      "id": "ita215-d1-word-extension",
-      "title": "D1 字扩展：低 12 位并联、高 2 位选片",
-      "detail": "4 片 4K×32 组成 16K×32 时，14 位地址不能直接接 4K ROM 的 A（位宽不符）。用 14→2 Splitter：低 12 位接 4 片 A（并联），高 2 位接 32 位 4:1 MUX 的 sel；4 片 Q 进 MUX，输出接 D1。实验6 的 4 片 ROM A/Q 原本全悬空，这就是 D1=U 的根因。",
-      "evidence": "实验6：9 个机内码 A14=(区-1)×94+(位-1)，D1 均等于选中的 Q"
-    },
-    {
-      "id": "ita215-dotmatrix-two-rows",
-      "title": "16×16 点阵的 D 是 32 位 = 两行",
-      "detail": "16×16 字库的 D0~D7 每个 32 位，低 16 位是第 2i 行、高 16 位是第 2i+1 行；用 8 个 32→2 Splitter 拆成 16 路 16 位进 DotMatrix。分线器按 20px 间距排（与素材 16×16 字库内部一致），低 16 位先接上一行。",
-      "evidence": "实验6：8 个分线器 + 16 行点阵，显示向量 17/17"
-    },
-    {
-      "id": "ita215-bank4-unreachable",
-      "title": "bank3 不可达，但仍要接满 4 片",
-      "detail": "GB2312 地址 (区-1)×94+(位-1) 最大约 8835（0x2283），高 2 位最多到 2，bank3 正常编码到不了。但题目要求 16K×32，仍要接 4 片（第 4 片 Q 输出 0 也没关系），不要因为用不到只接 3 片。",
-      "evidence": "实验6：A14=0x2283 时 hi=2；bank3 输出 0，结构完整"
-    },
-    {
-      "id": "ita215-rom-cs-floating",
-      "title": "2.7.1 ROM 的 cs 悬空可用",
-      "detail": "素材 7 片 addr14 ROM 的 cs 都没接，仍能正常读出；4 片 addr12 的 cs 也悬空，接上地址和输出后同样工作。不要为了保险给 cs 加常量/门电路，反而可能引入新网络。",
-      "evidence": "实验6：11 片 ROM cs 全悬空，D0~D7 与 D1 均正常"
-    },
-    {
-      "id": "ita215-clock-to-pin-test",
-      "title": "无头验证要把 Clock 换 Pin，交付保留 Clock",
-      "detail": "ita_probe 不会自动驱动 Clock 组件；验证姓名显示时，在临时副本里把 Clock 换成输入 Pin，逐拍给 0/1；交付电路保留 Clock 供 GUI 模拟。不要为了验证把交付电路的 Clock 删掉。",
-      "evidence": "实验6：临时副本 CLK Pin 跑 17 行；交付电路仍是 Clock"
-    },
-    {
-      "id": "ita215-memory-quiz-address-bits",
-      "title": "存储器扩展问答的地址位数别混",
-      "detail": "页1 位数扩展图中地址端 8 位 → 256×16→256×32，地址 8 位、每单元 32 位；页2 1K×16→4K×32 是 10→12 位。两个例子的地址位数不同，写答案时不要统一写成 10/12。",
-      "evidence": "实验6 问答电路：页1 写 8 位，页2 写 10→12 位"
-    },
-    {
-      "id": "ita216-sevenseg-active-boolean",
-      "title": "数码管 active 是布尔属性，写 high 会反相",
-      "detail": "Io.ATTR_ACTIVE 由 Attributes.forBoolean 创建，XML 只认 true/false。写 high/low 会被 Boolean.valueOf 解析成 false，表现为该亮的段灭、该灭的段亮，且 ERRCOUNT 仍为 0，位宽/网表检查都查不出来。",
-      "evidence": "实验7 七段显示0~F：D=1010 只亮 d 段；7 处改 true 后正常显示 A"
-    },
-    {
-      "id": "ita216-sevenseg-port-map",
-      "title": "7-Segment Display 的 8 个输入脚坐标（2.16）",
-      "detail": "a=(+20,0) b=(+30,0) c=(+20,+60) d=(+10,+60) e=(0,+60) f=(+10,0) g=(0,0) dp=(+30,+60)，外框 Bounds(-5,0,40,60)；SEGMENTS[] 顺序 a,b,c,d,e,f,g（值 bit0~6，bit7=dp）。按直觉「北排 4 个 = a,b,c,d」接线会错 5 段。",
-      "evidence": "SevenSegment.class 反编译 + 实验7 段位核对（sevenseg.py check 全绿）"
-    },
-    {
-      "id": "ita216-subappear-port-packing",
-      "title": "无 appear 的子电路端口按 10px 打包，不能用内部坐标平移",
-      "detail": "没有自定义外观时，Logisim 把输入排左边、输出排右边，间距固定 10px，顺序=内部 Pin 按 y 排序；内部 Pin 可能是 20px 步长，照内部坐标接线会全部悬空。",
-      "evidence": "七段译码器0~F 内部输出 y=400~520（步长 20），实例端口是 (500,300)...(500,360)"
-    },
-    {
-      "id": "ita216-text-no-newline",
-      "title": "Text 组件不支持 &#10; 换行",
-      "detail": "一段 Text 里写 &#10; 不会换行，Logisim 把整段当一行画出来，还会压住右边元件。多行注释要拆成多个 Text 逐行摆。",
-      "evidence": "实验7 main 注释一整行压到「错误指示」LED；拆成 5 条单行 Text 后正常"
-    },
-    {
-      "id": "ita216-cjk-label-font",
-      "title": "中文引脚名要用带 CJK 字形的字体",
-      "detail": "Times New Roman bolditalic 18 没有中文字形，引脚名显示成 □□□；改 SansSerif bold 18 正常，Dialog plain 12 也可用。",
-      "evidence": "实验7 main 的 屏蔽字/传输数据/输出/正确/错误 曾全是方框"
-    },
-    {
-      "id": "ita216-clabel-on-appearance",
-      "title": "子电路 clabel 会画在外观块上并被裁切",
-      "detail": "子电路设了 clabel 后 Logisim 把它画在外观上；外观只有 60×40 时文字被压扁，看着像元件名称没正确显示。应把 clabel 留空，改在父电路用 Text 标注。",
-      "evidence": "9位随机干扰 红块上出现被挤压的「随机干扰」"
-    },
-    {
-      "id": "ita216-wire-overlap-vs-cross",
-      "title": "共线重叠=短接，十字交叉=不连通",
-      "detail": "同水平/垂直且区间真重叠会短路；端点落在另一根线中段（T 接）才连通；双方都只是内点不连通。排线要给每路信号独立的水平层与竖直通道。",
-      "evidence": "实验7 main/七段显示0~F 重排后 netmap --overlap 全 0，功能 20/20"
-    },
-    {
-      "id": "ita216-netmap-port-pairs",
-      "title": "端口级核对要用 netmap，不能只数线",
-      "detail": "netcheck 只报位宽冲突，不报接错位置；数码管段位、分线器分支、子电路引脚必须按「端口 A 连到端口 B」核对。",
-      "evidence": "一次把译码器输出上下顺序看反，差点改坏正确接法；netmap --comp 一跑即暴露"
-    },
-    {
-      "id": "ita216-gui-keyboard-stolen",
-      "title": "GUI 自动化：按键会被别的窗口抢走",
-      "detail": "本机 GetForegroundWindow 返回 Logisim，但 keybd_event / PostMessage(WM_CHAR) 仍落进别的窗口（浏览器），点击有效。模拟打字不可靠，中文字符更送不进去；改文字/改输入值应直接改文件。",
-      "evidence": "多次输入 abc 落到 Chrome 标签；SendMessageTimeout 存活检查一直正常"
-    },
-    {
-      "id": "ita216-gui-zoom-direction",
-      "title": "截图缩放用 shift+滚轮，Ctrl 组合键不可靠",
-      "detail": "gui.wheel(h, n, shift=True, dy=+120) 放大、dy=-120 缩小；Ctrl+0 / Ctrl+- 本机不生效。窗口宽约 1720px，电路宽 >1000 要先缩到 ~50%，看单个数码管放大到 ~190%。",
-      "evidence": "实验7 全套 25% 一次入镜；190% 才看清 A 段亮灭"
-    },
-    {
-      "id": "ita216-diagonal-wire-wirerepair-oom",
-      "title": "斜线/非 10 倍长度导线让 WireRepair 死循环，加载 OOM",
-      "detail": "WireRepair.doOverlaps 用 Wire.iterator() 逐点建 HashMap；斜线或长度非 10 倍数会让修复反复拆分、表无限增长，抛 java.lang.OutOfMemoryError: Java heap space。GUI 里只是「打开时卡一下」，无头探针直接退出。",
-      "evidence": "main 出现 (401,200)-(401,201) + (401,201)-(440,200) 后 ita_probe 加载 OOM；改回单根后 main 不变式 20/20"
-    },
-    {
-      "id": "ita216-javap-port-discovery",
-      "title": "组件端口顺序/属性类型直接拆 jar 看字节码",
-      "detail": "jar xf Logisim-ITA.jar com/cburch/logisim/std/io/SevenSegment.class 后 javap -p -c，构造器里就是一串 Port(20,0)、Port(30,0)…，属性类型也能看到（Attributes.forBoolean(\"active\")）。比翻文档快。",
-      "evidence": "L1/L2 的结论均来自 SevenSegment.class / Io.class 字节码"
-    },
-    {
-      "id": "ita216-wirerepair-port-1px-hang",
-      "title": "端口与导线差 1px → 改任意属性都卡死（WireRepair 死循环）",
-      "detail": "改文字走 TextTool→SetAttributeAction→CircuitTransaction→WireRepair.run→doOverlaps；doOverlaps 按 Wire.iterator() 逐点建 HashMap。只要电路里有「端口与导线端点差 1px」「斜线」「长度非 10 倍数」的导线，修复会反复拆出 1px 短桩/斜线，点表无限膨胀 → 改一个字立刻卡死，进程吃到数 GB；无头加载却可能正常，容易误判成输入法问题。多比特端口的外观取整会让端口落在 ±1 偏移，且同一子电路输入/输出偏移不同，整体平移实例无法同时对齐两端，改外观 circ-port 的 x/y 最省事。",
-      "evidence": "实验7 main：奇校验编码输出口真实点 (401,201)、导线画在 (401,200)；jstack 栈顶 WireRepair.doOverlaps:176→HashMap.put，AWT-EventQueue 占 2.4GB；circ-port 平移(-1,-1) 使端口变 (400,200) 后 attrprobe 输出 ATTR_OK 0ms"
-    },
-    {
-      "id": "ita215-transistor-unidirectional",
-      "title": "三极管是单向开关（in→out），下拉网络把 GND 接 in 侧",
-      "detail": "2.15 Transistor 端口：in=(x-40,y)、out=(x,y)、gate=(x-20,y-20)，数值只从 in 流到 out。CMOS 下拉按 Q→管→GND 接，Q 永远拉不到 0（悬空 U/E）；应 GND 接 in、Q 接 out，上拉同理 VCC 接 in。",
-      "evidence": "实验1 2_晶体管门：初版 A=B=1 时 Q=U；改 GND→in 后与非/或非真值表全对"
-    },
-    {
-      "id": "ita215-transistor-output-channel",
-      "title": "两个晶体管的输出侧别接在同一 x / 同一 y 上",
-      "detail": "同一网里 p 管输出与 n 管输出接到同一竖线（同 x、上下相接）会被并成一整条，一个驱动源是 Z、另一个是有效值，整网变 U。每个驱动源给独立通道，错开 10px 再拐到干线。",
-      "evidence": "实验1 NAND p2 漏与 n2 漏同在 x=X+180，A=1,B=0 输出 U；n 侧改 x+220 后恢复 1"
-    },
-    {
-      "id": "ita215-splitter8-ports",
-      "title": "8 位分线器位口是 x+80-10i（南）/ x-10-10i（北）",
-      "detail": "2.15 实测：8 位分线器南向位口 x+80-10i、北向 x-10-10i（均 y±20）；≤4 位才是 x+10-10i。按 4 位公式接 8 位，后 4 位全悬空。",
-      "evidence": "实验1 3_分离器：初版 D3~D7 全 U；修正后 D=0xA5 → 10100101，合并回 0xA5"
-    },
-    {
-      "id": "ita215-arith-ports-cin-cout",
-      "title": "Adder 的 Cout 是输入脚；Mul/Div 的附加输入要接 0",
-      "detail": "2.15 Adder/Subtractor：A=(x-40,y-10) B=(x-40,y+10) S=(x,y) Cin=(x-20,y-20) Cout=(x-20,y+20)（Cout 也是输入脚）。Multiplier/Divider 的 (x-20,y-20) 是 width 位宽的附加输入（C/Upper），悬空则输出 U，要接 Constant 0；(x-20,y+20) 是附加输出。",
-      "evidence": "实验1 4_运算器：Cin 与 Upper 接 0 后，6±3 / 6×3 / 7÷2 全部正确"
-    },
-    {
-      "id": "ita215-counter-with-max-counts-up",
-      "title": "Counter 设了 max 是向上计数",
-      "detail": "“2 位默认向下计数”只适用于未设 max；width=4、max=0x9 实测 0→9→0 向上，可直接当累加计数器。",
-      "evidence": "实验1 6_计数器：CLK 每拍 Q=0,1,2…，到 9 回 0"
-    },
-    {
-      "id": "ita215-vec-ascii-pin-names",
-      "title": "向量文件里的中文引脚名会被截断",
-      "detail": ".vec 是 UTF-8，但 Java 按平台字符集（GBK）读，中文引脚名乱码且尾部字节丢弃，报 vector header pin not found in circuit: 1Y。引脚名用 ASCII，中文说明放 Text 注释。",
-      "evidence": "实验1 初版 1Y与门 被解析成 1Y；改 ASCII 后一次通过"
-    },
-    {
-      "id": "ita215-appear-anchor-plus3",
-      "title": "自定义外观锚点存左上角，端口偏移要按 anchor+3 算",
-      "detail": "circ-anchor 存 6×6 框左上角，Logisim 以中心（x+3,y+3）为原点：实例端口 = loc + (端口中心 − (anchor+3))。按 anchor 直算会整体差 3px，端口全部悬空（输入无效、输出全 x），而 ita_probe 的 ends 仍报“正确”坐标。外观文字写成 <text font-family=... font-size=.. text-anchor=middle x= y=>内容</text>。",
-      "evidence": "实验1 5_运算器封装：Y 全 x、封装箱小方块与线头差 3px；偏移从 (-87,-37) 改回 (-90,-40) 后 9/3/0x12/2"
-    },
-    {
-      "id": "ita215-text-escape-amp",
-      "title": "生成 .circ 时文本必须转义 & < >",
-      "detail": "Text 里写 Y = A || (B && C) 会让 XML 解析失败（报“元素类型必须由匹配的结束标记终止”）。生成器对 text 属性统一做 &amp; &lt; &gt; 替换。",
-      "evidence": "实验1 8a_A或B与C 首次生成报 [Fatal Error] :1372:45，转义后正常"
-    },
-    {
-      "id": "g39-probe-tools",
-      "title": "3.9 无头探针族（circ39_*）",
-      "detail": "circ39_check 加载体检 / circ39_save 重存 / circ39_run 脚本化多拍时序 / circ39_debug 布线调试（wires/onet/multi/nets/insts/ends/bounds/pins/vals/overlap）。自绘网表与真引擎冲突时以探针为准。",
-      "evidence": "3.1 重设计版：自绘/观察误判两次，最终以探针坐标级核对定位"
-    },
-    {
-      "id": "g39-register-ports",
-      "title": "3.9 Register 端口：D=+30、en=+50、clk=+70",
-      "detail": "同一侧自上而下 D/en/clk，clr=+30/+90、Q=+60/+30。en 与 clk 接反=写了永远不生效。用 circ39_debug insts Register 实测，别凭记忆。",
-      "evidence": "3.1 重设计版 Bank8：en/clk 接反导致写入全失效"
-    },
-    {
-      "id": "g39-splitter-incoming",
-      "title": "分线器 incoming 必须=总线位宽",
-      "detail": "fanout=分支数、incoming=总线位宽。incoming 写 1 会把整条总线当 1 位，全断。",
-      "evidence": "3.1 重设计版生成器写成 1，探针发现全部引脚 U"
-    },
-    {
-      "id": "g39-collinear-overlap",
-      "title": "共线重叠（不共享端点）=加载时合并=跨网短路",
-      "detail": "同 y 横线/同 x 竖线重叠 1px 即被 WireRepair 合并成一根：共享端点=冗余无害；不共享=真短路，表现为一条线断供（U）+另一条被错接。用 circ39_debug overlap 扫描。",
-      "evidence": "ridx2 合并线与 bank1 ridx1 支线重叠 40px → 读口恒 0 + bank1 ridx1 错接"
-    },
-    {
-      "id": "g39-wirerepair-diff",
-      "title": "XML 导线 ≠ 加载后导线",
-      "detail": "WireRepair 会裁穿体线、合并共线段、拆 T 结点。布线争议一律用 circ39_debug wires 导出加载后导线与 XML diff。",
-      "evidence": "Ground 压 clk 干线 → 干线被裁断；(400,540)-(540,540) 被合并改写"
-    },
-    {
-      "id": "g39-multidrive-splitter",
-      "title": "Splitter 无源直通：扫多驱动网时按 io 计",
-      "detail": "3.9 里 Splitter 两端 EndData 都 isOutput()==true，扇出→合并同网是正常接法。多驱动检查必须排除 Splitter/Tunnel 端口，否则全是误报。",
-      "evidence": "G39NetList 初版把比较器空闲 gt/lt 与分线器对全部误报"
-    },
-    {
-      "id": "g39-seq-semantics",
-      "title": "无头探针设值/打拍语义四坑",
-      "detail": "①Pin.setValue 后必须 markComponentAsDirty+markPointAsDirty 再 propagate，全部引脚设完统一传播；②clk 是 Pin 时 t=手动 0→1→0，有 Clock 才用 toggleClocks；③未设引脚=U 非 0，clk 初值 U→1 不算上升沿；④子电路作根时引脚驱动不可靠，正式验证走顶层 main。中段坐标读不出值（图节点只在端点/结点）。",
-      "evidence": "G39Seq 调试全程踩过"
-    },
-    {
-      "id": "g39-radix-pin",
-      "title": "多比特引脚设 radix：数据 16、地址 10unsigned",
-      "detail": "32 位引脚默认二进制显示，GUI 输入/读数都易错。Pin 加 <a name=\"radix\" val=\"16\"/>（数据）或 10unsigned（地址）。",
-      "evidence": "3.1 寄存器堆 wdata/rdata 原为二进制，输入测试数据显示错的即此因"
-    },
-    {
-      "id": "g39-circuit-display-name",
-      "title": "3.9 子电路改名要同时改 name 与 <a name=\"circuit\">",
-      "detail": "<circuit name=\"X\"> 是电路 key；<a name=\"circuit\" val=\"X\"/> 是树/面板显示名。只改一个，界面仍显示旧名。",
-      "evidence": "3.2 把 rom_test 改名 task1 时先漏了 val 一处"
-    },
-    {
-      "id": "g39-mux-and-ports",
-      "title": "3.9 的 Mux(select=1)/3 输入 AND 端口坐标",
-      "detail": "Mux: data0=(x-30,y-10) data1=(x-30,y+10) sel=(x-20,y+20) out=(x,y)；AND3: in=(x-50,y-20/0/+20)。与 2.15 的 (x-40,y±20) 不同，照抄必悬空。",
-      "evidence": "3.2 main 加 SEL 选择器时按 2.15 坐标接，整网读不出"
-    },
-    {
-      "id": "g39-net-short-by-new-wire",
-      "title": "往既有测试台加线，横线跨到引脚行会把两条网并成 E",
-      "detail": "加线后 MemWrite/MemRead 同时显 E（两个输入引脚落在同一网）。加完必须 circ39_debug onet 检查网成员里有没有多余 Pin。",
-      "evidence": "3.2 合并 ROM 到 main 时出现"
-    },
-    {
-      "id": "g39-byte-write-lane",
-      "title": "字节写：bank 的 D 取自己那一路字节，用 A[1:0] 选通写使能",
-      "detail": "大端 4×16K×8：bank_i 的 D 固定接 DIN 的第 i 个字节，写使能 = MemWrite ∧ (¬MCntrl ∨ (A[1:0]==i))。不要按 A[1:0] 先挑字节再广播。",
-      "evidence": "3.2 任务三 字节写 ee000000@0000 → EE345678"
-    },
-    {
-      "id": "g39-vals-point-off",
-      "title": "vals/watch 返回 '- w=0' 表示该点没有导线",
-      "detail": "不是值为 0。坐标必须落在导线上（端点最稳），否则看不出问题。",
-      "evidence": "3.2 调试时误把 (110,200) 当有值读"
-    }
-  ]
+  "dff": {
+   "_note": "classic 外观",
+   "ports": {
+    "D": [
+     -40,
+     20
+    ],
+    "CLK": [
+     -40,
+     0
+    ],
+    "Q": [
+     0,
+     0
+    ],
+    "NQ": [
+     0,
+     20
+    ],
+    "R": [
+     -10,
+     30
+    ],
+    "S": [
+     -30,
+     30
+    ]
+   },
+   "body": [
+    -40,
+    -10,
+    0,
+    30
+   ]
+  },
+  "splitter4": {
+   "_note": "5.0 实测：east 分线 b0 在 -10*n，不是 -20；west 用 splitter.west",
+   "ports": {
+    "in": [
+     0,
+     0
+    ],
+    "b0": [
+     20,
+     -40
+    ],
+    "b1": [
+     20,
+     -30
+    ],
+    "b2": [
+     20,
+     -20
+    ],
+    "b3": [
+     20,
+     -10
+    ]
+   },
+   "body": [
+    0,
+    -40,
+    21,
+    1
+   ]
+  },
+  "subcircuit": {
+   "formula": "按 facing 分边、10px 间距；锚点落在东边第一个口。2 入 3 出：西 (X-30,Y)/(X-30,Y+10)，东 (X,Y)/(X,Y+10)/(X,Y+20)"
+  },
+  "register32": {
+   "_note": "5.0 实测；clr 为异步清零",
+   "ports": {
+    "D": [
+     0,
+     30,
+     32
+    ],
+    "en": [
+     0,
+     50,
+     1
+    ],
+    "clk": [
+     0,
+     70,
+     1
+    ],
+    "clr": [
+     30,
+     90,
+     1
+    ],
+    "Q": [
+     60,
+     30,
+     32
+    ]
+   },
+   "body": [
+    0,
+    0,
+    60,
+    90
+   ]
+  },
+  "decoder": {
+   "_note": "n 位译码器；sel/en 都在底部，只能从下往上接",
+   "ports": {
+    "sel": [
+     0,
+     0
+    ],
+    "en": [
+     -10,
+     0
+    ],
+    "out_i": [
+     20,
+     "-10*(2^n-i)"
+    ]
+   },
+   "body": [
+    -20,
+    "-10*(2^n+1)",
+    40,
+    "10*(2^n+1)+10"
+   ]
+  },
+  "mux": {
+   "_note": "5.0 实测；位宽用 width 属性，默认 32",
+   "2:1": {
+    "in0": [
+     -30,
+     -10
+    ],
+    "in1": [
+     -30,
+     10
+    ],
+    "sel": [
+     -20,
+     20
+    ],
+    "out": [
+     0,
+     0
+    ],
+    "body": [
+     -30,
+     -20,
+     30,
+     40
+    ]
+   },
+   "4:1": {
+    "in0..3": [
+     -40,
+     "-20..10"
+    ],
+    "sel": [
+     -20,
+     20
+    ],
+    "out": [
+     0,
+     0
+    ],
+    "body": [
+     -40,
+     -30,
+     40,
+     60
+    ]
+   },
+   "8:1": {
+    "in0..7": [
+     -40,
+     "-40..30"
+    ],
+    "sel": [
+     -20,
+     40
+    ],
+    "out": [
+     0,
+     0
+    ],
+    "body": [
+     -40,
+     -50,
+     40,
+     100
+    ]
+   }
+  },
+  "comparator": {
+   "_note": "width 属性决定比较位数",
+   "ports": {
+    "a": [
+     -40,
+     -10
+    ],
+    "b": [
+     -40,
+     10
+    ],
+    "gt": [
+     0,
+     -10
+    ],
+    "eq": [
+     0,
+     0
+    ],
+    "lt": [
+     0,
+     10
+    ]
+   },
+   "body": [
+    -40,
+    -20,
+    40,
+    40
+   ]
+  },
+  "constant": {
+   "ports": {
+    "out": [
+     0,
+     0
+    ]
+   },
+   "body": [
+    -35,
+    -8,
+    35,
+    16
+   ]
+  },
+  "pin": {
+   "_note": "端口就是 loc；标签画在框外侧",
+   "east": {
+    "port": [
+     0,
+     0
+    ],
+    "body": [
+     -50,
+     -10,
+     50,
+     20
+    ]
+   },
+   "west": {
+    "port": [
+     0,
+     0
+    ],
+    "body": [
+     0,
+     -10,
+     50,
+     20
+    ]
+   }
+  },
+  "splitter": {
+   "_note": "b0 永远在最上；appear=left/center/right 决定出口在 bus 上方、居中还是下方（默认 left）。east+left: y=-10n 起；east+center: y=-10*floor(n/2) 起；east+right: y=+10 起；west 镜像",
+   "east": {
+    "bus": [
+     0,
+     0
+    ],
+    "bit_k": [
+     20,
+     "-10*(n-k)"
+    ],
+    "body": [
+     0,
+     "-10*n",
+     21,
+     "10*n+1"
+    ]
+   },
+   "west": {
+    "bus": [
+     0,
+     0
+    ],
+    "bit_k": [
+     -20,
+     "10*(k+1)"
+    ],
+    "body": [
+     -20,
+     0,
+     21,
+     "10*n+1"
+    ]
+   }
+  },
+  "ram8": {
+   "_note": "Memory/RAM 5.0 实测（16K×8）。addrWidth=14,dataWidth=8,enables=byte,type=volatile,trigger=rising,asyncread=true,databus=bibus,clearpin=false；EN 是输出使能，接 1。",
+   "ports": {
+    "A": [
+     0,
+     10
+    ],
+    "D": [
+     0,
+     90
+    ],
+    "Q": [
+     240,
+     90
+    ],
+    "WE": [
+     0,
+     50
+    ],
+    "EN": [
+     0,
+     60
+    ],
+    "CLK": [
+     0,
+     70
+    ]
+   },
+   "port_widths": {
+    "A": 14,
+    "D": 8,
+    "Q": 8,
+    "WE": 1,
+    "EN": 1,
+    "CLK": 1
+   },
+   "body": [
+    0,
+    0,
+    240,
+    250
+   ],
+   "attrs": {
+    "addrWidth": 14,
+    "dataWidth": 8,
+    "enables": "byte",
+    "type": "volatile",
+    "trigger": "rising",
+    "asyncread": "true",
+    "databus": "bibus",
+    "clearpin": "false"
+   }
+  },
+  "rom32": {
+   "_note": "Memory/ROM 5.0 实测（16K×32）。contents 写成 addr/data: 14 32 + 十六进制值列表；少写的地址按 0 填充。",
+   "ports": {
+    "A": [
+     0,
+     10
+    ],
+    "Q": [
+     240,
+     60
+    ]
+   },
+   "port_widths": {
+    "A": 14,
+    "Q": 32
+   },
+   "body": [
+    0,
+    0,
+    240,
+    220
+   ],
+   "attrs": {
+    "addrWidth": 14,
+    "dataWidth": 32,
+    "line": "single",
+    "misaligned": "false"
+   }
+  },
+  "bit_extender": {
+   "_note": "Wiring/Bit Extender：端口固定，位宽由 in_width/out_width 决定；零扩展用 type=zero。",
+   "ports": {
+    "in": [
+     -40,
+     0
+    ],
+    "out": [
+     0,
+     0
+    ]
+   },
+   "body": [
+    -40,
+    -20,
+    0,
+    20
+   ],
+   "attrs": {
+    "in_width": "输入位宽",
+    "out_width": "输出位宽",
+    "type": "zero|sign"
+   }
+  }
+ },
+ "pitfalls": [
+  {
+   "id": "gate-port-offset",
+   "title": "5.0 门输入口在 loc.x-50，不是 -20",
+   "detail": "size 默认 50；带反相圈的与非/或非/同或再加 10（-60）。3.9 示例文件用的是 -20，直接照抄会整体错位 30px。",
+   "evidence": "源码 AbstractGate.getInputOffset + 真值表实测"
+  },
+  {
+   "id": "subcircuit-ports",
+   "title": "子电路实例端口不是 (X+50,Y+60+10i)",
+   "detail": "DefaultClassicAppearance 按 facing 分边、10px 间距，锚点落在东边第一个口；8 引脚时端口全挤在 50px 内。",
+   "evidence": "源码 + 2 入 3 出 / 1 入 3 出实测"
+  },
+  {
+   "id": "port-crossing-short",
+   "title": "导线穿过元件端口会造成短路",
+   "detail": "布线时所有元件端口必须列为禁入点，尤其是触发器的 Q(0,0) 与 ~Q(0,20) —— 一根竖线穿过两者就把输出短接。",
+   "evidence": "本次 Q/~Q 短接、EN 撞 NAND.b 两次事故"
+  },
+  {
+   "id": "wire-connect-rule",
+   "title": "连通判定：连接点必须落在端点或端口上",
+   "detail": "纯内点交叉不导通；同网端点相接会被合并。校验器必须按这个规则建模，否则会误判为已连通。",
+   "evidence": "W 系列对照实验（内点交叉全部不导通）"
+  },
+  {
+   "id": "vector-row-reset",
+   "title": "Logisim -w 默认每行重置；<set>/<seq> 才保留状态",
+   "detail": "没有 <set>/<seq> 时，-w 每行都从初始状态重新求值，两级触发器链的 q1 永远传不过去；加上 <set>/<seq> 后按组保留电路状态（含子电路实例），可以测多拍时序。CLK 用 0→1 两行制造上升沿，写行期望值用 <DC>；时序仍建议用 circ_sim 交叉复核。",
+   "evidence": "两级 DFF 链 + 3.2 存储器 main 37 行 / ram64k 16 行"
+  },
+  {
+   "id": "not-gate-exception",
+   "title": "NOT 门输入口在 -30（不是 -50/-60）",
+   "detail": "NOT 门画框是 -30..-10、宽度按 30 处理；线端落在 -20 或 -30 都能通，-40 及更远直接悬空。能用与非门或 ~Q 时优先避开 NOT。",
+   "evidence": "6 组偏移扫描 + Logisim 真值表"
+  },
+  {
+   "id": "not-default-inputs",
+   "title": "NOT 门省略 inputs 属性时默认 1 个输入",
+   "detail": "自己生成的 .circ 里若 <comp name=\"NOT Gate\"/> 不带 inputs，按 2 输入解析会让输入口错位 20px 直接悬空。",
+   "evidence": "自检用例：隧道电路首轮报 E"
+  },
+  {
+   "id": "wire-repair-snap",
+   "title": "落在门包围盒内的线端会被吸附",
+   "detail": "5.0 的 AbstractGate 实现 WireRepair：线端落在门包围盒内会被吸到输入口，所以 -20 也能连、-60 一定悬空。布线仍应精确落在端口上，别依赖吸附。",
+   "evidence": "NOT/AND 偏移扫描对比"
+  },
+  {
+   "id": "ripple-edge-detection",
+   "title": "异步级联要用逐触发器边沿检测",
+   "detail": "仿真器若按同一拍统一采样所有触发器，行波/异步级联会算错（q1 会跟着 q0 一起翻）。正确做法：每拍内循环逐个比较各自 CLK 的前后值，0→1 才采样 D，然后重新收敛。",
+   "evidence": "circ_sim 两级 DFF 级联实测"
+  },
+  {
+   "id": "toolbar-empty",
+   "title": "空 <toolbar/> 会让顶部工具条消失",
+   "detail": "Logisim 不会回退到默认工具；必须写 Poke/Edit/Wiring/Text 四项 + <sep/>，否则用户打开只看到画布。",
+   "evidence": "32x32 寄存器堆交付时用户反馈“拖拽/连线按钮没了”"
+  },
+  {
+   "id": "net-connectivity-gap",
+   "title": "10px 断口：端口都碰到了线，整网却悬空",
+   "detail": "只校验“每个端口被某段线碰到”不够。r1l 总线画到 (630,240)、主干从 (630,250) 开始，读地址整条悬空，8:1 选择端 U，rdata1 全 U。生成器必须用并查集查整网连通性（共享端点/端点搭线），不通过不落盘。",
+   "evidence": "FourEights four.vec 22 行失败；加连通性自检后一次抓到"
+  },
+  {
+   "id": "decoder-bottom-ports",
+   "title": "译码器 sel/en 在底部，只能从下往上接",
+   "detail": "5.0 实测 sel=(0,0)、en=(-10,0)，包围盒 (-20,-10*(2^n+1),40,10*(2^n+1)+10)；输出 x=+20，从 y-10*2^n 到 y-10（最上 out0）。横线接 sel 会先撞到 10px 外的 en。",
+   "evidence": "probe_component Decoder 3/2 位 + 真值表 4 行"
+  },
+  {
+   "id": "splitter-facing-order",
+   "title": "分线器 east/west 都是 b0 在最上",
+   "detail": "east 分线 (20,-10*(n-k))，west 分线 (-20,10*(k+1))，两者 b0 都在最上。把 5 位拆成 3+2：east 拆分 → west 合并，天然左进右出，1 位端口等高直连。",
+   "evidence": "probe_component Splitter west + 合并真值表 3 行"
+  },
+  {
+   "id": "appearance-pin-map",
+   "title": "外观 circ-port 的 pin= 是内部坐标，x y 才是父电路坐标",
+   "detail": "重新生成时改内部 Pin 必须同步 pin=，x y 不能动；否则父电路导线整体脱开、全 U。probe_component 返回符号端口坐标与位宽，但它按内部 Pin 的 y 排序推名字，改布局后名字会错位，只能信坐标/位宽。",
+   "evidence": "EightRegs 内部重排后 geo 探测：名字顺序变了，但坐标/位宽正确"
+  },
+  {
+   "id": "probe-off-net",
+   "title": "诊断探针差 10px 会给出假 U",
+   "detail": "把 clk 探针接在 (650,330)，真正的分线是 (670,330)→(700,330)，读出 U 误判“时钟没到”。探针必须先按几何表确认落点在某条线段内部或端点上。",
+   "evidence": "diag3/diag4 探针两次假 U"
+  },
+  {
+   "id": "vector-reset-edge-same-row",
+   "title": "向量里释放复位与时钟上升沿不能放同一行",
+   "detail": "同一行 reset 1→0、clk 0→1，寄存器可能仍按复位中处理，写不进去；复位释放单独一行（clk=0），下一行再给上升沿，配合 <set>/<seq> 分组。",
+   "evidence": "tdup 两实例对照：同拍释放+上升沿 → 读回 0"
+  },
+  {
+   "id": "pin-label-spacing",
+   "title": "有标签的引脚 20px 密排会互相压住",
+   "detail": "父电路 7 个输入引脚 20px 间距，waddr/wdata/wen/clk 标签叠成一团。引脚拉到 40px，用正交折线扇入模块 20px 端口；竖线按“越靠上的引脚走越右”排序可零交叉。",
+   "evidence": "main 截图前后对照"
+  },
+  {
+   "id": "subcircuit-bypass-redundant",
+   "title": "子电路内部旁路会让父电路旁路变冗余",
+   "detail": "EightRegs 内部已有 (raddr==waddr && wen) → wdata 的旁路；FourEights 顶层再比一次 5 位地址，逻辑等价却多两个比较器、两个与门、两个 2:1。先确认子模块是否已处理同址旁路，避免重复实现。",
+   "evidence": "32x32 寄存器堆层次设计复盘"
+  },
+  {
+   "id": "splitter-appear-layout",
+   "title": "分线器 appear=center/right 会改变位端口高度",
+   "detail": "east+left（默认）：b0 在 -10n；east+center：起点 -10*floor(n/2)；east+right：起点 +10；west 镜像。builder 的 SPLITTER4 写的是 appear=center，必须按 center 算，否则线头差 10~20px，数码管读数会变成 U。",
+   "evidence": "probe_component Splitter 6 组 (facing×appear) + half_adder 回归"
+  },
+  {
+   "id": "missing-plexers-lib",
+   "title": "工程头缺 #Plexers 会让 Mux/Decoder 全变成未识别元件",
+   "detail": "lib8.project() 默认只声明 #Wiring/#Gates/#Memory/#I/O/#Base（0~4）；用了 Multiplexer/Decoder（lib=5）时必须手动补 <lib desc='#Plexers' name='5'/>。缺库不会在 -w 时报错，而是把 mux 输出当 U，表现为整机 DOUT 全 U；GUI 打开则提示“找不到库 5”。",
+   "evidence": "3.2 存储器 main 37 行全 U；补库后 37/37"
+  },
+  {
+   "id": "pin-must-be-in-net",
+   "title": "建了 Pin 不等于入网：A/DIN 漏接会让地址/数据全 U",
+   "detail": "生成器里 add_pin() 只创建引脚元件，必须显式把 pin 坐标加入某条 net。3.2 的 ram64k 先后漏了 A 和 DIN 两根：A 漏接时地址 U；DIN 漏接时写数据 U，RAM 写不进、读回全 FF。生成后应断言每个声明的 Pin 至少出现在一条 net 的端点里。",
+   "evidence": "ram64k 写测试 16 行全失败，补 din_in 后 16/16"
+  },
+  {
+   "id": "connect-verify-blindspot",
+   "title": "lib8.Board.connect() 不写 _net_terms，verify_nets 对它是空验证",
+   "detail": "route8.verify_nets() 只检查 z/w 路由注册的 _net_terms；connect() 只写 self.nets 和 term。于是断线/漏接的 connect 网也能“通过”自检。正确做法：自己记录每根 connect 网的预期端点，用并查集检查所有端点在同一连通块；verify_short 只查短路，查不出开路。",
+   "evidence": "3.2 ram64k 漏 DIN 时 verify_nets/verify_short 均通过，功能测试才暴露"
+  },
+  {
+   "id": "little-endian-bank-map",
+   "title": "4 bank 低位交叉先定字节序：bank0 是 LSB",
+   "detail": "bank i 存地址 4k+i 的字节时，字 0x11223344 的 byte0=0x44、byte1=0x33、byte2=0x22、byte3=0x11。按大端写期望值会把“mux 接反”误判成故障。测试向量里先写清 bank 映射与字节序，再写期望值。",
+   "evidence": "3.2 ROM 字节读 A=1 期望写成 0x22，实际 0x33；修正期望后 6/6"
+  },
+  {
+   "id": "autosave-load-error",
+   "title": ".circ.autosave 会让 -t stats 报“加载电路文件出错”",
+   "detail": "GUI 会话异常退出或未保存时会留下 .<文件名>.autosave。此时 -w 可能仍能跑，但 -t stats 直接报加载失败。无头运行前先关闭 GUI，删除同目录的 .circ.autosave，再重跑。",
+   "evidence": "3.2.circ stats 报错；删除 .3.2.circ.autosave 后 stats_exit=0"
+  },
+  {
+   "id": "audit-partial-memory",
+   "title": "circ_audit 对 RAM/ROM/Bit Extender 只给 partial，dangling 不可全信",
+   "detail": "网表重建不支持 Memory 库的 RAM/ROM 和 Wiring 的 Bit Extender，会把正常连接报成 dangling，结论标 partial。存储器/总线电路不能拿它当最终判据；以生成器几何自检 + Logisim -w 功能向量为准。",
+   "evidence": "3.2.circ audit partial，列出 Splitter/Mux/Constant 多条假 dangling；-w 37/37"
+  },
+  {
+   "id": "handwritten-debug-circ-hang",
+   "title": "手写调试 .circ 可能让 Logisim 卡死或弹窗",
+   "detail": "临时手拼的 .circ 很容易出现非法线、端口压线或宽度冲突，-w 会长时间无响应/弹窗，headless 下只能 kill Java。调试电路也应由生成器产出，或至少用 probe/audit 先过一遍；调试文件放 %TEMP%，不要放交付目录。",
+   "evidence": "temp_romout.circ 的 -w 卡住，两个 Java 进程需强制结束"
+  },
+  {
+   "id": "appearance-preview-vs-circuit",
+   "title": "circ_appearance preview 截的是外观视图，不是 circuit view",
+   "detail": "preview 会切到 Edit Circuit Appearance，main 没有自定义外观时只看到空框。要截主电路布局，需打开 GUI 后保持 circuit view，用 System.Drawing/PrintWindow 截窗口；子电路符号才用 preview。shot.py/wincap.py 依赖 PIL，环境没有 PIL 时会失败。",
+   "evidence": "3.2 main.png 是空外观框；改用全屏截图得到 main_circuit.png"
+  },
+  {
+   "id": "memory-port-map",
+   "title": "RAM/ROM 5.0 实测端口：A(0,10)/D(0,90)/Q(240,90)/WE(0,50)/EN(0,60)/CLK(0,70)",
+   "detail": "16K×8 RAM：addrWidth=14,dataWidth=8,enables=byte,type=volatile,trigger=rising,asyncread=true,databus=bibus,clearpin=false；体 240×250，EN 是 OE，接 1。16K×32 ROM：A(0,10)、Q(240,60)，体 240×220。circ_geometry 现已补 ram8/rom32 条目；其他位宽用 circ_probe。",
+   "evidence": "probe_component RAM/ROM 三组实测 + bank8 7/7"
+  },
+  {
+   "id": "splitter-equal-branches",
+   "title": "Splitter 分支等宽：16→14+2 要 8×2 拆分再 7×2 合并",
+   "detail": "Logisim 的 fanout 分支宽度固定为 incoming/fanout，不能直接拆成 2 位+14 位。做法：16 位用 fanout=8 拆成 8 个 2 位分支，b0 作字节通道，b1..b7 用 fanout=7/incoming=14 的 west 合并成 14 位字地址。b0 永远在最上。",
+   "evidence": "3.2 ram64k/rom64k 地址链；ROM 字读 6/6"
+  },
+  {
+   "id": "rom-contents-format",
+   "title": "ROM contents 格式：addr/data: 14 32 + 十六进制值列表",
+   "detail": "属性值写成 addr/data: <addrBits> <dataBits> 后跟十六进制值列表；只写前 64 个字时其余地址按 0 填充。32 位 ROM 每值 8 位十六进制，8 位 ROM 每值 2 位，不要写 0x 前缀。",
+   "evidence": "3.2 ROM 预置 64 字 0x11223344+i*0x01010101，A=0/4 读回正确"
+  },
+  {
+   "id": "vector-set-seq-hierarchy",
+   "title": "-w 的 <set>/<seq> 可跨子电路保留状态，但列名/列数必须严格匹配",
+   "detail": "同一 <set> 内按 <seq> 递增执行，状态会保留到下一行，子电路实例内部状态也保留；CLK 用 0→1 两行制造上升沿，写行期望值用 <DC>。列名对不上时 Logisim 静默跳过，必须确认“通过数 == 数据行数”。",
+   "evidence": "3.2 main 37 行 + ram64k 16 行 + bank8 7 行全过；列名错时曾静默跳过"
+  },
+  {
+   "id": "version-sniff-trap",
+   "title": "别用 .circ 的 source 属性判断 Logisim 版本",
+   "detail": "`<project source=\"2.16.1.0.exe\">` 只是保存时那个 exe 的文件名；同一台机器上可能同时存在 2.15.0.2 的 exe 与 2.16.1.0 的 jar。要拿真实版本，用 `javap -c -p -cp <jar> com.cburch.logisim.Main` 看 static 初始化里的 `LogisimVersion.get(major,minor,release,rev)`。",
+   "evidence": "实验2：上传的 logisim.exe 标题栏 2.15.0.2，而待修目录的 .circ 全是 2.16.1.0.exe 保存的"
+  },
+  {
+   "id": "replace-frame-breaks-appear",
+   "title": "整块替换给定框架电路会丢 Pin/Tunnel/外观",
+   "detail": "把老师给的验证电路整段替换成新生成的 <circuit>，会丢掉原有 Pin、Tunnel、Probe、Splitter 与 <appear>；加载时报 `Appearance element circ-port not found`，文件打不开。正确做法是保留原电路内容，只把新元件/导线追加到 `</circuit>` 之前。",
+   "evidence": "实验2 加法器：四个框架被替换后 7 个电路全部无法加载"
+  },
+  {
+   "id": "ita215-gate-ports",
+   "title": "2.15.0.2 门端口：AND/OR x-30、XOR x-40、NOT x-20",
+   "detail": "实测 Logisim-ITA 2.15.0.2：AND/OR 输入口 `(x-30, y±…)`，XOR 输入口 `x-40`，NOT 输入口 `x-20`（不是 -30）。NOT 写成 -30 时输入悬空，输出直接 E。",
+   "evidence": "实验2：NOT 接错后 Overflow 恒为 E，其余输出正常"
+  },
+  {
+   "id": "ita215-even-inputs-gap",
+   "title": "偶数输入门的中间空档是 20px",
+   "detail": "2 输入：y-10 / y+10；4 输入：y-20 / y-10 / y+10 / y+20（中间跳过 y）；5 输入：y-20 … y+20 每 10px 一个。按“10px 均布”算偶数输入会整体错位。",
+   "evidence": "实验2 并行进位器：4 输入与门端口错 10px"
+  },
+  {
+   "id": "ita-subappearance-anchor",
+   "title": "子电路外观锚点映射：loc + (端口中心 − 锚点中心)",
+   "detail": "`circ-port` 的 x/y 是端口框左上角，映射时要用中心：端口中心 = (x + width//2, y + height//2)，锚点中心 = (circ-anchor.x + 3, circ-anchor.y + 3)。实例端口 = 实例 loc + 两者中心之差。用左上角直接相减会差 1~2px，表现为“看着接上了其实差了 1px”。",
+   "evidence": "实验2：按该公式一次算准 5 个子电路实例的全部端口"
+  },
+  {
+   "id": "ita-subcomp-no-lib",
+   "title": "2.x 子电路实例的 <comp> 不写 lib",
+   "detail": "`<comp loc=\"(400,300)\" name=\"并行进位器\"/>` 即可；写成 `lib=\"8\"` 会去查不存在的库，加载报「库“8”中缺少组件」。库编号 0-6 是内置库，用户电路按出现顺序隐式编号。",
+   "evidence": "实验2 标定外观时第一次写成 lib=\"8\" 直接加载失败"
+  },
+  {
+   "id": "circ271-false-body-hit",
+   "title": "circ271_check 对 2.15 报“导线穿元件体”是误报",
+   "detail": "circ271 按原始 2.7.1 建模（门输入 x-50、门体更宽），而 ITA 2.15/2.16 的输入口在 x-30；20px 输入短线会被判成穿体。2.15 的真实判定以 Logisim 自身 `ERRCOUNT` 与 ita_probe 向量为准。",
+   "evidence": "实验2：并行进位器被报 45 条穿体，实际 ERRCOUNT 0、512/512 通过"
+  },
+  {
+   "id": "netcheck-probe-zero-width",
+   "title": "netcheck.py 的 Probe 位宽 0 假冲突",
+   "detail": "Probe 没有数据位宽，ita_probe 报告 width=0；netcheck 会把它和 4/8/16 位隧道判成冲突。每个带 6 个探针的验证框架都会稳定报 6 条假冲突，忽略即可。",
+   "evidence": "实验2：三个框架电路各 6 条 [0,4]/[0,8]/[0,16] 假冲突"
+  },
+  {
+   "id": "vector-column-count",
+   "title": "向量行字段数必须等于表头列数",
+   "detail": "少写一列时 ita_probe 报 `bad-column-count`，整表 fail；如果列名对不上则直接报 header pin not found。4 位全加器 13 列（9 入 + 4 出），只给 3 个十进制数会 512 行全灭。",
+   "evidence": "实验2：第一次 4 位全加器 512 行全部失败"
+  },
+  {
+   "id": "group-gp-msb-first",
+   "title": "G*/P* 期望值要从 MSB 往 LSB 递推",
+   "detail": "组进位生成 `G* = G4 + P4·G3 + P4·P3·G2 + P4·P3·P2·G1`，`P* = P4·P3·P2·P1`。从 LSB 累加会算成 `G0 + P0·G1 …`，4 并行加法器与 16 位的 G*/P* 会大面积失败。",
+   "evidence": "实验2：改正后 4 并行 512/512、16 位 508/508"
+  },
+  {
+   "id": "launch4j-jar-extract",
+   "title": "Launch4j 的 exe 要取内嵌 jar 才能喂探针",
+   "detail": "ITA 2.15 分发的是 Launch4j 单文件 exe。内嵌 jar 就是 `PK\\x03\\x04` 偏移到文件尾的整段字节；切出来可直接作为 classpath。另：加载失败时 GUI 对话框会吞异常，用 `scripts/v215/LoadTest.java` 覆写 `Loader.showError` 打印真实报错。",
+   "evidence": "实验2：从 logisim.exe 切出 4,264,607 字节 jar，探针正常工作"
+  },
+  {
+   "id": "ita215-tunnel-facing-full",
+   "title": "Tunnel 的 facing 必须写全称",
+   "detail": "Tunnel 的 `facing` 只认 east/west/north/south。生成器把 side 短码 e/w/n/s 直接写进 XML 时，加载报 `attribute value (e) is not valid for facing [Tunnel(...)]`，该隧道不参与连网；更隐蔽的是后续 WireRepair 可能死循环，探针 300s 超时。所有短码必须先映射成完整单词。",
+   "evidence": "实验3 ALU：fan_stub 写入 e/w 后 B 总线全 U，SUB 用例 300s 超时；修正后 16604 行全过"
+  },
+  {
+   "id": "ita215-splitter-dangling-backdrive",
+   "title": "分线器位口悬空会反推总线",
+   "detail": "分线器不是纯扇出。位口悬空时它会从位侧向总线反推 0/U，和输入 Pin 抢驱动，表现为 Pin 有值但总线是 0/U。只拆低 3 位时，其余位必须接假负载（如 5 输入 OR，输出不接），或者不要用分线器、直接给总线打隧道分支。",
+   "evidence": "实验3 ALU：A/B 总线各挂 8 位分线器但大部分位口悬空，模块输入全错；删 B 分线器 + 给 A 的 a3~a7 加假负载后恢复"
+  },
+  {
+   "id": "ita215-probeloader-loaderr",
+   "title": "无头加载会吞真实错误",
+   "detail": "Loader.showError 在 headless 下弹 JOptionPane → HeadlessException，真实的非法属性/库缺失被吞掉。探针里用 ProbeLoader extends Loader 覆写 showError，把原因打成 LOADERR ...。“能打开但结果怪/超时”先看 LOADERR，不要先怀疑布线。",
+   "evidence": "实验3：Tunnel facing 写 e 的真实报错被 HeadlessException 盖住，只看到 300s 超时；ProbeLoader 上线后一次定位"
+  },
+  {
+   "id": "ita215-probe-stale-pin",
+   "title": "--probe / --dump 在 Pin/Tunnel 上可能读到旧值",
+   "detail": "CircuitState.getValue(loc) 在输入 Pin、Tunnel 端口上不一定是网络真值；据此判断断线会误判。判断功能用 --vector 比输出引脚，或对子电路单独 --set 验证；中间网用临时输出 Pin 或子电路引脚观测。",
+   "evidence": "实验3：A/B 输入 Pin 处 dump 恒 0，但子电路单独 eval 正确"
+  },
+  {
+   "id": "ita215-shifter-variable-distance",
+   "title": "内置 Shifter 有可变距离口，但不输出移出位",
+   "detail": "2.15 的 Shifter 属性 shift=ll/lr/ar/rl/rr，8 位数据对应 3 位距离口，端口为 data(x-40,y-10)、distance(x-40,y+10)、out(x,y)。移位器模块可用 3 个 Shifter + 4:1；但 Shifter 不出移出位，SOL 要另算：左移 X[8-N]、右移 X[N-1]，N=0 为 0，用两个 8:1 + 2:1(S1) + AND(S1|S0)。",
+   "evidence": "实验3：移位器 1984/1984，N=0/1/2/7 与 ll/lr/ar 全核对"
+  },
+  {
+   "id": "ita215-mux-enable-false",
+   "title": "MUX 忘记 enable=false",
+   "detail": "2.15 Multiplexer 默认带使能脚；不显式 enable=false 时，悬空的 en 会让输出 U/E。关掉后：2:1 数据 (x-30,y±10)、4:1 (x-40,y-20+10i)、8:1 (x-40,y-40+10i)；sel 分别在 (x-20,y+20)/(x-20,y+40)；out (x,y)。",
+   "evidence": "实验3：所有 MUX 统一 enable=false，移位/逻辑/比较/结果选择全部一次通过"
+  },
+  {
+   "id": "ita215-compare-result-not-only-flags",
+   "title": "比较结果不是“只出标志”",
+   "detail": "实验3 比较器图是 A/B → Comparator → >/=/< → 4:1(S1S0) → 1→8 扩展器。所以 ALU 比较模式的 S 是 0x01/0x00；CF=A<B、ZF=A=B，SF/OF 无效。把 S 固定 0 会漏掉实验要求的“输出比较结果”。",
+   "evidence": "实验3：比较器 1452/1452，A>B/A=B/A<B 的 Y、CF、ZF 全对"
+  },
+  {
+   "id": "ita215-inc-nec-b-zero",
+   "title": "INC/NEC 要先把 B 置 0",
+   "detail": "算术 1010/1011 不是 A+B。令 zero_b = S3 & ~S2 & S1，把 B_eff 置 0，再走 B'=B_eff⊕Sub、Cin'=Cin⊕Sub；INC(Cin=1,Sub=0)=A+1，NEC(Cin=1,Sub=1)=A+0xFF+0=A-1。OF 用 (A7==Bx7)&(A7!=S7)，CF=Cout。",
+   "evidence": "实验3：ALU 算术 3704/3704，含 0x7F→0x80、0x80→0x7F 的 OF=1 边界"
+  },
+  {
+   "id": "ita215-register-ports-enable",
+   "title": "2.15 Register 端口与写使能：别用 CLK 做门控",
+   "detail": "端口 D(-30,0)、en(-30,+10)、clk(-20,+20)、clr(-10,+20)、preset(-10,-20)、cs(-30,-10)、Q(0,0)；体 (-30,-20)..(0,+20)。cs 低有效；en=FALSE 才禁止加载；clr/preset 高有效。用 CLK 做使能门控（en=译码&R/W&CLK）会在上升沿看到旧 en=0，寄存器不写；正确做法 en=译码&R/W，clk=CLK/T3。",
+   "evidence": "实验4：Regs 16 行全过；CLK 门控版写入随机失败"
+  },
+  {
+   "id": "ita215-adder-unusable",
+   "title": "2.15 内置 Adder 的 Cout 是输入脚",
+   "detail": "lib=3 name=Adder 的 5 个端口里 Cout 被声明成输入脚（(x-20,-20)=Cin、(x-20,+20)=Cout），全接 0 后 S 仍为 U。PC 加法改用全加器子电路行波进位；8 位用两个 4 位全加器。",
+   "evidence": "实验4：PC 14 行 + 0xFF 进位用例全过"
+  },
+  {
+   "id": "ita215-counter-counts-down",
+   "title": "2.15 Counter 默认向下计数",
+   "detail": "lib=4 name=Counter，width=2、trigger=rising，max/goal 省略或 max=3,goal=wrap，复位后序列都是 0→3→2→1→0。要 T0~T3 向上计数，用两个 1 位 Register 自搭：D0=~Q0、D1=Q1 xor Q0，再门级 2-4 译码。",
+   "evidence": "实验4：CLK 模块 12 行全过"
+  },
+  {
+   "id": "ita215-ram-cs-oe",
+   "title": "2.15 RAM：cs 低有效、oe 高有效",
+   "detail": "lib=4 name=RAM（bus=separate）：A(-140,0)、D(-140,+20)、Q(0,0)、str(-110,+40)、cs(-90,+40)、clk(-70,+40)、oe(-50,+40)、clr(-30,+40)。cs 低有效、oe 高有效；cs=0,oe=1 才能读出 Q，oe=0 时 Q=U。str=1 且 clk 上升沿写入；写使能不要串 CLK。",
+   "evidence": "实验4/5：STORE/LOAD 正常，RAMQ 不再 U"
+  },
+  {
+   "id": "ita215-rom-cs-contents",
+   "title": "2.15 ROM 的 cs 与 contents 写法",
+   "detail": "lib=4 name=ROM：A(-140,0)、D(0,0)、cs(-90,+40)，cs=0 输出有效。contents 是元素文本：addr/data: 3 16 换行后跟十六进制字，不是属性；4 位地址写 addr/data: 4 16 后跟 16 个字。",
+   "evidence": "实验4 8 字 ROM、实验5 4×16 字 ROM 均一次加载成功"
+  },
+  {
+   "id": "ita215-splitter-multibranch",
+   "title": "2.15 多分支 Splitter 的 fanout/incoming/bit 分组",
+   "detail": "fanout=分支数、incoming=总位数；bit{i} 的值是第 i 位所属分支（0=最右）。端口位置只与分支数有关：b_i=(x+off-10i, y±20)，off=((fanout+1)//2-1)*10。例：16→2（8/8）branch0 在 (x,y+20)、branch1 在 (x-10,y+20)。位口悬空会反推总线（见 K13）。",
+   "evidence": "实验4：S-Regs/S-op/PC 拆分全部按此建模"
+  },
+  {
+   "id": "ita215-subcircuit-appearance-pin",
+   "title": "子电路外观的 circ-port pin 必须是内部 Pin 的真实 loc",
+   "detail": "<circ-port pin=\"120,100\"/> 的坐标必须等于子电路内 Pin 的 loc；写错不报错，Logisim 会把该端口按默认外观压到符号顶边（10px 密排），表现为父电路连线对不上、内部全 U。改完用 ita_probe.ends 在父电路核对实例端口坐标。",
+   "evidence": "实验4：外观正确后 System 19 行全过；写错时子电路全 U"
+  },
+  {
+   "id": "ita215-xyz-bit-order",
+   "title": "2.15 指令 XYZ 位序：X=bit15、Y=bit14、Z=bit13",
+   "detail": "[15:13] 按 X(bit15)、Y(bit14)、Z(bit13) 读，才与 PDF 真值表的 3 位组合一致；按 bit13→X 接线会把 001 与 100 对调，JP 误触发。",
+   "evidence": "实验4：ID 8 行穷举全过"
+  },
+  {
+   "id": "ita215-manual-set-unreliable",
+   "title": "2.15 探针手工 --set 不可靠",
+   "detail": "2.15 的 --set 单次求值经常读到全 0（引脚值没落到网上）；时序/组合验证一律走 --vector，必要时加 --trace 逐行打印所有引脚。判断功能用输出引脚比对，不要用 --probe 的中间网。",
+   "evidence": "实验4/5：--set 读回 0；--vector 同电路全过"
+  },
+  {
+   "id": "ita215-tunnel-pin-spacing",
+   "title": "2.15 隧道/引脚的可视间距",
+   "detail": "隧道标签盒从 loc 向 facing 方向伸出约 8*字数+8 × 26px，紧贴端口会压住引脚本体。引脚引出用 Board.lead() 默认 80px；同侧多脚 fan_stub 横向 20+30i、纵向交替 ±25；fan_bits 30px；MUX out/sel 40px；寄存器用 wire_reg()（cs/preset 悬空）；子电路 circ-port pin 必须写真实 loc。",
+   "evidence": "实验4：Regs/PC/ID 可视重叠降到 0，整体 80→33 处"
+  },
+  {
+   "id": "ita215-sign-extend-imm-offset",
+   "title": "4 位立即数和跳转偏移必须符号扩展",
+   "detail": "2.15 Bit Extender 默认 type=\"zero\"，会把 -8 变 +8、-5 变 +11；实验5 的 MOV -8/-4/-3 和 JMP -5 全部依赖补码。XML 写 <a name=\"type\" val=\"sign\"/>，Board.ext(loc,4,8,sign=True) 已支持；跳转偏移取 IR[3:0] 符号扩展，不能取 IR[7:0]。",
+   "evidence": "实验5：零扩展版例1 R2=0x50；改 sign 后 600 行全过"
+  },
+  {
+   "id": "ita215-sregs-field-order",
+   "title": "S-Regs 位序：C-Reg=IR[7:6]、SA=IR[5:4]、SB=IR[3:2]",
+   "detail": "实验4 的系统连接把 S-Regs 接成 bit2-3=C-Reg、bit4-5=SA、bit6-7=SB，方向反了。实验5 必须用 IR[7:6]=C-Reg、IR[5:4]=SA、IR[3:2]=SB、IR[3:0] 兼作立即数（与 SB 重叠）。用 2008/0040/4038 自查：2008 C-Reg=00，0040 C-Reg=01/SA=00/SB=00，4038 SA=11/SB=10。",
+   "evidence": "实验5 改正后例1/2/3/4 全过；实验4 只做模块级验证，未跑完整程序"
+  },
+  {
+   "id": "ita215-shift-one-bit",
+   "title": "实验5 的移位是“移 1 位”，不是 A[2:0] 位",
+   "detail": "实验3 ALU 用 N=A[2:0]、X=B；实验5 的 SLL/SHR/SAR 例题都是移 1 位，机器码没有独立移位数（0244 的 SA/SB 只是源寄存器）。系统里加 8 位 2:1 MUX：S3S2=00（MOV/移位）给 ALU 的 A 送 0x01，否则送 RA；不要改实验3 ALU 本体。",
+   "evidence": "实验5 例1：R0 F8→F0、R1 F8→C0，ADD 后 R2=B0"
+  },
+  {
+   "id": "ita215-comparator-twoscomplement",
+   "title": "Comparator 的有符号模式是 twosComplement，不是 signed",
+   "detail": "2.15 Comparator 的 mode 只有 unsigned 和 twosComplement 两个合法值（javap 可见 SIGNED_OPTION 的 key 为 twosComplement）。写 mode=\"signed\" 不报错但比较器输出全 U。实验5 例4 要 2 > -3，需把“比较器”子电路的 mode 改为 twosComplement；实验3 文件保持 unsigned。",
+   "evidence": "实验5：unsigned 时 2>0xFD 判成 A<B；twosComplement 后 GT=1，三分支全过"
+  },
+  {
+   "id": "ita215-ir-fetch-t1",
+   "title": "复位后 T0 已为 1，IR 用 T0 取指会漏第 0 条指令",
+   "detail": "计数器被 RST 清 0 时 T0 立即为 1；释放 RST 后 T0 仍是 1，第一个 T0 上升沿要等一整轮，此时 PC 已在 T3 加 1，IR 取到 ROM[1]。把 IR 时钟改接 T1：释放复位后的第一个 CLK 上升沿（计数器 0→1）取 ROM[0]，PC 仍为 0。",
+   "evidence": "实验4 系统首拍 IRQ=0x8030（ROM[1]）；实验5 改 T1 后首条 2008 正确"
+  },
+  {
+   "id": "ita215-jump-no-flag-update",
+   "title": "跳转指令必须关闭 Flag 使能，否则连续 JZ/JC 失效",
+   "detail": "Flag 的 D 接 ALU 标志；en 恒 1 时，JZ/JC 自己的 S-op（高字节 0，即 MOV B）会在 T3 冲掉 CMP 刚锁存的 CF/ZF。例4 LT 路径：CMP 置 CF=1 → JZ 把 CF 清 0 → JC 不跳。接成 Flag en = ~(JP|JZ|JC)；PC 与 Flag 同在 T3 沿，PC 取沿前 Flag Q，CMP 结果对两条跳转都有效。",
+   "evidence": "实验5：不加门控例4 -3<2 得 R2=1；加门控后 R2=0，三分支全过"
+  },
+  {
+   "id": "ita215-inc-sa-field",
+   "title": "INC/NEC 的 SA 必须指向源寄存器；15FC 才是 INC R3",
+   "detail": "INC（S-op=10101）的 A 通道由 SA 选。0x15FC：C-Reg=11、SA=11 → A=R3、写 R3；0x15C0：SA=00 → 把 R0+1 写进 R3，不是 R3 自增。PDF 的 15fc 是对的，不要化简成 15c0。",
+   "evidence": "实验5 例3：15FC 使 R3 0→1→2→3→4；15C0 则 R3 被写成 R0+1"
+  },
+  {
+   "id": "ita215-four-rom-prog",
+   "title": "4 片 ROM + 4:1 MUX 的 Prog 选通与 contents 写法",
+   "detail": "ROM addrWidth=4、dataWidth=16，contents 为 addr/data: 4 16 后跟 16 个十六进制字；未用字填 0000（MOV R0,R0，无副作用）。4 片 D 经隧道 P0D~P3D 进 16 位 4:1 MUX，select 接 Prog[2]。ROM 端口 A(-140,0)、D(0,0)、cs(-90,+40)，cs=0 使能；PA4=PC[3:0] 用 8→2 分线器（groups=[0,0,0,0,1,1,1,1]，分支 0 为低 4 位）。",
+   "evidence": "实验5：Prog=0/1/2/3 跑出例1/2/3/4，600 行全过"
+  },
+  {
+   "id": "ita215-model-vector-sign-hex-ascii",
+   "title": "模型化验证：负数 8 位补码、向量值写 0x、临时文件名 ASCII",
+   "detail": "Python 模型的 imm8 要转 0..255 补码（imm4 if imm4<8 else imm4+240），PC 偏移另存有符号值；否则 %x 输出 0xfffffff8，与 8 位引脚的 0xf8 不符。.vec 不带 0x/0b 的 token 按十进制解析（8030=0x1F5E）。向量文件名含中文/空格/* 会触发 OSError [Errno 22]。",
+   "evidence": "实验5：首轮 8+2+16 行“失败”全是 0xfffffff8 对 0xf8；修正后全过"
+  },
+  {
+   "id": "ita215-per-cycle-vector-hierarchy",
+   "title": "逐拍向量可穿透多层子电路；复位/边沿映射固定",
+   "detail": "ITAProbe.deepPropagate 能处理 System→CU→IR 的多层时序子电路，无需展平。复位序列 (0,1)→(1,1)→(0,1)→(0,0)，之后 CLK 1/0 交替；e%4==1 为 T1 取指、3 为 T3 写回。Regs 不受 RST 清零（新仿真初值 0），RAM 初值 0 不清零，PC/IR/Flag/CLK 计数器受 RST 清零。",
+   "evidence": "实验4 系统 10 行、实验5 六场景 600 行，均直接跑 系统连接"
+  },
+  {
+   "id": "ita215-layout-regression-body",
+   "title": "新增观测脚/叠放 ROM 后要重跑“穿元件体”自检",
+   "detail": "Regs 加 Q0~Q3 后外观向下变高（System 体到 y=890），沿用实验4 的 RA4 分线器 y=900 会让总线短桩穿进 Regs 体；下移到 y=940。4 片 ROM 叠在 x=800、y=120~420 时，CU 的 C 输入 140px 引线横穿 ROM4 体，改 80px。board215.check() 报“导线穿元件体”时要移元件/缩短引线，不要改检查器。",
+   "evidence": "实验5：第一次生成报 rom@(800,420) (890,460)->(750,460)；修正后六项自检 0 错误"
+  },
+  {
+   "id": "ita215-material-source-header",
+   "title": "2.7.1 素材的 source 头不能改成 2.15 头",
+   "detail": "实验6 素材是 <project source=\"2.7.1\">。把 source 改成 2.15.0.2.exe（其余 XML 不动）后，16*16姓名显示的 17 行向量全挂——2.15 加载器对 2.7.1 子电路实例/引脚的兼容处理被跳过，子电路内部全 U。保持 2.7.1 头，用 2.15.0.2 引擎 ita_probe 加载/验证。",
+   "evidence": "实验6：2.7.1 头 17/17；改 2.15 头后 0/17，D1 单独求值仍对"
+  },
+  {
+   "id": "ita215-reuse-rom-element",
+   "title": "新造的 ROM 可能输出 U，直接复用素材 ROM 元素",
+   "detail": "用 ElementTree 新建 <comp lib=\"4\" name=\"ROM\">（addrWidth=4、dataWidth=16、contents 文本）放进 2.7.1 素材电路时，地址/内容都正确但 Q 恒为 U；把同样内容写进素材里已工作的 ROM 元素（copy.deepcopy 后只改 contents）就正常。直接借工作元素，别跟序列化细节较劲。",
+   "evidence": "实验6：新建 ROM Q=U；deepcopy 32×32 示例 ROM 后 Q=0xB6AB"
+  },
+  {
+   "id": "ita215-no-midwire-t",
+   "title": "测试引脚不要在线段中段打 T",
+   "detail": "在 (100,210)->(130,210) 的中间 (115,210) 引竖线，探针读到 U，ROM 也跟着 U；Logisim 的 T 接在 CircuitState 传播里并不总是可靠。测试引脚应从元件端口再引一条线（同一端口允许多条线），或用同名隧道接。",
+   "evidence": "实验6：中段 T 后 OCODE=U；改从 ROM Q 端口直接向上引线后 OCODE=0xB6AB"
+  },
+  {
+   "id": "ita215-tunnel-on-wire",
+   "title": "隧道不能放在已有导线上",
+   "detail": "测试 QW/WH 时把隧道放在 (300,100)/(300,120)，正好压在 ROM→机内转区位码的 16 位竖线上，把 16 位网和 7 位网短接，整条显示链变 U。放隧道前先看该坐标有没有导线/端口；测试隧道放空白区，靠同名标签连接。",
+   "evidence": "实验6：QW 隧道压 x=300 竖线后 OCODE 都变 U；移到 (250,100)/(250,120) 后恢复"
+  },
+  {
+   "id": "ita215-subcircuit-port-wire-start",
+   "title": "子电路输出线必须从真实端口坐标起",
+   "detail": "例：机内转区位码 实例在 (380,50)，输出端口是 (380,50)/(380,70)；生成器把线画成 (400,50)->(420,50)，差 20px，转换输出悬空，后级字库全 U。接线前用 ita_probe.ends 核对子电路实例端口，不要凭外观矩形估算。",
+   "evidence": "实验6：起点从 400 改回 380 后 OQW=0x16、OWH=0x0B，显示链恢复"
+  },
+  {
+   "id": "ita215-counter-q-carry-short",
+   "title": "Counter 的 Q 与 carry 同边，竖线会短接",
+   "detail": "2.15/2.7.1 Counter 的 Q 在 (x,y)、carry 在 (x,y+10)，都在右侧。从 Q 竖直向下引测试线会穿过 carry 端口，Q/carry 短接，计数器和后级都变 U。测试线应向右再拐，或从其他端口引。",
+   "evidence": "实验6：Q 向下引线后 OCNT=U；改为从 ROM 侧读地址后恢复"
+  },
+  {
+   "id": "ita215-d1-word-extension",
+   "title": "D1 字扩展：低 12 位并联、高 2 位选片",
+   "detail": "4 片 4K×32 组成 16K×32 时，14 位地址不能直接接 4K ROM 的 A（位宽不符）。用 14→2 Splitter：低 12 位接 4 片 A（并联），高 2 位接 32 位 4:1 MUX 的 sel；4 片 Q 进 MUX，输出接 D1。实验6 的 4 片 ROM A/Q 原本全悬空，这就是 D1=U 的根因。",
+   "evidence": "实验6：9 个机内码 A14=(区-1)×94+(位-1)，D1 均等于选中的 Q"
+  },
+  {
+   "id": "ita215-dotmatrix-two-rows",
+   "title": "16×16 点阵的 D 是 32 位 = 两行",
+   "detail": "16×16 字库的 D0~D7 每个 32 位，低 16 位是第 2i 行、高 16 位是第 2i+1 行；用 8 个 32→2 Splitter 拆成 16 路 16 位进 DotMatrix。分线器按 20px 间距排（与素材 16×16 字库内部一致），低 16 位先接上一行。",
+   "evidence": "实验6：8 个分线器 + 16 行点阵，显示向量 17/17"
+  },
+  {
+   "id": "ita215-bank4-unreachable",
+   "title": "bank3 不可达，但仍要接满 4 片",
+   "detail": "GB2312 地址 (区-1)×94+(位-1) 最大约 8835（0x2283），高 2 位最多到 2，bank3 正常编码到不了。但题目要求 16K×32，仍要接 4 片（第 4 片 Q 输出 0 也没关系），不要因为用不到只接 3 片。",
+   "evidence": "实验6：A14=0x2283 时 hi=2；bank3 输出 0，结构完整"
+  },
+  {
+   "id": "ita215-rom-cs-floating",
+   "title": "2.7.1 ROM 的 cs 悬空可用",
+   "detail": "素材 7 片 addr14 ROM 的 cs 都没接，仍能正常读出；4 片 addr12 的 cs 也悬空，接上地址和输出后同样工作。不要为了保险给 cs 加常量/门电路，反而可能引入新网络。",
+   "evidence": "实验6：11 片 ROM cs 全悬空，D0~D7 与 D1 均正常"
+  },
+  {
+   "id": "ita215-clock-to-pin-test",
+   "title": "无头验证要把 Clock 换 Pin，交付保留 Clock",
+   "detail": "ita_probe 不会自动驱动 Clock 组件；验证姓名显示时，在临时副本里把 Clock 换成输入 Pin，逐拍给 0/1；交付电路保留 Clock 供 GUI 模拟。不要为了验证把交付电路的 Clock 删掉。",
+   "evidence": "实验6：临时副本 CLK Pin 跑 17 行；交付电路仍是 Clock"
+  },
+  {
+   "id": "ita215-memory-quiz-address-bits",
+   "title": "存储器扩展问答的地址位数别混",
+   "detail": "页1 位数扩展图中地址端 8 位 → 256×16→256×32，地址 8 位、每单元 32 位；页2 1K×16→4K×32 是 10→12 位。两个例子的地址位数不同，写答案时不要统一写成 10/12。",
+   "evidence": "实验6 问答电路：页1 写 8 位，页2 写 10→12 位"
+  },
+  {
+   "id": "ita216-sevenseg-active-boolean",
+   "title": "数码管 active 是布尔属性，写 high 会反相",
+   "detail": "Io.ATTR_ACTIVE 由 Attributes.forBoolean 创建，XML 只认 true/false。写 high/low 会被 Boolean.valueOf 解析成 false，表现为该亮的段灭、该灭的段亮，且 ERRCOUNT 仍为 0，位宽/网表检查都查不出来。",
+   "evidence": "实验7 七段显示0~F：D=1010 只亮 d 段；7 处改 true 后正常显示 A"
+  },
+  {
+   "id": "ita216-sevenseg-port-map",
+   "title": "7-Segment Display 的 8 个输入脚坐标（2.16）",
+   "detail": "a=(+20,0) b=(+30,0) c=(+20,+60) d=(+10,+60) e=(0,+60) f=(+10,0) g=(0,0) dp=(+30,+60)，外框 Bounds(-5,0,40,60)；SEGMENTS[] 顺序 a,b,c,d,e,f,g（值 bit0~6，bit7=dp）。按直觉「北排 4 个 = a,b,c,d」接线会错 5 段。",
+   "evidence": "SevenSegment.class 反编译 + 实验7 段位核对（sevenseg.py check 全绿）"
+  },
+  {
+   "id": "ita216-subappear-port-packing",
+   "title": "无 appear 的子电路端口按 10px 打包，不能用内部坐标平移",
+   "detail": "没有自定义外观时，Logisim 把输入排左边、输出排右边，间距固定 10px，顺序=内部 Pin 按 y 排序；内部 Pin 可能是 20px 步长，照内部坐标接线会全部悬空。",
+   "evidence": "七段译码器0~F 内部输出 y=400~520（步长 20），实例端口是 (500,300)...(500,360)"
+  },
+  {
+   "id": "ita216-text-no-newline",
+   "title": "Text 组件不支持 &#10; 换行",
+   "detail": "一段 Text 里写 &#10; 不会换行，Logisim 把整段当一行画出来，还会压住右边元件。多行注释要拆成多个 Text 逐行摆。",
+   "evidence": "实验7 main 注释一整行压到「错误指示」LED；拆成 5 条单行 Text 后正常"
+  },
+  {
+   "id": "ita216-cjk-label-font",
+   "title": "中文引脚名要用带 CJK 字形的字体",
+   "detail": "Times New Roman bolditalic 18 没有中文字形，引脚名显示成 □□□；改 SansSerif bold 18 正常，Dialog plain 12 也可用。",
+   "evidence": "实验7 main 的 屏蔽字/传输数据/输出/正确/错误 曾全是方框"
+  },
+  {
+   "id": "ita216-clabel-on-appearance",
+   "title": "子电路 clabel 会画在外观块上并被裁切",
+   "detail": "子电路设了 clabel 后 Logisim 把它画在外观上；外观只有 60×40 时文字被压扁，看着像元件名称没正确显示。应把 clabel 留空，改在父电路用 Text 标注。",
+   "evidence": "9位随机干扰 红块上出现被挤压的「随机干扰」"
+  },
+  {
+   "id": "ita216-wire-overlap-vs-cross",
+   "title": "共线重叠=短接，十字交叉=不连通",
+   "detail": "同水平/垂直且区间真重叠会短路；端点落在另一根线中段（T 接）才连通；双方都只是内点不连通。排线要给每路信号独立的水平层与竖直通道。",
+   "evidence": "实验7 main/七段显示0~F 重排后 netmap --overlap 全 0，功能 20/20"
+  },
+  {
+   "id": "ita216-netmap-port-pairs",
+   "title": "端口级核对要用 netmap，不能只数线",
+   "detail": "netcheck 只报位宽冲突，不报接错位置；数码管段位、分线器分支、子电路引脚必须按「端口 A 连到端口 B」核对。",
+   "evidence": "一次把译码器输出上下顺序看反，差点改坏正确接法；netmap --comp 一跑即暴露"
+  },
+  {
+   "id": "ita216-gui-keyboard-stolen",
+   "title": "GUI 自动化：按键会被别的窗口抢走",
+   "detail": "本机 GetForegroundWindow 返回 Logisim，但 keybd_event / PostMessage(WM_CHAR) 仍落进别的窗口（浏览器），点击有效。模拟打字不可靠，中文字符更送不进去；改文字/改输入值应直接改文件。",
+   "evidence": "多次输入 abc 落到 Chrome 标签；SendMessageTimeout 存活检查一直正常"
+  },
+  {
+   "id": "ita216-gui-zoom-direction",
+   "title": "截图缩放用 shift+滚轮，Ctrl 组合键不可靠",
+   "detail": "gui.wheel(h, n, shift=True, dy=+120) 放大、dy=-120 缩小；Ctrl+0 / Ctrl+- 本机不生效。窗口宽约 1720px，电路宽 >1000 要先缩到 ~50%，看单个数码管放大到 ~190%。",
+   "evidence": "实验7 全套 25% 一次入镜；190% 才看清 A 段亮灭"
+  },
+  {
+   "id": "ita216-diagonal-wire-wirerepair-oom",
+   "title": "斜线/非 10 倍长度导线让 WireRepair 死循环，加载 OOM",
+   "detail": "WireRepair.doOverlaps 用 Wire.iterator() 逐点建 HashMap；斜线或长度非 10 倍数会让修复反复拆分、表无限增长，抛 java.lang.OutOfMemoryError: Java heap space。GUI 里只是「打开时卡一下」，无头探针直接退出。",
+   "evidence": "main 出现 (401,200)-(401,201) + (401,201)-(440,200) 后 ita_probe 加载 OOM；改回单根后 main 不变式 20/20"
+  },
+  {
+   "id": "ita216-javap-port-discovery",
+   "title": "组件端口顺序/属性类型直接拆 jar 看字节码",
+   "detail": "jar xf Logisim-ITA.jar com/cburch/logisim/std/io/SevenSegment.class 后 javap -p -c，构造器里就是一串 Port(20,0)、Port(30,0)…，属性类型也能看到（Attributes.forBoolean(\"active\")）。比翻文档快。",
+   "evidence": "L1/L2 的结论均来自 SevenSegment.class / Io.class 字节码"
+  },
+  {
+   "id": "ita216-wirerepair-port-1px-hang",
+   "title": "端口与导线差 1px → 改任意属性都卡死（WireRepair 死循环）",
+   "detail": "改文字走 TextTool→SetAttributeAction→CircuitTransaction→WireRepair.run→doOverlaps；doOverlaps 按 Wire.iterator() 逐点建 HashMap。只要电路里有「端口与导线端点差 1px」「斜线」「长度非 10 倍数」的导线，修复会反复拆出 1px 短桩/斜线，点表无限膨胀 → 改一个字立刻卡死，进程吃到数 GB；无头加载却可能正常，容易误判成输入法问题。多比特端口的外观取整会让端口落在 ±1 偏移，且同一子电路输入/输出偏移不同，整体平移实例无法同时对齐两端，改外观 circ-port 的 x/y 最省事。",
+   "evidence": "实验7 main：奇校验编码输出口真实点 (401,201)、导线画在 (401,200)；jstack 栈顶 WireRepair.doOverlaps:176→HashMap.put，AWT-EventQueue 占 2.4GB；circ-port 平移(-1,-1) 使端口变 (400,200) 后 attrprobe 输出 ATTR_OK 0ms"
+  },
+  {
+   "id": "ita215-transistor-unidirectional",
+   "title": "三极管是单向开关（in→out），下拉网络把 GND 接 in 侧",
+   "detail": "2.15 Transistor 端口：in=(x-40,y)、out=(x,y)、gate=(x-20,y-20)，数值只从 in 流到 out。CMOS 下拉按 Q→管→GND 接，Q 永远拉不到 0（悬空 U/E）；应 GND 接 in、Q 接 out，上拉同理 VCC 接 in。",
+   "evidence": "实验1 2_晶体管门：初版 A=B=1 时 Q=U；改 GND→in 后与非/或非真值表全对"
+  },
+  {
+   "id": "ita215-transistor-output-channel",
+   "title": "两个晶体管的输出侧别接在同一 x / 同一 y 上",
+   "detail": "同一网里 p 管输出与 n 管输出接到同一竖线（同 x、上下相接）会被并成一整条，一个驱动源是 Z、另一个是有效值，整网变 U。每个驱动源给独立通道，错开 10px 再拐到干线。",
+   "evidence": "实验1 NAND p2 漏与 n2 漏同在 x=X+180，A=1,B=0 输出 U；n 侧改 x+220 后恢复 1"
+  },
+  {
+   "id": "ita215-splitter8-ports",
+   "title": "8 位分线器位口是 x+80-10i（南）/ x-10-10i（北）",
+   "detail": "2.15 实测：8 位分线器南向位口 x+80-10i、北向 x-10-10i（均 y±20）；≤4 位才是 x+10-10i。按 4 位公式接 8 位，后 4 位全悬空。",
+   "evidence": "实验1 3_分离器：初版 D3~D7 全 U；修正后 D=0xA5 → 10100101，合并回 0xA5"
+  },
+  {
+   "id": "ita215-arith-ports-cin-cout",
+   "title": "Adder 的 Cout 是输入脚；Mul/Div 的附加输入要接 0",
+   "detail": "2.15 Adder/Subtractor：A=(x-40,y-10) B=(x-40,y+10) S=(x,y) Cin=(x-20,y-20) Cout=(x-20,y+20)（Cout 也是输入脚）。Multiplier/Divider 的 (x-20,y-20) 是 width 位宽的附加输入（C/Upper），悬空则输出 U，要接 Constant 0；(x-20,y+20) 是附加输出。",
+   "evidence": "实验1 4_运算器：Cin 与 Upper 接 0 后，6±3 / 6×3 / 7÷2 全部正确"
+  },
+  {
+   "id": "ita215-counter-with-max-counts-up",
+   "title": "Counter 设了 max 是向上计数",
+   "detail": "“2 位默认向下计数”只适用于未设 max；width=4、max=0x9 实测 0→9→0 向上，可直接当累加计数器。",
+   "evidence": "实验1 6_计数器：CLK 每拍 Q=0,1,2…，到 9 回 0"
+  },
+  {
+   "id": "ita215-vec-ascii-pin-names",
+   "title": "向量文件里的中文引脚名会被截断",
+   "detail": ".vec 是 UTF-8，但 Java 按平台字符集（GBK）读，中文引脚名乱码且尾部字节丢弃，报 vector header pin not found in circuit: 1Y。引脚名用 ASCII，中文说明放 Text 注释。",
+   "evidence": "实验1 初版 1Y与门 被解析成 1Y；改 ASCII 后一次通过"
+  },
+  {
+   "id": "ita215-appear-anchor-plus3",
+   "title": "自定义外观锚点存左上角，端口偏移要按 anchor+3 算",
+   "detail": "circ-anchor 存 6×6 框左上角，Logisim 以中心（x+3,y+3）为原点：实例端口 = loc + (端口中心 − (anchor+3))。按 anchor 直算会整体差 3px，端口全部悬空（输入无效、输出全 x），而 ita_probe 的 ends 仍报“正确”坐标。外观文字写成 <text font-family=... font-size=.. text-anchor=middle x= y=>内容</text>。",
+   "evidence": "实验1 5_运算器封装：Y 全 x、封装箱小方块与线头差 3px；偏移从 (-87,-37) 改回 (-90,-40) 后 9/3/0x12/2"
+  },
+  {
+   "id": "ita215-text-escape-amp",
+   "title": "生成 .circ 时文本必须转义 & < >",
+   "detail": "Text 里写 Y = A || (B && C) 会让 XML 解析失败（报“元素类型必须由匹配的结束标记终止”）。生成器对 text 属性统一做 &amp; &lt; &gt; 替换。",
+   "evidence": "实验1 8a_A或B与C 首次生成报 [Fatal Error] :1372:45，转义后正常"
+  },
+  {
+   "id": "g39-probe-tools",
+   "title": "3.9 无头探针族（circ39_*）",
+   "detail": "circ39_check 加载体检 / circ39_save 重存 / circ39_run 脚本化多拍时序 / circ39_debug 布线调试（wires/onet/multi/nets/insts/ends/bounds/pins/vals/overlap）。自绘网表与真引擎冲突时以探针为准。",
+   "evidence": "3.1 重设计版：自绘/观察误判两次，最终以探针坐标级核对定位"
+  },
+  {
+   "id": "g39-register-ports",
+   "title": "3.9 Register 端口：D=+30、en=+50、clk=+70",
+   "detail": "同一侧自上而下 D/en/clk，clr=+30/+90、Q=+60/+30。en 与 clk 接反=写了永远不生效。用 circ39_debug insts Register 实测，别凭记忆。",
+   "evidence": "3.1 重设计版 Bank8：en/clk 接反导致写入全失效"
+  },
+  {
+   "id": "g39-splitter-incoming",
+   "title": "分线器 incoming 必须=总线位宽",
+   "detail": "fanout=分支数、incoming=总线位宽。incoming 写 1 会把整条总线当 1 位，全断。",
+   "evidence": "3.1 重设计版生成器写成 1，探针发现全部引脚 U"
+  },
+  {
+   "id": "g39-collinear-overlap",
+   "title": "共线重叠（不共享端点）=加载时合并=跨网短路",
+   "detail": "同 y 横线/同 x 竖线重叠 1px 即被 WireRepair 合并成一根：共享端点=冗余无害；不共享=真短路，表现为一条线断供（U）+另一条被错接。用 circ39_debug overlap 扫描。",
+   "evidence": "ridx2 合并线与 bank1 ridx1 支线重叠 40px → 读口恒 0 + bank1 ridx1 错接"
+  },
+  {
+   "id": "g39-wirerepair-diff",
+   "title": "XML 导线 ≠ 加载后导线",
+   "detail": "WireRepair 会裁穿体线、合并共线段、拆 T 结点。布线争议一律用 circ39_debug wires 导出加载后导线与 XML diff。",
+   "evidence": "Ground 压 clk 干线 → 干线被裁断；(400,540)-(540,540) 被合并改写"
+  },
+  {
+   "id": "g39-multidrive-splitter",
+   "title": "Splitter 无源直通：扫多驱动网时按 io 计",
+   "detail": "3.9 里 Splitter 两端 EndData 都 isOutput()==true，扇出→合并同网是正常接法。多驱动检查必须排除 Splitter/Tunnel 端口，否则全是误报。",
+   "evidence": "G39NetList 初版把比较器空闲 gt/lt 与分线器对全部误报"
+  },
+  {
+   "id": "g39-seq-semantics",
+   "title": "无头探针设值/打拍语义四坑",
+   "detail": "①Pin.setValue 后必须 markComponentAsDirty+markPointAsDirty 再 propagate，全部引脚设完统一传播；②clk 是 Pin 时 t=手动 0→1→0，有 Clock 才用 toggleClocks；③未设引脚=U 非 0，clk 初值 U→1 不算上升沿；④子电路作根时引脚驱动不可靠，正式验证走顶层 main。中段坐标读不出值（图节点只在端点/结点）。",
+   "evidence": "G39Seq 调试全程踩过"
+  },
+  {
+   "id": "g39-radix-pin",
+   "title": "多比特引脚设 radix：数据 16、地址 10unsigned",
+   "detail": "32 位引脚默认二进制显示，GUI 输入/读数都易错。Pin 加 <a name=\"radix\" val=\"16\"/>（数据）或 10unsigned（地址）。",
+   "evidence": "3.1 寄存器堆 wdata/rdata 原为二进制，输入测试数据显示错的即此因"
+  },
+  {
+   "id": "g39-circuit-display-name",
+   "title": "3.9 子电路改名要同时改 name 与 <a name=\"circuit\">",
+   "detail": "<circuit name=\"X\"> 是电路 key；<a name=\"circuit\" val=\"X\"/> 是树/面板显示名。只改一个，界面仍显示旧名。",
+   "evidence": "3.2 把 rom_test 改名 task1 时先漏了 val 一处"
+  },
+  {
+   "id": "g39-mux-and-ports",
+   "title": "3.9 的 Mux(select=1)/3 输入 AND 端口坐标",
+   "detail": "Mux: data0=(x-30,y-10) data1=(x-30,y+10) sel=(x-20,y+20) out=(x,y)；AND3: in=(x-50,y-20/0/+20)。与 2.15 的 (x-40,y±20) 不同，照抄必悬空。",
+   "evidence": "3.2 main 加 SEL 选择器时按 2.15 坐标接，整网读不出"
+  },
+  {
+   "id": "g39-net-short-by-new-wire",
+   "title": "往既有测试台加线，横线跨到引脚行会把两条网并成 E",
+   "detail": "加线后 MemWrite/MemRead 同时显 E（两个输入引脚落在同一网）。加完必须 circ39_debug onet 检查网成员里有没有多余 Pin。",
+   "evidence": "3.2 合并 ROM 到 main 时出现"
+  },
+  {
+   "id": "g39-byte-write-lane",
+   "title": "字节写：bank 的 D 取自己那一路字节，用 A[1:0] 选通写使能",
+   "detail": "大端 4×16K×8：bank_i 的 D 固定接 DIN 的第 i 个字节，写使能 = MemWrite ∧ (¬MCntrl ∨ (A[1:0]==i))。不要按 A[1:0] 先挑字节再广播。",
+   "evidence": "3.2 任务三 字节写 ee000000@0000 → EE345678"
+  },
+  {
+   "id": "g39-vals-point-off",
+   "title": "vals/watch 返回 '- w=0' 表示该点没有导线",
+   "detail": "不是值为 0。坐标必须落在导线上（端点最稳），否则看不出问题。",
+   "evidence": "3.2 调试时误把 (110,200) 当有值读"
+  },
+  {
+   "id": "ita215-io-geometry",
+   "title": "2.15 I/O 库元件端口实测",
+   "detail": "TTY：D(0,-10) CLK(0,0) WR(10,10) RST(20,10)；Keyboard：CLK(0,0) RST(10,10) RD(20,10) AVL(130,10) DATA(140,10)；7 段：a(+20,0) b(+30,0) c(+20,60) d(+10,60) e(0,60) f(+10,0) g(0,0) dp(+30,60)；Button/LED 端口都在 (0,0)；DotMatrix 列口 (10i,0)。",
+   "evidence": "GeoProbe 实测 2.15.0.2"
+  },
+  {
+   "id": "ita215-pin-label-tunnel",
+   "title": "孤立的 Pin label 不与同名 Tunnel 并网",
+   "detail": "新增引脚后必须引一段线再接同名 Tunnel；只写 label 时输入进不去、输出恒 x，ERRCOUNT 仍为 0。",
+   "evidence": "实验7 拆 CPU：IR_IN/RAM_A/RAM_RD/RAM_WE 补 80px 引线+隧道后斐波那契才正确"
+  },
+  {
+   "id": "ita215-gate-u-to-e",
+   "title": "2.15 门对 U 输入输出 E",
+   "detail": "上电未复位时寄存器为 U，AND/OR 输出 E（ERRCOUNT 报错）；不是短路。可用 2:1 MUX 门控（T3?WM:0）替代 AND。",
+   "evidence": "实验7 整机测试 WE 由 AND 改 MUX 后 ERRCOUNT 0"
+  },
+  {
+   "id": "ita215-tty-bitwidth",
+   "title": "TTY Char bit width 只接受 7/16",
+   "detail": "写 8 直接 LOADERR；ASCII 用 7 位、UTF-16 用 16 位，配套 ROM 数据位宽同步改。",
+   "evidence": "实验7 三个 TTY 电路"
+  },
+  {
+   "id": "ita215-tty-ports",
+   "title": "TTY 的 WR/RST 在 (10,10)/(20,10)",
+   "detail": "接反时写使能恒 0、TTY 不出字且 ERRCOUNT 0；D=(0,-10)、CLK=(0,0)。",
+   "evidence": "A/B 两版对照实验确认"
+  },
+  {
+   "id": "ita215-tty-headless-read",
+   "title": "无头读 TTY 文本要反射 TtyState.getRowString",
+   "detail": "Simulator.tick 在无头 Project 不产生 TtyState；把 Clock 换 CLK Pin 打拍，getInstanceState 后反射读 getRowString(i)。",
+   "evidence": "tty_read.py 读出 Hello World!2024 与姓名"
+  },
+  {
+   "id": "ita215-sub-appear-required",
+   "title": "无 <appear> 子电路端口不可按内部坐标猜",
+   "detail": "默认端口按 10px 密排；拆分后要用实际 Pin 坐标生成外观（circ-port pin=\"x,y\"），父电路按 loc+offset 布线。",
+   "evidence": "实验7 CPU 外观"
+  },
+  {
+   "id": "ita215-rom-prog-order",
+   "title": "程序 ROM 顺序按首条指令认",
+   "detail": "2008=例1、200C=例2、2001=例3、2002=例4；XML 顺序不等于 Prog 编号，错了 Prog 选择与注释不符。",
+   "evidence": "实验7 整机测试首版 Prog=2 跑成例2"
+  },
+  {
+   "id": "ita215-font-gb2312-digits",
+   "title": "16×16 字库只能取 GB2312 区位字形",
+   "detail": "ASCII 数字会下溢；学号用全角数字 A3B0~A3B9（区 3 位 16~25）。",
+   "evidence": "实验6 姓名显示加学号 20243281"
+  },
+  {
+   "id": "ita215-duplicate-pin-label",
+   "title": "子电路 Pin 重名会静默丢一个",
+   "detail": "同一子电路两个 Pin 同 label 时加载不报错，但父电路缺一路端口；交付前检查 label 唯一。",
+   "evidence": "实验6 字库 D2 被写成 D6"
+  },
+  {
+   "id": "ita215-xml-amp",
+   "title": "Text 里的裸 & 会让 XML 加载失败",
+   "detail": "报“实体引用未以 ';' 结束”；生成器统一转义 & < >。",
+   "evidence": "实验7 注释 WM&T3"
+  },
+  {
+   "id": "ita215-no-powershell-bom",
+   "title": "不要用 PowerShell Set-Content 写 .circ",
+   "detail": "PS5 会写 BOM（EF BB BF），Logisim 解析失败；用 Python utf-8 + newline='\\n'，改完验前 6 字节。",
+   "evidence": "实验7 一次替换后带 BOM"
+  },
+  {
+   "id": "ita215-sregs-bit-order",
+   "title": "S-Regs 位序：CREG=7:6、SA=5:4、SB=3:2",
+   "detail": "多分支 Splitter b0 在最右（x+off-10i）；CREG/SB 互换会让寄存器写错位置。",
+   "evidence": "实验4 系统连接：MOV R0,4 后 RA 读到 3"
+  }
+ ]
 }

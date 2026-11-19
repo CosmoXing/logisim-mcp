@@ -1,5 +1,25 @@
 # 更新记录
 
+## 未发布 — 实验7 I/O 接口（2.15）与“两个总电路”重构沉淀
+
+- pitfalls 新增 K61~K72：引脚只贴 label 不并网、门遇 U 输出 E、TTY 位宽只 7/16、
+  TTY WR/RST 在 (10,10)/(20,10)、无头读 TtyState、无外观子电路端口不可猜、
+  程序 ROM 按首条指令归位、字库只能取 GB2312 区位（学号用全角数字）、
+  子电路 Pin 重名静默丢一路、Text 裸 `&`、PowerShell 写 .circ 带 BOM、S-Regs 位序
+- knowledge.json +13 条 ita215-*（含 I/O 元件端口实测）
+- 新增 `references/io215-casebook.md`：实验7 四块 I/O、三种 TTY 用法、
+  CPU 拆分三步（去 ROM/RAM/Prog → 网络改名 → 补引脚引线）、程序 ROM 归位与验证数据
+- 新工具：
+  - `scripts/v215/GeoProbe.java` + `geo_probe.py`（任意内置元件 bounds/端口/属性）
+  - `scripts/v215/TtyRead.java` + `tty_read.py`（Pin 打拍 + 反射读 TTY 文本 + 坐标探针）
+  - `scripts/v215/patch_clock.py`（Clock → CLK Pin，供无头测试）
+  - `scripts/v215/gen_lab7_io.py` / `gen_lab7_tty.py` / `verify_lab7_io.py`
+  - `scripts/v215/split_cpu_1_strip.py` / `split_cpu_2_appear_main.py` / `split_cpu_3_wire_pins.py`
+  - `scripts/v215/verify_ctrl_modules.py`（实验4 子模块穷举）
+  - `scripts/common/pdftext.py` / `pdfimg.py`（需求 PDF 文本/图片提取，支持 ToUnicode）
+- SKILL.md：2.15 表补 TTY/Keyboard/7 段/Button/LED/DotMatrix 端口与 `Char bit width` 约束，
+  资源表补实验7 生成/验证/拆分工具
+
 ## 未发布 — 3.2 存储器实验（3.9）沉淀
 
 - pitfalls 新增 M11~M14（子电路改名两处、3.9 Mux/AND 端口、加线致并网 E、vals 坐标）

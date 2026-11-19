@@ -1,6 +1,6 @@
 ---
 name: logisim-circuit-design
-description: 用代码生成、检查和验证 Logisim（5.0 / 3.9 / 2.7.1 / ITA 2.15·2.16）(.circ) 数字电路。适用于门级作业（计数器、分频器、寄存器、加法器、译码器、状态机）、8 位总线级电路（原码乘法器、ALU、移位寄存器）、64KB ROM/RAM 与低位交叉存储器、32 位 CPU 与 3072×32 数据存储器（DM）、分层子电路设计与子电路展平（paste/canonicalize）、「只许门电路和触发器、不许用现成芯片/隧道」这类限制，以及 .circ 打不开、显示 E/U、位宽冲突、模块引脚接不上、布线短接的排障。内含 116 条实战坑表（A-M 组：13 进制计数器 13 坑 + 8 位乘法器 13 坑 + 八进制加法器 6 坑 + 3.2 存储器 12 坑 + 2.7.1 CPU/DM 14 坑 + ITA 2.15 19 坑 + 3.9 内核探针 14 坑）、确定性布线工具（lib8/route8）、时序向量封装（sim，<set><seq>）、GUI 截图工具（gui.py）与 5.0 端口坐标表；2.7.1 用 circ271_check / circ271_sim / circ271_ports；ITA 2.15 用 scripts/v215/board215.py 构建 + ita_probe 验证；3.9 用 circ39_check / circ39_save / circ39_run / circ39_debug（3.9 本体内核无头探针，含 overlap 共线重叠扫描）。关键词：logisim、logisim-evolution、logisim 3.9、无头探针、WireRepair、共线重叠、多驱动、logisim 2.7.1、logisim 2.15、logisim 2.16、Logisim-ITA、.circ、数字电路、电路作业、加法器、半加器、全加器、8位ALU、运算器、比较器、移位器、标志位、先行进位、CLA74182、16位加法器、可控加减、溢出标志、乘法器、原码乘法、计数器、模13、八进制、触发器、时序电路、真值表、测试向量、子电路、展平、分线器、数码管、模块外观、restart、netlist、确定性布线、RAM、ROM、存储器、低位交叉、字节使能、64KB、CPU、DM、数据存储器、3×1024×32、字对齐、越界保护。
+description: 用代码生成、检查和验证 Logisim（5.0 / 3.9 / 2.7.1 / ITA 2.15·2.16）(.circ) 数字电路。适用于门级作业（计数器、分频器、寄存器、加法器、译码器、状态机）、8 位总线级电路（原码乘法器、ALU、移位寄存器）、64KB ROM/RAM 与低位交叉存储器、32 位 CPU 与 3072×32 数据存储器（DM）、分层子电路设计与子电路展平（paste/canonicalize）、「只许门电路和触发器、不许用现成芯片/隧道」这类限制，以及 .circ 打不开、显示 E/U、位宽冲突、模块引脚接不上、布线短接的排障。内含 130 条实战坑表（A-M 组：13 进制计数器 13 坑 + 8 位乘法器 13 坑 + 八进制加法器 6 坑 + 3.2 存储器 12 坑 + 2.7.1 CPU/DM 14 坑 + ITA 2.15 31 坑 + 3.9 内核探针 14 坑）、确定性布线工具（lib8/route8）、时序向量封装（sim，<set><seq>）、GUI 截图工具（gui.py）与 5.0 端口坐标表；2.7.1 用 circ271_check / circ271_sim / circ271_ports；ITA 2.15 用 scripts/v215/board215.py 构建 + ita_probe 验证；3.9 用 circ39_check / circ39_save / circ39_run / circ39_debug（3.9 本体内核无头探针，含 overlap 共线重叠扫描）。关键词：logisim、logisim-evolution、logisim 3.9、无头探针、WireRepair、共线重叠、多驱动、logisim 2.7.1、logisim 2.15、logisim 2.16、Logisim-ITA、.circ、数字电路、电路作业、加法器、半加器、全加器、8位ALU、运算器、比较器、移位器、标志位、先行进位、CLA74182、16位加法器、可控加减、溢出标志、乘法器、原码乘法、计数器、模13、八进制、触发器、时序电路、真值表、测试向量、子电路、展平、分线器、数码管、模块外观、restart、netlist、确定性布线、RAM、ROM、存储器、低位交叉、字节使能、64KB、CPU、DM、数据存储器、3×1024×32、字对齐、越界保护、哑终端、TTY、Keyboard、整机测试、CPU 封装、GB2312 点阵。
 ---
 
 # Logisim 电路设计
@@ -107,6 +107,17 @@ python server/server.py --doctor      # 插件：报依赖与自检
 | 构建 | `scripts/v215/board215.py`（实测几何 + Board + 六项自检）+ `gen_adder_lab2.py` / `gen_alu_lab3.py` / `gen_ctrl_lab4.py` |
 | 内嵌 jar | 2.15 用 Launch4j 打包 exe，可从 `PK\x03\x04` 偏移整段切出 jar 喂探针 |
 | 加载报错 | GUI 对话框会吞异常；`ITAProbe` 的 `ProbeLoader` 会打印 `LOADERR`，旧工具用 `LoadTest.java` |
+| TTY 哑终端 | D `(0,-10)`、CLK `(0,0)`、**WR `(10,10)`**、**RST `(20,10)`**；`Char bit width` **只接受 7 / 16**（写 8 直接 LOADERR，K63/K64） |
+| Keyboard | CLK `(0,0)`、RST `(10,10)`、RD `(20,10)`、AVL `(130,10)`、DATA `(140,10)`；`Char bit width` 7/16 |
+| 7-Segment Display | a `(+20,0)`、b `(+30,0)`、c `(+20,+60)`、d `(+10,+60)`、e `(0,+60)`、f `(+10,0)`、g `(0,0)`、dp `(+30,+60)`；`active=true` |
+| Button / LED | 端口都在 `(0,0)`；LED `active=true` 时高电平点亮 |
+| DotMatrix | 列口 `(10i,0)`；16×16 行模式 = 16 个 16 位输入口 |
+| 新增/改名引脚 | **必须引一段线 + 同名 Tunnel**，只贴 label 不会并网（输入进不去、输出恒 `x`，K61） |
+| 门对 U 输入 | 2.15 的 AND/OR 遇 `U` 输出 **`E`**（不是 U）；写使能一类门控改用 2:1 MUX（K62） |
+| 无头读 TTY | `Simulator.tick()` 不产生 `TtyState`；Clock 换 `CLK` Pin 打拍，反射 `TtyState.getRowString`（K65，`tty_read.py`） |
+| 验证 | 2.15 **没有** `-t stats` / `-w`；用 `scripts/v271/ita_probe.py`、`scripts/v215/verify_adder_lab2.py`、`verify_alu_lab3.py`、`verify_lab7_io.py`、`tty_read.py` |
+| 构建 | `scripts/v215/board215.py`（实测几何 + Board + 六项自检）+ `gen_adder_lab2.py` / `gen_alu_lab3.py` / `gen_ctrl_lab4.py` / `gen_lab7_io.py` |
+| 元件几何 | `scripts/v215/geo_probe.py --file X.circ --comp TTY`（任意内置元件 bounds/端口/属性，K61 排查用） |
 
 `circ271_check` / `netcheck.py` 对 2.15 有两类固定误报：前者按原始 2.7.1（门输入 x-50）
 建模，会把 20px 输入短线判成「导线穿元件体」；后者把 Probe 当 0 位宽。
@@ -133,6 +144,14 @@ python server/server.py --doctor      # 插件：报依赖与自检
 > 高 2 位选 4:1 MUX）、姓名显示链路、K41~K52（2.7.1 素材头、复用 ROM 元素、
 > 测试引脚中段 T、隧道压线、子电路端口起点、Counter Q/carry 短接、32→2 分行、
 > bank3 不可达、ROM cs 悬空、Clock 换 Pin、问答地址位数）。
+>
+> 实验7 I/O 接口实验（LED 计数/按键编码/七段驱动/哑终端 + “CPU 子电路 + 整机测试”两总电路）见
+> `references/io215-casebook.md`：I/O 元件实测端口（TTY/Keyboard/7 段/Button/LED/DotMatrix）、
+> 温度计 LED 与 5→4 编码器、TTY 三种用法（扫 ROM 显示内容/UTF-16 姓名/键盘直显）、
+> CPU 拆分三步（去 ROM/RAM/Prog → 改网络名 → 补引脚引线）、程序 ROM 按首条指令归位；
+> K61~K72（引脚 label 不并网、门遇 U 出 E、TTY 位宽 7/16、TTY WR/RST 位置、
+> 无头读 TtyState、无外观子电路、ROM 顺序、全角数字、Pin 重名、`&` 未转义、
+> PowerShell BOM、S-Regs 位序）。
 >
 > 布局间距规范：引脚 `Board.lead()` 80px；同侧多脚 `fan_stub` 横向 20+30i、
 > 纵向 ±25；`fan_bits` 30px；MUX out/sel 40px；寄存器用 `wire_reg()`（cs/preset 悬空）。
@@ -570,6 +589,19 @@ scripts/
 | `references/storage215-casebook.md` | 实验6 存储器 2.15 复盘：D1 4×4K×32→16K×32、16×16 姓名显示、存储器问答、K41~K52 |
 | `scripts/v215/gen_lab6.py` | 实验6 生成器：在 2.7.1 素材上补 D1 字扩展、姓名显示、问答电路 |
 | `scripts/v215/verify_lab6.py` | 实验6 验证：D1 9 个机内码 + 姓名显示 17 行逐拍向量 + ERRCOUNT |
+| `references/io215-casebook.md` | 实验7 I/O 2.15 复盘：I/O 元件端口、LED/编码器/七段驱动、三种 TTY 用法、CPU+整机测试两总电路、K61~K72 |
+| `scripts/v215/gen_lab7_io.py` | 实验7 第一组生成器：LED计数（温度计）、按键编码器（5→4）、七段显示驱动（4→g/f/a/b/e/d/c）、main 主链 |
+| `scripts/v215/gen_lab7_tty.py` | 实验7 哑终端生成器：存储器内容显示（7 位）、姓名显示（UTF-16）、键盘输入显示 |
+| `scripts/v215/verify_lab7_io.py` | 实验7 向量：LED 32 组、编码器单键 6 组、七段 16 组 |
+| `scripts/v215/split_cpu_1_strip.py` | 把「系统连接」拆成纯 CPU：删 4 ROM/4:1 选择器/RAM/Prog，网络改名并加 IR_IN/RAM_A/RAM_RD |
+| `scripts/v215/split_cpu_2_appear_main.py` | 按实际 Pin 坐标生成 CPU 外观，并用 4 片 ROM + 4:1 + RAM + TTY 重建 main 整机测试 |
+| `scripts/v215/split_cpu_3_wire_pins.py` | 给新增/改名引脚补 80px 引线 + 同名隧道（K61） |
+| `scripts/v215/verify_ctrl_modules.py` | 实验4 子模块穷举：ID/PC/IR/Regs/CLK/S-I/B/Flag |
+| `scripts/v215/GeoProbe.java` + `geo_probe.py` | 2.15 内置元件几何探针：bounds/端口/属性（TTY/键盘/数码管/按钮/LED/点阵等） |
+| `scripts/v215/TtyRead.java` + `tty_read.py` | 哑终端无头读：Pin 打拍 + `--set Prog=x` + 反射 `TtyState.getRowString` + `--probe` 坐标电平 |
+| `scripts/v215/patch_clock.py` | 把 Clock 换成 `CLK` 输入引脚，生成可探针测试副本（交付文件仍保留 Clock） |
+| `scripts/common/pdftext.py` | 需求 PDF 取文本（支持 ToUnicode CMaps，能取中文；多用于读实验需求） |
+| `scripts/common/pdfimg.py` | 需求 PDF 导出内嵌图片（DCT→jpg、Flate RGB→png，用来核对电路图） |
 | `scripts/v215/probe_points.py` | 按坐标读运行值 / `--dump`，排查中间网络 |
 | `scripts/v215/test_wide.py` | 最小复现：宽 Pin、分线器、隧道驱动关系 |
 | `scripts/v215/LoadTest.java` | 加载错误探针：覆写 `Loader.showError`，打印被 GUI 吞掉的真实异常 |

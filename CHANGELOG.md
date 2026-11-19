@@ -1,5 +1,14 @@
 # 更新记录
 
+## 未发布 — 3.2 存储器实验（3.9）沉淀
+
+- pitfalls 新增 M11~M14（子电路改名两处、3.9 Mux/AND 端口、加线致并网 E、vals 坐标）
+- VERSIONS 新增「七、3.9 存储器实验（3.2）实测补充」（大端/字节写通道/符号扩展/
+  Except 公式/只读锁存/radix）
+- knowledge.json +5 条 g39-*
+- 新工具 `scripts/v39/gen32.py`（5 电路生成器）、`scripts/v39/restore_block.py`
+  （从另一个 3.9 文件拼回单个电路块）
+
 ## 未发布 — 3.9 内核无头探针工具族（circ39_*）沉淀
 
 - 新增 MCP 工具四件（`server/server.py` + `server/circuit_kit/g39probe.py` +

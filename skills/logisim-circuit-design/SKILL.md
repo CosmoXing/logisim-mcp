@@ -1,6 +1,6 @@
 ---
 name: logisim-circuit-design
-description: 用代码生成、检查和验证 Logisim（5.0 / 3.9 / 2.7.1 / ITA 2.15·2.16）(.circ) 数字电路。适用于门级作业（计数器、分频器、寄存器、加法器、译码器、状态机）、8 位总线级电路（原码乘法器、ALU、移位寄存器）、64KB ROM/RAM 与低位交叉存储器、32 位 CPU 与 3072×32 数据存储器（DM）、分层子电路设计与子电路展平（paste/canonicalize）、「只许门电路和触发器、不许用现成芯片/隧道」这类限制，以及 .circ 打不开、显示 E/U、位宽冲突、模块引脚接不上、布线短接的排障。内含 112 条实战坑表（A-M 组：13 进制计数器 13 坑 + 8 位乘法器 13 坑 + 八进制加法器 6 坑 + 3.2 存储器 12 坑 + 2.7.1 CPU/DM 14 坑 + ITA 2.15 19 坑 + 3.9 内核探针 10 坑）、确定性布线工具（lib8/route8）、时序向量封装（sim，<set><seq>）、GUI 截图工具（gui.py）与 5.0 端口坐标表；2.7.1 用 circ271_check / circ271_sim / circ271_ports；ITA 2.15 用 scripts/v215/board215.py 构建 + ita_probe 验证；3.9 用 circ39_check / circ39_save / circ39_run / circ39_debug（3.9 本体内核无头探针，含 overlap 共线重叠扫描）。关键词：logisim、logisim-evolution、logisim 3.9、无头探针、WireRepair、共线重叠、多驱动、logisim 2.7.1、logisim 2.15、logisim 2.16、Logisim-ITA、.circ、数字电路、电路作业、加法器、半加器、全加器、8位ALU、运算器、比较器、移位器、标志位、先行进位、CLA74182、16位加法器、可控加减、溢出标志、乘法器、原码乘法、计数器、模13、八进制、触发器、时序电路、真值表、测试向量、子电路、展平、分线器、数码管、模块外观、restart、netlist、确定性布线、RAM、ROM、存储器、低位交叉、字节使能、64KB、CPU、DM、数据存储器、3×1024×32、字对齐、越界保护。
+description: 用代码生成、检查和验证 Logisim（5.0 / 3.9 / 2.7.1 / ITA 2.15·2.16）(.circ) 数字电路。适用于门级作业（计数器、分频器、寄存器、加法器、译码器、状态机）、8 位总线级电路（原码乘法器、ALU、移位寄存器）、64KB ROM/RAM 与低位交叉存储器、32 位 CPU 与 3072×32 数据存储器（DM）、分层子电路设计与子电路展平（paste/canonicalize）、「只许门电路和触发器、不许用现成芯片/隧道」这类限制，以及 .circ 打不开、显示 E/U、位宽冲突、模块引脚接不上、布线短接的排障。内含 116 条实战坑表（A-M 组：13 进制计数器 13 坑 + 8 位乘法器 13 坑 + 八进制加法器 6 坑 + 3.2 存储器 12 坑 + 2.7.1 CPU/DM 14 坑 + ITA 2.15 19 坑 + 3.9 内核探针 14 坑）、确定性布线工具（lib8/route8）、时序向量封装（sim，<set><seq>）、GUI 截图工具（gui.py）与 5.0 端口坐标表；2.7.1 用 circ271_check / circ271_sim / circ271_ports；ITA 2.15 用 scripts/v215/board215.py 构建 + ita_probe 验证；3.9 用 circ39_check / circ39_save / circ39_run / circ39_debug（3.9 本体内核无头探针，含 overlap 共线重叠扫描）。关键词：logisim、logisim-evolution、logisim 3.9、无头探针、WireRepair、共线重叠、多驱动、logisim 2.7.1、logisim 2.15、logisim 2.16、Logisim-ITA、.circ、数字电路、电路作业、加法器、半加器、全加器、8位ALU、运算器、比较器、移位器、标志位、先行进位、CLA74182、16位加法器、可控加减、溢出标志、乘法器、原码乘法、计数器、模13、八进制、触发器、时序电路、真值表、测试向量、子电路、展平、分线器、数码管、模块外观、restart、netlist、确定性布线、RAM、ROM、存储器、低位交叉、字节使能、64KB、CPU、DM、数据存储器、3×1024×32、字对齐、越界保护。
 ---
 
 # Logisim 电路设计
@@ -10,6 +10,7 @@ description: 用代码生成、检查和验证 Logisim（5.0 / 3.9 / 2.7.1 / ITA
 | 路径 | 适合 | 入口 |
 |---|---|---|
 | A. MCP 工具（推荐） | 要交付、要可验证、连线复杂 | `circ_build` / `circ_audit` / `circ_sim` / `circuit_truth_table` / `circ_appearance`；**2.7.1 用 `circ271_check` / `circ271_sim` / `circ271_ports`；3.9 迁移/无头验证用 `circ39_check` / `circ39_save` / `circ39_run` / `circ39_debug`** |
+| B2. 3.9 存储器作业 | 学生给的 3.2 类题目（RAM/ROM/字字节双模式） | `scripts/v39/gen32.py`（5 电路生成器）+ `circ39_check/save/run/debug` 验证 |
 | B. 手写脚本 | 环境里没有 MCP、或只想微调一个文件 | `scripts/v50/logisim_gen.py` + `scripts/v50/router.py` + `scripts/v50/verify.py`；存储器用 `scripts/v50/mem_gen.py` |
 
 两条路的几何常量、布线规则、踩坑记录是同一套。先读第 1 节的版本前提，这是最容易翻车的地方。

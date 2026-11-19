@@ -142,3 +142,17 @@ ver = detect("xxx.circ")  # -> '5.0' / '2.16' / '2.7.1'
 jar 定位：`LOGISIM39_JAR` → `logisim.local.json` 的 `logisim39_jar` → 常见安装位置。
 `overlap` 为纯 XML 扫描（真短路 / 冗余重叠分类）；`multi` 已把 Splitter/Tunnel 端按 io 计。
 关键实测：Register 端口 D=+30、en=+50、clk=+70；WireRepair 会裁穿体线、合并共线重叠、拆 T 结点。
+
+## 七、3.9 存储器实验（3.2）实测补充
+
+- **大端**：32→4 分线器 bit24-31→bank0 … bit0-7→bank3，字读拼回才是 `12345678`。
+- **字节写**：每个 bank 的 D 恒取自己那一路字节，用 `A[1:0]` 经 2→4 译码分别选通写使能；
+  不能"先按 A[1:0] 选字节再送所有 bank"。
+- **字节读**：Bit Extender 用 `sign`（手册要 `00000012` / `FFFFFFEE`）。
+- **Except** = `(MemRead ∨ MemWrite) ∧ ¬MCntrl ∧ (A[1] ∨ A[0])`；只拨地址不报，读写才报。
+- **写使能** = `MemWrite ∧ ¬MemRead ∧ ¬Except`（两个控制信号同时为 1 时不写，防误触）。
+- **输出寄存器** 只读锁存 `en = MemRead ∧ ¬Except`，写操作不刷新数码管。
+- 多比特引脚一律 `radix="16"`（地址/数据），否则二进制输入与手册对不上。
+- 生成器：`scripts/v39/gen32.py`（5 电路：main / RAMModule / rom64k / bank8 / rom_test）。
+- 工具：`scripts/v39/restore_block.py`（把某电路块从一个 3.9 文件拼回另一个）。
+- 已知未解：把 ROM 经 SEL+32 位 Mux 并入 `main` 后写使能网变 E（见 pitfalls M13）。

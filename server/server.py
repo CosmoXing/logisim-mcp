@@ -57,6 +57,8 @@ from circuit_kit import g39probe as kit_g39  # noqa: E402
 from circuit_kit import knowledge as kit_kb  # noqa: E402
 from circuit_kit import logisim_bridge as kit_bridge  # noqa: E402
 from circuit_kit import netlist as kit_net  # noqa: E402
+from circuit_kit import v41probe as kit_41  # noqa: E402
+from circuit_kit import vprofile as kit_vp  # noqa: E402
 
 SERVER_NAME = "logisim"
 
@@ -126,7 +128,9 @@ def find_all_jars():
 
     顺序：LOGISIM_JAR > 本地配置 > 插件 runtime/ > 插件数据目录 > 系统安装位置 > 当前目录。
     """
-    local_cfg = _local_config().get("jar", "")
+    cfg = _local_config()
+    local_cfg = cfg.get("jar", "")
+    jar41 = str(cfg.get("logisim41_jar", "")).strip()
     prog = os.environ.get("ProgramFiles", r"C://Program Files")
     progx = os.environ.get("ProgramFiles(x86)", r"C://Program Files (x86)")
     local_app = os.environ.get("LOCALAPPDATA", "")
@@ -136,6 +140,8 @@ def find_all_jars():
     roots = [
         LOGISIM_HOME_HINT,
         os.path.dirname(local_cfg) if local_cfg else "",
+        os.path.dirname(jar41) if jar41 else "",
+        "D:/logisim4.1/app",
         os.path.join(PLUGIN_ROOT, "runtime"),
         os.path.join(data_dir, "runtime") if data_dir else "",
         os.path.join(prog, "logisim-evolution", "app"),
@@ -146,10 +152,12 @@ def find_all_jars():
         os.getcwd(),
     ]
     seen, out = set(), []
-    if local_cfg and os.path.isfile(local_cfg):
-        real = os.path.abspath(local_cfg)
-        seen.add(real)
-        out.append(real)
+    for pref in (local_cfg, jar41):
+        if pref and os.path.isfile(pref):
+            real = os.path.abspath(pref)
+            if real not in seen:
+                seen.add(real)
+                out.append(real)
     for root in roots:
         if not root or not os.path.isdir(root):
             continue
@@ -193,10 +201,22 @@ def find_java() -> str:
 
 
 def find_launcher() -> str:
-    """jpackage 启动器（带 GUI），用于 Open GUI。可用 logisim.local.json 的 launcher 指定。"""
+    """jpackage 启动器（带 GUI），用于 Open GUI。
+
+    4.1 档位优先用 logisim.local.json 的 launcher41，其次 D:/logisim4.1/logisim-evolution.exe；
+    其余情况用 launcher / Program Files 下的安装。
+    """
+    cfg = _local_config()
     prog = os.environ.get("ProgramFiles", r"C:\Program Files")
-    candidates = [
-        str(_local_config().get("launcher", "")),
+    candidates = []
+    if kit_vp.is_41():
+        candidates += [
+            str(cfg.get("launcher41", "")),
+            "D:/logisim4.1/logisim-evolution.exe",
+            os.path.join(prog, "logisim-evolution", "logisim-evolution.exe"),
+        ]
+    candidates += [
+        str(cfg.get("launcher", "")),
         os.path.join(prog, "logisim-evolution", "Logisim-evolution.exe"),
         os.path.join(prog, "logisim-evolution", "logisim-evolution.exe"),
     ]
@@ -208,6 +228,8 @@ def find_launcher() -> str:
 
 JAVA = find_java()
 JAR = find_jar()
+# 用实际内核校准几何档位（4.1 的子电路符号与 5.0 不同）；LOGISIM_PROFILE 优先。
+PROFILE = kit_vp.set_from_jar(JAR)
 
 
 def _decode(raw):
@@ -594,29 +616,32 @@ def build_circuit(spec):
                 raise ValueError(f"门 {g['id']} 引用了不存在的信号 {src}")
             py = gy + gate_input_offsets(n)[idx]
             tunnel(gx - 80, py, src, facing="west")
-            # 终点取 gx-20：门宽 30 或 40 都会正好穿过输入端口
-            wire(gx - 80, py, gx - 20, py)
+            # 4.1/5.0 的输入口都在 loc.x - 门宽（AND/OR 50、XOR/NAND/NOR 60、NOT 30）
+            wire(gx - 80, py, gx - kit_geo.gate_width(g["_type"]), py)
 
     for o in outputs:
         src = str(o["from"])
         if src not in gl:
             raise ValueError(f"输出 {o['name']} 引用了不存在的信号 {src}")
         oy = out_y[str(o["name"])]
+        out_attr = ('<a name="output" val="true"/>' if kit_vp.get("pin_attr") == "output"
+                    else '<a name="type" val="output"/>')
         comps.append(
             f'    <comp lib="0" loc="({out_x},{oy})" name="Pin">'
-            f'<a name="facing" val="west"/><a name="output" val="true"/>'
+            f'<a name="facing" val="west"/>{out_attr}'
             f'<a name="label" val="{_esc(o["name"])}"/></comp>'
         )
         tunnel(out_x - 60, oy, src)
         wire(out_x - 60, oy, out_x, oy)
 
     cname = spec.get("circuit_name", "main")
+    libs = "\n".join(f'  <lib desc="{d}" name="{n}"/>' for d, n in
+                     (kit_vp.get("lib_decls") or [("#Wiring", "0"), ("#Gates", "1")]))
     body = "\n".join(
         [
             '<?xml version="1.0" encoding="UTF-8" standalone="no"?>',
-            '<project source="3.9.0" version="1.0">',
-            '  <lib desc="#Wiring" name="0"/>',
-            '  <lib desc="#Gates" name="1"/>',
+            f'<project source="{kit_vp.version_string()}" version="1.0">',
+            libs,
             f'  <main name="{_esc(cname)}"/>',
             "  <options/>",
             "  <mappings/>",
@@ -1029,6 +1054,40 @@ TOOLS = [
             "required": ["file", "mode"],
         },
     },
+    {
+        "name": "circ41_check",
+        "description": (
+            "用 Logisim-evolution 4.1 内核（无头）真实加载 .circ：返回加载错误、主电路与电路清单。"
+            "4.1 的库索引是 Wiring0/Gates1/Plexers2/Arithmetic3/Memory5/I/O6/Base9，"
+            "子电路符号固定 220 宽、20px 间距；交付前用这个工具确认文件真能打开。"
+            "需要 4.1 jar（LOGISIM41_JAR / logisim.local.json 的 logisim41_jar / D:/logisim4.1/app 自动搜索）。"
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {"file": {"type": "string", "description": ".circ 文件绝对路径"}},
+            "required": ["file"],
+        },
+    },
+    {
+        "name": "circ41_ports",
+        "description": (
+            "用 4.1 内核读取元件的真实端口坐标与包围盒（factory 留空列全部）。"
+            "用途：核对生成的连线是否落在端口上、子电路实例是否按 220 宽/20px 间距排布、"
+            "元件体是否压线。返回每行形如 name@(x,y) bounds=(x,y): w,h : #0=(x,y) w1OUT ..."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "file": {"type": "string"},
+                "circuit": {"type": "string", "description": "电路名，默认 main"},
+                "factory": {"type": "string",
+                            "description": "精确工厂名（如 'AND Gate'、'HA'、'Register'）；留空=全部"},
+                "mode": {"type": "string", "enum": ["ports", "bounds"],
+                         "description": "ports=端口+包围盒（默认）；bounds=只要包围盒"},
+            },
+            "required": ["file"],
+        },
+    },
 ]
 
 
@@ -1258,16 +1317,21 @@ def call_tool(name, args):
                                           timeout=30).stderr).splitlines()[0]
         except Exception:
             java_ver = "未知"
-        caps = ["-t table 真值表", "-t stats 统计", "-t speed 仿真速度", "-t tty 需电路含 TTY 组件"]
+        caps = ["-t table 真值表", "-t stats 统计"]
+        if kit_vp.get("speed"):
+            caps.append("-t speed 仿真速度")
+        else:
+            caps.append("-t speed 该版本无控制台输出（已标记不支持）")
+        caps.append("-t tty 需电路含 TTY 组件")
         major = 0
         try:
             major = int(ver.split(".")[0])
         except Exception:
             pass
-        if major >= 5:
+        if major >= 3:
             caps.append("-w 原生测试向量（只能验组合逻辑：每行都从初始状态重算）")
         else:
-            caps.append("-w 需要 5.0+，当前版本不支持")
+            caps.append("-w 需要 evolution 3.x+，当前版本不支持")
         ita_jar = str(_local_config().get("ita_jar", "")).strip()
         if ita_jar and not os.path.isfile(ita_jar):
             ita_jar = f"{ita_jar}（文件不存在）"
@@ -1275,6 +1339,13 @@ def call_tool(name, args):
             ita_jar = "未配置（在 logisim.local.json 写 ita_jar，或设 LOGISIM_ITA_JAR）"
         info = {
             "版本": ver,
+            "几何档位": {
+                "profile": kit_vp.active_key(),
+                "写入版本": kit_vp.version_string(),
+                "子电路符号": kit_vp.get("note"),
+                "库索引": kit_vp.get("libs"),
+                "切换": "环境变量 LOGISIM_PROFILE=4.1 / 5.0，或让 LOGISIM_JAR 指向对应 jar",
+            },
             "当前选用": JAR or "未找到（设置 LOGISIM_JAR）",
             "本机其他内核": [j for j in find_all_jars() if os.path.abspath(j) != os.path.abspath(JAR)] or "无",
             "java": JAVA,
@@ -1286,7 +1357,17 @@ def call_tool(name, args):
             "扩展工具": ["circ_geometry", "circ_probe", "circ_audit", "circ_sim", "circ_build",
                          "circ_kb", "circ_appearance",
                          "circ271_check", "circ271_sim", "circ271_ports",
-                         "circ39_check", "circ39_save", "circ39_run", "circ39_debug"],
+                         "circ39_check", "circ39_save", "circ39_run", "circ39_debug",
+                         "circ41_check", "circ41_ports"],
+            "4.1支持": {
+                "工具": ["circ41_check", "circ41_ports"],
+                "内核": (kit_41.find_jar41()
+                         or "未找到（设 LOGISIM41_JAR 或在 logisim.local.json 写 logisim41_jar）"),
+                "几何": "门/触发器/分线器/多路器与 5.0 相同；子电路实例固定 220 宽、20px 间距、"
+                        "高度=20*max(入,出)+20，锚点在右边缘第一个输出口",
+                "格式": "lib 索引 Wiring0/Gates1/Plexers2/Arithmetic3/Memory5/I/O6/Base9；"
+                        "引脚 <a name=\"type\" val=\"output\"/>；建议 circuitnamedboxfixedsize=true",
+            },
             "3.9探针": {
                 "工具": ["circ39_check", "circ39_save", "circ39_run", "circ39_debug"],
                 "内核": (kit_g39.find_jar39()
@@ -1629,6 +1710,25 @@ def call_tool(name, args):
             return False, f"探针超时（> {args.get('timeout', 300)}s）"
         return True, out.strip()
 
+    if name in ("circ41_check", "circ41_ports"):
+        f = os.path.abspath(args["file"])
+        if not os.path.isfile(f):
+            return False, f"文件不存在: {f}"
+        try:
+            if name == "circ41_check":
+                out = kit_41.check(f)
+            else:
+                cn = args.get("circuit", "main") or "main"
+                if (args.get("mode") or "ports") == "bounds":
+                    out = kit_41.bounds(f, cn)
+                else:
+                    out = kit_41.ports(f, cn, args.get("factory", "") or "")
+        except RuntimeError as exc:
+            return False, str(exc)
+        except subprocess.TimeoutExpired:
+            return False, "4.1 探针超时"
+        return True, out.strip()
+
     if name == "circ_kb":
         act = args.get("action")
         if act == "list":
@@ -1723,6 +1823,8 @@ def doctor():
     ok_java = os.path.isfile(JAVA) or bool(shutil.which(JAVA))
     out.append(f"  java 可用: {'是' if ok_java else '否（-t table / -w 都会失败）'}")
     out.append(f"内核 jar   : {JAR or '未找到'}")
+    out.append(f"几何档位   : {kit_vp.active_key()}（写入 source={kit_vp.version_string()}，"
+               f"子电路 {'固定 220/20px' if kit_vp.is_41() else '动态宽/10px'}）")
     if JAR:
         out.append(f"  jar 可用 : 是 ({os.path.basename(JAR)})")
     else:
@@ -1783,7 +1885,8 @@ def main():
             stream.reconfigure(encoding="utf-8")
         except Exception:
             pass
-    print(f"[{SERVER_NAME}] jar={JAR or '未找到'} java={JAVA}", file=sys.stderr, flush=True)
+    print(f"[{SERVER_NAME}] jar={JAR or '未找到'} java={JAVA} profile={kit_vp.active_key()}",
+          file=sys.stderr, flush=True)
     for line in sys.stdin:
         line = line.strip()
         if not line:

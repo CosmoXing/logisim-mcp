@@ -1,5 +1,27 @@
 # 更新记录
 
+## 未发布 — Logisim-evolution 4.1.0 适配
+
+- 不新增第二个 MCP 入口：仍然是 `logisim`，用 `LOGISIM_PROFILE=4.1` +
+  `LOGISIM_JAR` 指到 4.1 jar 即可；工具名、调用方式都不变
+- 新增 `circuit_kit/vprofile.py`：版本档位层，集中管理 4.1 / 5.0 的库索引、子电路几何、
+  引脚写法与 CLI 能力；`LOGISIM_PROFILE` 优先，其次按 jar 文件名自动识别
+- 4.1 子电路符号按 `DefaultEvolutionAppearance` 实现：固定 220 宽、20px 间距、
+  锚点在东边第一个输出口、高度 `20*max(入,出)+20`；生成时写
+  `appearance=logisim_evolution` + `circuitnamedboxfixedsize=true`
+- `netlist.parse` 记录 `<project source>`，解析/体检/仿真按文件自身版本选子电路几何，
+  4.1 文件不再误报悬空端口
+- `router.project` 按档位输出 `source=4.1.0` 与 Memory5 / I/O6 / Base9 的库索引
+- `circuit_build`（旧版隧道生成器）按档位写引脚 `type=output`、门输入线终点改到
+  真实门宽（4.1/5.0 的输入口在 `loc.x-50/-60/-70`）
+- 新增 `circ41_check` / `circ41_ports`：编译 `server/java/src/g41probe`（`javac --release 21`）
+  用 4.1 内核真实加载 .circ、打印端口与包围盒
+- `logisim_info` / `--doctor` 增加「几何档位」；4.1 的 `-t speed` 标记为无输出，
+  `-w` 判定从 “5.0+” 改为 “evolution 3.x+”
+- 文档：新增 `references/logisim41.md`（实测端口表、220 规则、1120.circ 对照、
+  排错顺序），SKILL.md / README 增加 4.1 档位与工具入口
+- 自检 42 项全部通过（含 4.1 引擎的真值表 / -w / 加载交叉复核）
+
 ## 未发布 — 3.9 单周期 MIPS CPU（复用 3.1/3.3/3.4 部件）沉淀
 
 - pitfalls 新增 18 条 g39-*：Pin 输出属性、circ-anchor、实例端口公式、端口映射错位、

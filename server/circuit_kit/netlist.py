@@ -4,8 +4,9 @@
 纯内点交叉不导通；共线相接的导线等价合并。
 """
 
-import math
 import xml.etree.ElementTree as ET
+
+from . import vprofile
 
 
 def gate_ports(kind, inputs):
@@ -131,44 +132,13 @@ def decoder_body(select, facing="east"):
     return _mirror_body(body) if str(facing).lower() == "west" else body
 
 
-def _round10(v):
-    return int(math.floor(v / 10.0 + 0.5)) * 10
+def sub_port_offsets(pins, source=""):
+    """pins: [(label, x, y, facing)] → {label: (dx, dy)} 相对实例 loc。
 
-
-def _dim(mx, others):
-    if mx < 3:
-        return 30
-    return 10 * mx if others == 0 else 10 * mx + 10
-
-
-def _offs(n, opp, max_others):
-    mx = max(n, opp)
-    if mx <= 1:
-        base = 15 if max_others == 0 else 10
-    elif mx == 2:
-        base = 10
-    else:
-        base = 5 if max_others == 0 else 10
-    return base + 10 * ((mx - n) // 2)
-
-
-def sub_port_offsets(pins):
-    """pins: [(label, x, y, facing)] → {label: (dx, dy)} 相对实例 loc。"""
-    west = sorted([p for p in pins if p[3] == "east"], key=lambda p: (p[2], p[1]))
-    east = sorted([p for p in pins if p[3] == "west"], key=lambda p: (p[2], p[1]))
-    nw, ne = len(west), len(east)
-    max_h = max(nw, ne)
-    oe, ow = _offs(ne, nw, 0), _offs(nw, ne, 0)
-    width = _dim(0, max_h)
-    ax = width if ne > 0 else 0
-    ay = oe if ne > 0 else 0
-    rx, ry = _round10(50 + ax), _round10(50 + ay)
-    out = {}
-    for i, (lab, *_rest) in enumerate(west):
-        out[lab] = (rx - (rx + ax), ry + ow + 10 * i - (ry + ay))
-    for j, (lab, *_rest) in enumerate(east):
-        out[lab] = (rx + width - (rx + ax), ry + oe + 10 * j - (ry + ay))
-    return out
+    source 为 .circ 的 <project source="...">：4.1 走固定 220 宽、20px 间距的规则；
+    其余（3.9 / 5.0 / 2.x）沿用经典公式。
+    """
+    return vprofile.sub_geometry(pins, source)[1]
 
 
 def instance_ports(child):
@@ -188,7 +158,8 @@ def instance_ports(child):
                 out[label] = (sx - ax, sy - ay)
         if out:
             return out
-    return sub_port_offsets([(l, x, y, f) for (l, x, y, f, k, w) in child.pins])
+    return sub_port_offsets([(l, x, y, f) for (l, x, y, f, k, w) in child.pins],
+                            getattr(child, "source", ""))
 
 
 class Comp:
@@ -199,6 +170,7 @@ class Comp:
 class Circuit:
     def __init__(self, name):
         self.name = name
+        self.source = ""      # <project source="4.1.0">：决定子电路符号几何
         self.comps, self.wires, self.pins = [], [], []
         self.aports = []   # 自定义外观的符号端口：[(dir, pin_x, pin_y, sym_x, sym_y)]
         self.anchor = (0, 0)   # <circ-anchor>：circ-port 的 x/y 是相对它的，不是相对 loc
@@ -211,9 +183,11 @@ def _point(text):
 
 def parse(path):
     root = ET.parse(path).getroot()
+    source = root.get("source", "")
     circuits = {}
     for c in root.findall("circuit"):
         circ = Circuit(c.get("name"))
+        circ.source = source
         for comp in c.findall("comp"):
             attrs = {a.get("name"): a.get("val") for a in comp.findall("a")}
             x, y = _point(comp.get("loc", "(0,0)"))

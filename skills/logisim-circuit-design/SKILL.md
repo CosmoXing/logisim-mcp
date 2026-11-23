@@ -1,6 +1,6 @@
 ---
 name: logisim-circuit-design
-description: 用代码生成、检查和验证 Logisim（5.0 / 3.9 / 2.7.1 / ITA 2.15·2.16）(.circ) 数字电路。适用于门级作业（计数器、分频器、寄存器、加法器、译码器、状态机）、8 位总线级电路（原码乘法器、ALU、移位寄存器）、64KB ROM/RAM 与低位交叉存储器、32 位 CPU 与 3072×32 数据存储器（DM）、分层子电路设计与子电路展平（paste/canonicalize）、「只许门电路和触发器、不许用现成芯片/隧道」这类限制，以及 .circ 打不开、显示 E/U、位宽冲突、模块引脚接不上、布线短接的排障。内含 130 条实战坑表（A-M 组：13 进制计数器 13 坑 + 8 位乘法器 13 坑 + 八进制加法器 6 坑 + 3.2 存储器 12 坑 + 2.7.1 CPU/DM 14 坑 + ITA 2.15 31 坑 + 3.9 内核探针 14 坑）、确定性布线工具（lib8/route8）、时序向量封装（sim，<set><seq>）、GUI 截图工具（gui.py）与 5.0 端口坐标表；2.7.1 用 circ271_check / circ271_sim / circ271_ports；ITA 2.15 用 scripts/v215/board215.py 构建 + ita_probe 验证；3.9 用 circ39_check / circ39_save / circ39_run / circ39_debug（3.9 本体内核无头探针，含 overlap 共线重叠扫描）。关键词：logisim、logisim-evolution、logisim 3.9、无头探针、WireRepair、共线重叠、多驱动、logisim 2.7.1、logisim 2.15、logisim 2.16、Logisim-ITA、.circ、数字电路、电路作业、加法器、半加器、全加器、8位ALU、运算器、比较器、移位器、标志位、先行进位、CLA74182、16位加法器、可控加减、溢出标志、乘法器、原码乘法、计数器、模13、八进制、触发器、时序电路、真值表、测试向量、子电路、展平、分线器、数码管、模块外观、restart、netlist、确定性布线、RAM、ROM、存储器、低位交叉、字节使能、64KB、CPU、DM、数据存储器、3×1024×32、字对齐、越界保护、哑终端、TTY、Keyboard、整机测试、CPU 封装、GB2312 点阵。
+description: 用代码生成、检查和验证 Logisim（5.0 / 4.1 / 3.9 / 2.7.1 / ITA 2.15·2.16）(.circ) 数字电路。适用于门级作业（计数器、分频器、寄存器、加法器、译码器、状态机）、8 位总线级电路（原码乘法器、ALU、移位寄存器）、64KB ROM/RAM 与低位交叉存储器、32 位 CPU 与 3072×32 数据存储器（DM）、分层子电路设计与子电路展平（paste/canonicalize）、「只许门电路和触发器、不许用现成芯片/隧道」这类限制，以及 .circ 打不开、显示 E/U、位宽冲突、模块引脚接不上、布线短接的排障。内含 130 条实战坑表（A-M 组：13 进制计数器 13 坑 + 8 位乘法器 13 坑 + 八进制加法器 6 坑 + 3.2 存储器 12 坑 + 2.7.1 CPU/DM 14 坑 + ITA 2.15 31 坑 + 3.9 内核探针 14 坑）、确定性布线工具（lib8/route8）、时序向量封装（sim，<set><seq>）、GUI 截图工具（gui.py）与 5.0 端口坐标表；2.7.1 用 circ271_check / circ271_sim / circ271_ports；ITA 2.15 用 scripts/v215/board215.py 构建 + ita_probe 验证；3.9 用 circ39_check / circ39_save / circ39_run / circ39_debug（3.9 本体内核无头探针，含 overlap 共线重叠扫描）；4.1 用 circ41_check / circ41_ports（子电路固定 220 宽、20px 间距，见 references/logisim41.md）。关键词：logisim、logisim-evolution、logisim 4.1、logisim 3.9、无头探针、WireRepair、共线重叠、多驱动、logisim 2.7.1、logisim 2.15、logisim 2.16、Logisim-ITA、.circ、数字电路、电路作业、加法器、半加器、全加器、8位ALU、运算器、比较器、移位器、标志位、先行进位、CLA74182、16位加法器、可控加减、溢出标志、乘法器、原码乘法、计数器、模13、八进制、触发器、时序电路、真值表、测试向量、子电路、展平、分线器、数码管、模块外观、restart、netlist、确定性布线、RAM、ROM、存储器、低位交叉、字节使能、64KB、CPU、DM、数据存储器、3×1024×32、字对齐、越界保护、哑终端、TTY、Keyboard、整机测试、CPU 封装、GB2312 点阵。
 ---
 
 # Logisim 电路设计
@@ -9,7 +9,7 @@ description: 用代码生成、检查和验证 Logisim（5.0 / 3.9 / 2.7.1 / ITA
 
 | 路径 | 适合 | 入口 |
 |---|---|---|
-| A. MCP 工具（推荐） | 要交付、要可验证、连线复杂 | `circ_build` / `circ_audit` / `circ_sim` / `circuit_truth_table` / `circ_appearance`；**2.7.1 用 `circ271_check` / `circ271_sim` / `circ271_ports`；3.9 迁移/无头验证用 `circ39_check` / `circ39_save` / `circ39_run` / `circ39_debug`** |
+| A. MCP 工具（推荐） | 要交付、要可验证、连线复杂 | `circ_build` / `circ_audit` / `circ_sim` / `circuit_truth_table` / `circ_appearance`；**2.7.1 用 `circ271_check` / `circ271_sim` / `circ271_ports`；3.9 迁移/无头验证用 `circ39_check` / `circ39_save` / `circ39_run` / `circ39_debug`；4.1 用 `circ41_check` / `circ41_ports`** |
 | B2. 3.9 存储器作业 | 学生给的 3.2 类题目（RAM/ROM/字字节双模式） | `scripts/v39/gen32.py`（5 电路生成器）+ `circ39_check/save/run/debug` 验证 |
 | B3. 3.9 单周期 CPU | 课程给 3.1/3.3/3.4 部件，要拼 9 条指令整机 | `scripts/v39/gen_cpu39.py` 生成 + `scripts/v39/probe39.py` 无头验 6 个程序 |
 | B. 手写脚本 | 环境里没有 MCP、或只想微调一个文件 | `scripts/v50/logisim_gen.py` + `scripts/v50/router.py` + `scripts/v50/verify.py`；存储器用 `scripts/v50/mem_gen.py` |
@@ -47,6 +47,17 @@ python server/server.py --doctor      # 插件：报依赖与自检
 - 脚本/本地 CLI：`<plugin>/logisim.local.json` → `jar`（`launcher` 可指向 jpackage 的 exe）
 - 优先级：`LOGISIM_JAR` 环境变量 > `logisim.local.json` > `runtime/` > 数据目录 > 系统安装
 - 换完必须**重启 MCP 进程**（改的是启动环境变量），否则工具仍用旧内核。
+
+**4.1.0（jpackage 安装版）——单独一档，细节见 `references/logisim41.md`：**
+
+| 项 | 4.1 实测 |
+|---|---|
+| 库索引 | Wiring0 / Gates1 / Plexers2 / Arithmetic3 / Memory**5** / I/O**6** / Base**9** |
+| 引脚 | `<a name="type" val="output"/>` |
+| 门/触发器/分线器/寄存器/RAM | 与 5.0 相同；触发器**必须写 `appearance=classic`**，否则是 60×60 的 evolution 外观 |
+| 子电路实例 | **固定 220 宽**，端口 20px 间距；输入 `loc.x-220`，输出 `loc.x`；高度 `20*max(入,出)+20`；写 `circuitnamedboxfixedsize=true` |
+| CLI | `-t table` / `-t stats` / `-w` / `-n` 可用；`-t speed` 无输出；`-b <file>` 是新的无头加载检查 |
+| MCP | 仍是 `logisim` 入口（`LOGISIM_PROFILE=4.1`）；新增工具 `circ41_check` / `circ41_ports` |
 
 | 子电路端口 | `loc.x-30` 起、10px | 按 facing 分边，锚点落在东边第一个口 | 按侧/顺序 10px 打包，与内部 Pin 坐标无关 |
 | Splitter 分支 | `(20, -10*(n-i))` | 取决于 appear | east `y-10*fanout+10*i`；west `y+10*(i+1)` |

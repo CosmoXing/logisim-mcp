@@ -1,14 +1,19 @@
-"""Logisim-evolution 5.0 电路库：精确几何 + 迷宫布线 + XML 输出。
+"""Logisim-evolution 电路库：精确几何 + 迷宫布线 + XML 输出。
 
-几何依据（v5.0.0 源码，非经验值）：
+几何依据（源码，非经验值）：
   AbstractGate.getInputOffset : 输入口 x = -(size + bonus)，默认 size=50；XOR bonus=10
   AbstractGate.computePorts   : 输出口 (0,0)
   AbstractFlipFlop.updatePorts: classic 外观 D/T(-40,+20) CLK(-40,0) Q(0,0) ~Q(0,+20) R(-10,+30) S(-30,+30)
-  DefaultClassicAppearance    : 子电路端口按 facing 分边、10px 间距，锚点落在东边口
+  子电路：
+    5.0  DefaultClassicAppearance : 按 facing 分边、10px 间距，锚点落在东边口
+    4.1  DefaultEvolutionAppearance(fixedSize) : 固定 220 宽、20px 间距，锚点在东边第一个口
+  具体走哪个档位由 vprofile 决定（LOGISIM_PROFILE / jar 文件名）。
 """
 
 import heapq
 from xml.sax.saxutils import escape as _xml_escape
+
+from . import vprofile
 
 GRID = 10
 
@@ -17,11 +22,9 @@ def _esc(value):
     """XML 属性转义：标签里出现 & < > " ' 时不能直接拼进文档。"""
     return _xml_escape(str(value), {'"': "&quot;", "'": "&apos;"})
 
-WIRE_LIB = "0"
-GATE_LIB = "1"
-MEM_LIB = "4"
-IO_LIB = "5"
-BASE_LIB = "8"
+
+def _lib(kind):
+    return vprofile.lib(kind)
 
 # ---------------------------------------------------------------- 组件几何
 # body: (x0, y0, x1, y1) 相对 loc；ports: name -> (dx, dy)
@@ -64,46 +67,13 @@ def _splitter4_geom():
                        "b2": (20, 0), "b3": (20, 10)})
 
 
-def _r10(v):
-    import math
-    return int(math.floor(v / 10.0 + 0.5)) * 10
-
-
-def _dim(mx, others):
-    if mx < 3:
-        return 30
-    return 10 * mx if others == 0 else 10 * mx + 10
-
-
-def _offs(n, opp, max_others):
-    mx = max(n, opp)
-    if mx <= 1:
-        base = 15 if max_others == 0 else 10
-    elif mx == 2:
-        base = 10
-    else:
-        base = 5 if max_others == 0 else 10
-    return base + 10 * ((mx - n) // 2)
-
-
 def sub_geom(pins):
-    """pins: [(label, x, y, facing)] -> (body, {label:(dx,dy)})"""
-    west = sorted([p for p in pins if p[3] == "east"], key=lambda p: (p[2], p[1]))
-    east = sorted([p for p in pins if p[3] == "west"], key=lambda p: (p[2], p[1]))
-    nw, ne = len(west), len(east)
-    mh = max(nw, ne)
-    oe, ow = _offs(ne, nw, 0), _offs(nw, ne, 0)
-    width, height = _dim(0, mh), _dim(mh, 0)
-    ax = width if ne > 0 else 0
-    ay = oe if ne > 0 else 0
-    rx, ry = _r10(50 + ax), _r10(50 + ay)
-    ports = {}
-    for i, p in enumerate(west):
-        ports[p[0]] = (rx - (rx + ax), ry + ow + 10 * i - (ry + ay))
-    for j, p in enumerate(east):
-        ports[p[0]] = (rx + width - (rx + ax), ry + oe + 10 * j - (ry + ay))
-    body = (-ax, -ay, -ax + width, -ay + height)
-    return body, ports
+    """pins: [(label, x, y, facing)] -> (body, {label:(dx,dy)})
+
+    子电路符号几何按当前档位（4.1 固定 220 宽 / 5.0 动态宽度），
+    由 vprofile.sub_geometry 统一给出。
+    """
+    return vprofile.sub_geometry(pins)
 
 
 class Board:
@@ -148,7 +118,7 @@ class Board:
         x, y = loc
         face = "east" if kind == "input" else "west"
         w = f'<a name="width" val="{width}"/>' if width != 1 else ""
-        xml = (f'    <comp lib="{WIRE_LIB}" loc="({x},{y})" name="Pin">'
+        xml = (f'    <comp lib="{_lib("wire")}" loc="({x},{y})" name="Pin">'
                f'<a name="type" val="{kind}"/><a name="facing" val="{face}"/>{w}'
                f'<a name="label" val="{_esc(label)}"/></comp>\n')
         self.comps.append(xml)
@@ -160,27 +130,27 @@ class Board:
         if inputs is None:
             inputs = 1 if kind == "NOT" else 2
         geom = _gate_geom(kind, inputs)
-        xml = (f'    <comp lib="{GATE_LIB}" loc="({loc[0]},{loc[1]})" name="{kind} Gate">'
+        xml = (f'    <comp lib="{_lib("gate")}" loc="({loc[0]},{loc[1]})" name="{kind} Gate">'
                f'<a name="inputs" val="{inputs}"/></comp>\n')
         return self._add(xml, loc, geom)
 
     def dff(self, loc, label):
         geom = _dff_geom()
-        xml = (f'    <comp lib="{MEM_LIB}" loc="({loc[0]},{loc[1]})" name="D Flip-Flop">'
+        xml = (f'    <comp lib="{_lib("mem")}" loc="({loc[0]},{loc[1]})" name="D Flip-Flop">'
                f'<a name="trigger" val="rising"/><a name="appearance" val="classic"/>'
                f'<a name="label" val="{_esc(label)}"/></comp>\n')
         return self._add(xml, loc, geom)
 
     def tff(self, loc, label):
         geom = _tff_geom()
-        xml = (f'    <comp lib="{MEM_LIB}" loc="({loc[0]},{loc[1]})" name="T Flip-Flop">'
+        xml = (f'    <comp lib="{_lib("mem")}" loc="({loc[0]},{loc[1]})" name="T Flip-Flop">'
                f'<a name="trigger" val="rising"/><a name="appearance" val="classic"/>'
                f'<a name="label" val="{_esc(label)}"/></comp>\n')
         return self._add(xml, loc, geom)
 
     def splitter4(self, loc):
         geom = _splitter4_geom()
-        xml = (f'    <comp lib="{WIRE_LIB}" loc="({loc[0]},{loc[1]})" name="Splitter">'
+        xml = (f'    <comp lib="{_lib("wire")}" loc="({loc[0]},{loc[1]})" name="Splitter">'
                f'<a name="fanout" val="4"/><a name="incoming" val="4"/>'
                f'<a name="appear" val="center"/>'
                f'<a name="bit0" val="0"/><a name="bit1" val="1"/>'
@@ -189,7 +159,7 @@ class Board:
 
     def clock(self, loc):
         x, y = loc
-        xml = f'    <comp lib="{WIRE_LIB}" loc="({x},{y})" name="Clock"/>\n'
+        xml = f'    <comp lib="{_lib("wire")}" loc="({x},{y})" name="Clock"/>\n'
         self.comps.append(xml)
         self.all_ports.add((x // GRID, y // GRID))
         self.bodies.append((x + 5, y - 15, x + 35, y + 15))
@@ -197,7 +167,7 @@ class Board:
 
     def led(self, loc):
         x, y = loc
-        xml = f'    <comp lib="{IO_LIB}" loc="({x},{y})" name="LED"/>\n'
+        xml = f'    <comp lib="{_lib("io")}" loc="({x},{y})" name="LED"/>\n'
         self.comps.append(xml)
         self.all_ports.add((x // GRID, y // GRID))
         self.bodies.append((x + 5, y - 12, x + 32, y + 12))
@@ -205,7 +175,7 @@ class Board:
 
     def ground(self, loc):
         x, y = loc
-        xml = f'    <comp lib="{WIRE_LIB}" loc="({x},{y})" name="Ground"/>\n'
+        xml = f'    <comp lib="{_lib("wire")}" loc="({x},{y})" name="Ground"/>\n'
         self.comps.append(xml)
         self.all_ports.add((x // GRID, y // GRID))
         self.bodies.append((x - 8, y - 8, x + 8, y + 8))
@@ -213,7 +183,7 @@ class Board:
 
     def display(self, loc, label):
         x, y = loc
-        xml = (f'    <comp lib="{IO_LIB}" loc="({x},{y})" name="Hex Digit Display">'
+        xml = (f'    <comp lib="{_lib("io")}" loc="({x},{y})" name="Hex Digit Display">'
                f'<a name="label" val="{_esc(label)}"/></comp>\n')
         self.comps.append(xml)
         self.all_ports.add((x // GRID, y // GRID))
@@ -349,8 +319,12 @@ class Board:
                     continue
                 seen.add(key)
                 body += f'    <wire from="({key[0]},{key[1]})" to="({key[2]},{key[3]})"/>\n'
+        fixed = ('    <a name="appearance" val="logisim_evolution"/>\n'
+                 '    <a name="circuitnamedboxfixedsize" val="true"/>\n'
+                 if vprofile.get("named_box_fixed") else "")
         return (f'  <circuit name="{_esc(self.name)}">\n'
-                f'    <a name="circuit" val="{_esc(self.name)}"/>\n{body}  </circuit>\n')
+                f'    <a name="circuit" val="{_esc(self.name)}"/>\n'
+                f'{fixed}{body}  </circuit>\n')
 
 
 def _merge_collinear(segs):
@@ -390,18 +364,16 @@ def _merge_collinear(segs):
 
 
 def project(circuits):
+    base = _lib("base")
     head = '<?xml version="1.0" encoding="UTF-8" standalone="no"?>\n'
-    head += '<project source="5.0.0" version="1.0">\n'
-    head += f'  <lib desc="#Wiring" name="{WIRE_LIB}"/>\n'
-    head += f'  <lib desc="#Gates" name="{GATE_LIB}"/>\n'
-    head += f'  <lib desc="#Memory" name="{MEM_LIB}"/>\n'
-    head += f'  <lib desc="#I/O" name="{IO_LIB}"/>\n'
-    head += f'  <lib desc="#Base" name="{BASE_LIB}"/>\n'
+    head += f'<project source="{vprofile.version_string()}" version="1.0">\n'
+    for desc, name in vprofile.get("lib_decls") or []:
+        head += f'  <lib desc="{desc}" name="{name}"/>\n'
     head += f'  <main name="{_esc(circuits[0][0])}"/>\n'
     head += "  <options/>\n"
-    head += '  <mappings>\n    <tool lib="8" name="Poke Tool" map="Button2"/>\n'
-    head += '    <tool lib="8" name="Menu Tool" map="Button3"/>\n  </mappings>\n'
-    head += '  <toolbar>\n    <tool lib="8" name="Poke Tool"/>\n    <tool lib="8" name="Edit Tool"/>\n'
-    head += '    <tool lib="8" name="Wiring Tool"/>\n    <tool lib="8" name="Text Tool"/>\n    <sep/>\n  </toolbar>\n'
+    head += f'  <mappings>\n    <tool lib="{base}" name="Poke Tool" map="Button2"/>\n'
+    head += f'    <tool lib="{base}" name="Menu Tool" map="Button3"/>\n  </mappings>\n'
+    head += f'  <toolbar>\n    <tool lib="{base}" name="Poke Tool"/>\n    <tool lib="{base}" name="Edit Tool"/>\n'
+    head += f'    <tool lib="{base}" name="Wiring Tool"/>\n    <tool lib="{base}" name="Text Tool"/>\n    <sep/>\n  </toolbar>\n'
     tail = "</project>\n"
     return head + "".join(c.xml() for _, c in circuits) + tail

@@ -8,7 +8,7 @@
 [![CI](https://github.com/CosmoXing/logisim-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/CosmoXing/logisim-mcp/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.8%2B-3776ab.svg)](https://www.python.org/)
-[![Logisim](https://img.shields.io/badge/logisim--evolution-3.9%20%7C%205.0-2f6f4e.svg)](https://github.com/logisim-evolution/logisim-evolution)
+[![Logisim](https://img.shields.io/badge/logisim--evolution-3.9%20%7C%204.1%20%7C%205.0-2f6f4e.svg)](https://github.com/logisim-evolution/logisim-evolution)
 
 ---
 
@@ -68,6 +68,25 @@ Logisim-evolution 是纯 Java Swing 桌面程序，没有任何脚本或网络�
 | 经验库 | 随包 148 条实测坑（`circ_kb` 可增补；技能里另有 A~K 组坑表，含 2.7.1 / 2.15）；含 3.2 存储器实战：RAM/ROM 几何、低位交叉、字节使能、connect 连通性盲区 |
 | Java 桥 | 把 `CircuitAppearance` 等进程内 API 暴露成回环 NDJSON 命令，GUI 内实时改外观、截图、保存 |
 | 零依赖 | 纯 Python 标准库；Java 只在跑 Logisim 原生能力与外观编辑时需要 |
+
+## 4.1 适配（jpackage 安装版）
+
+Logisim-evolution **4.1.0** 的门、触发器、分线器、寄存器、RAM/ROM 端口与 5.0 相同，
+但**子电路符号是另一套规则**：固定 220 宽、端口 20px 间距、锚点在右边缘第一个输出口，
+高度 `20*max(入,出)+20`。5.0 是动态宽度、10px 间距。直接套 5.0 公式会让子电路引脚全部错位。
+
+| 项 | 4.1 |
+|---|---|
+| 内核 jar | `D:/logisim4.1/app/logisim-evolution-4.1.0-all.jar`（Java 21） |
+| 库索引 | Wiring0 / Gates1 / Plexers2 / Arithmetic3 / Memory5 / I/O6 / Base9 |
+| 引脚 | `<a name="type" val="output"/>` |
+| CLI | `-t table` / `-t stats` / `-w` / `-n` 可用；`-t speed` 无输出；新增 `-b <file>` 无头加载检查 |
+| MCP 入口 | 仍是 `logisim`（`LOGISIM_PROFILE=4.1` + `LOGISIM_JAR` 指向 4.1 jar），不新增第二个入口 |
+| 专用工具 | `circ41_check`（真机加载）、`circ41_ports`（真机端口/包围盒） |
+
+几何档位由 `circuit_kit/vprofile.py` 统一管理；`circ_build` / `circ_audit` / `circ_sim`
+会按 `LOGISIM_PROFILE` 或 `.circ` 自身的 `source` 选规则。详细实测表见
+`skills/logisim-circuit-design/references/logisim41.md`。
 
 ## 安装
 

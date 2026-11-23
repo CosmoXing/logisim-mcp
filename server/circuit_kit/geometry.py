@@ -3,10 +3,9 @@
 权威来源：logisim-evolution 5.0 probe_component 实测（见 knowledge.json 的 geometry）。
 """
 
-import math
 import re
 
-from . import knowledge, netlist
+from . import knowledge, netlist, vprofile
 
 GATE_WIDTH = {"AND": 50, "OR": 50, "NAND": 60, "NOR": 60, "XOR": 60, "XNOR": 70, "NOT": 30}
 
@@ -45,44 +44,13 @@ def splitter_body(fanout=4, facing="east", appear="left"):
     return netlist.splitter_body(fanout, facing, appear)
 
 
-def _r10(v):
-    return int(math.floor(v / 10.0 + 0.5)) * 10
+def sub_geometry(pins, source=""):
+    """pins: [(label, x, y, facing)] → (body, {label: (dx,dy)})，相对实例 loc。
 
-
-def _dim(mx, others):
-    if mx < 3:
-        return 30
-    return 10 * mx if others == 0 else 10 * mx + 10
-
-
-def _offs(n, opp, max_others):
-    mx = max(n, opp)
-    if mx <= 1:
-        base = 15 if max_others == 0 else 10
-    elif mx == 2:
-        base = 10
-    else:
-        base = 5 if max_others == 0 else 10
-    return base + 10 * ((mx - n) // 2)
-
-
-def sub_geometry(pins):
-    """pins: [(label, x, y, facing)] → (body, {label: (dx,dy)})，相对实例 loc。"""
-    west = sorted([p for p in pins if p[3] == "east"], key=lambda p: (p[2], p[1]))
-    east = sorted([p for p in pins if p[3] == "west"], key=lambda p: (p[2], p[1]))
-    nw, ne = len(west), len(east)
-    mh = max(nw, ne)
-    oe, ow = _offs(ne, nw, 0), _offs(nw, ne, 0)
-    width, height = _dim(0, mh), _dim(mh, 0)
-    ax = width if ne > 0 else 0
-    ay = oe if ne > 0 else 0
-    rx, ry = _r10(50 + ax), _r10(50 + ay)
-    ports = {}
-    for i, p in enumerate(west):
-        ports[p[0]] = (rx - (rx + ax), ry + ow + 10 * i - (ry + ay))
-    for j, p in enumerate(east):
-        ports[p[0]] = (rx + width - (rx + ax), ry + oe + 10 * j - (ry + ay))
-    return (-ax, -ay, -ax + width, -ay + height), ports
+    4.1 与 5.0 是两套规则，见 vprofile.sub_geometry：
+    4.1 固定 220 宽、端口 20px 间距；5.0 动态宽度、10px 间距。
+    """
+    return vprofile.sub_geometry(pins, source)
 
 
 def _ports_json(pts, widths=None):
@@ -221,7 +189,16 @@ def describe(component=None, select=None, width=None):
     if key.startswith("ground"):
         return {"kind": "Ground", "ports": {"p": [0, 0]}, "port_widths": {"p": 1}}
     if key.startswith("sub"):
-        return {"rule": (kb("subcircuit") or {}).get("formula", "")}
+        if vprofile.is_41():
+            return {"kind": "Subcircuit", "version": "4.1.0",
+                    "rule": "固定 220 宽；端口沿左右边、20px 间距；锚点在右边缘第一个输出口；"
+                            "高度 = 20*max(入,出)+20；建议同时写 circuitnamedboxfixedsize=true",
+                    "width": 220, "pitch": 20,
+                    "example_2in_2out": {"west": [[-220, 0], [-220, 20]],
+                                         "east": [[0, 0], [0, 20]],
+                                         "body": [-220, -10, 0, 50]}}
+        return {"kind": "Subcircuit", "version": "5.0.0",
+                "rule": (kb("subcircuit") or {}).get("formula", "")}
 
     if key.startswith("ram"):
         geo = table.get("ram8")

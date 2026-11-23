@@ -15,7 +15,7 @@
 引用语法：pin:标签、<元件id>.<端口名>（子电路用其引脚标签）。at 省略时按依赖深度自动排布。
 """
 
-from . import geometry, router
+from . import geometry, router, vprofile
 
 GATE_TYPES = {"AND", "OR", "NAND", "NOR", "XOR", "XNOR", "NOT"}
 SPECIAL = {"DFF", "TFF", "SPLITTER4", "CLOCK", "LED", "DISPLAY", "GROUND"}
@@ -207,6 +207,9 @@ def build(spec, write=True):
             if comp["_type"] in GATE_TYPES or comp["_type"] in ("DFF", "TFF"):
                 depths[comp["id"]] = _depth_of(comp["id"], by_id, nets, cache)
         max_d = max(depths.values(), default=0)
+        # 4.1 的子电路符号固定 220 宽，按 5.0 的 200 列宽排会和前一列的门体重叠；
+        # 列距与行距都按档位放大，保证 220×20n 的框放得下。
+        col = 260 if vprofile.is_41() else 200
 
         counters = {}
         occupied = set()
@@ -219,16 +222,21 @@ def build(spec, write=True):
             t = comp["_type"]
             if t in GATE_TYPES or t in ("DFF", "TFF"):
                 d = depths[comp["id"]]
-                x = 340 + 200 * d
+                x = 340 + col * d
                 key = ("col", d)
+                step = 110
             elif t == "CLOCK":
                 x = 200
                 key = ("col", -1)
-            else:                      # LED / DISPLAY 放最右列
-                x = 340 + 200 * (max_d + 1)
+                step = 110
+            else:                      # 子电路 / LED / DISPLAY 放最右列
+                x = 340 + col * (max_d + 1)
                 key = ("col", max_d + 1)
+                # 子电路高度 = 20*max(入,出)+20；行距至少比它多 20
+                npin = len(pin_sets.get(t, []))
+                step = max(110, 20 * npin + 40) if vprofile.is_41() else 110
             seen = counters.setdefault(key, 0)
-            y = 160 + 110 * seen
+            y = 160 + step * seen
             while (x, y) in occupied:
                 y += 40
             counters[key] = seen + 1
@@ -236,7 +244,7 @@ def build(spec, write=True):
             comp["_x"], comp["_y"] = x, y
 
         # 输出引脚统一放到最右侧，避开所有元件
-        right = 340 + 200 * (max_d + 2)
+        right = 340 + col * (max_d + 2)
         for p in pins:
             if p["dir"] == "output" and p["x"] is None:
                 p["x"] = right

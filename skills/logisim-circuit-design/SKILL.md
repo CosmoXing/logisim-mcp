@@ -11,6 +11,7 @@ description: 用代码生成、检查和验证 Logisim（5.0 / 3.9 / 2.7.1 / ITA
 |---|---|---|
 | A. MCP 工具（推荐） | 要交付、要可验证、连线复杂 | `circ_build` / `circ_audit` / `circ_sim` / `circuit_truth_table` / `circ_appearance`；**2.7.1 用 `circ271_check` / `circ271_sim` / `circ271_ports`；3.9 迁移/无头验证用 `circ39_check` / `circ39_save` / `circ39_run` / `circ39_debug`** |
 | B2. 3.9 存储器作业 | 学生给的 3.2 类题目（RAM/ROM/字字节双模式） | `scripts/v39/gen32.py`（5 电路生成器）+ `circ39_check/save/run/debug` 验证 |
+| B3. 3.9 单周期 CPU | 课程给 3.1/3.3/3.4 部件，要拼 9 条指令整机 | `scripts/v39/gen_cpu39.py` 生成 + `scripts/v39/probe39.py` 无头验 6 个程序 |
 | B. 手写脚本 | 环境里没有 MCP、或只想微调一个文件 | `scripts/v50/logisim_gen.py` + `scripts/v50/router.py` + `scripts/v50/verify.py`；存储器用 `scripts/v50/mem_gen.py` |
 
 两条路的几何常量、布线规则、踩坑记录是同一套。先读第 1 节的版本前提，这是最容易翻车的地方。
@@ -549,6 +550,9 @@ scripts/
 | `references/counter13-casebook.md` | 13 进制计数器实战复盘：13 个坑 + 验证矩阵 + 排查决策树 |
 | `references/memory-casebook.md` | 64KB ROM/RAM 低位交叉：结构、RAM/ROM 5.0 端口、生成器、37/37 验证、12 坑 |
 | `references/cpu271-casebook.md` | 2.7.1 32 位 CPU 纠错复盘：DM 三错、ROM、四层验证链、10 条语义坑、决策树 |
+| `references/logisim39-cpu-casebook.md` | 3.9 单周期 MIPS CPU 复盘：数据通路、指令/ALU 码表、stp 与周期计数、18 条 g39 坑、6 个程序验证矩阵、探针骨架 |
+| `scripts/v39/gen_cpu39.py` | 3.9 单周期 CPU 生成器（Bank8/RegFile/IM/DM/main，可批量出 6 个测试程序版本） |
+| `scripts/v39/Probe39.java` + `probe39.py` | 3.9 无头整机探针：设引脚/打拍/读输出/RAM 预装与导出 |
 | `references/geometry.md` | 端口/尺寸常量（含 3.9 vs 5.0 对照）、布线语义、布局与压缩 |
 | `references/dsl.md` | `circ_build` 的 DSL 完整参考：字段、端口名、自动布局、报错含义 |
 | `references/circ-format.md` | `.circ` XML 结构、库索引、组件属性、toolbar、版本差异 |

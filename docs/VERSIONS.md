@@ -168,3 +168,23 @@ jar 定位：`LOGISIM39_JAR` → `logisim.local.json` 的 `logisim39_jar` → �
 - **新增/改名引脚必须引线再挂同名 Tunnel**，只写 label 不会并网。
 - 工具：`scripts/v215/geo_probe.py`、`tty_read.py`、`patch_clock.py`；
   生成/拆分：`gen_lab7_io.py`、`gen_lab7_tty.py`、`split_cpu_1/2/3_*.py`。
+
+## 九、3.9 单周期 MIPS CPU（2026-11 实测补充）
+
+| 对象 | 端口/宽度 | 备注 |
+|---|---|---|
+| Pin 输出 | `<a name="output" val="true"/>` | 写 `type="output"` 会被当输入 |
+| 自定义外观 | `<circ-anchor facing="east" x="0" y="0"/>` | 缺省锚点右中，端口整体偏 |
+| 实例端口 | `loc + circ-port(x,y)` | 与 5.0 一致 |
+| Register(32) | D(0,30) en(0,50) clk(0,70) clr(30,90) Q(60,30) | body 60x90 |
+| MUX 2:1 | in0(x-30,y-10) in1(x-30,y+10) sel(x-20,y+20) | sel=0 选 in0 |
+| MUX 8:1 | 输入 (x-40,y-40..30) sel(x-20,y+40) | — |
+| MUX 32:1 | 输入 (x-40,y-160..150) sel(x-20,y+160) | 可做 32 寄存器堆 |
+| Decoder(n) | out_i (x+20,-10*(2^n-i)) sel(0,0) en(-10,0) | `disabled=0` |
+| Adders | A(x-40,y-10) B(x-40,y+10) S(x,y) Cin(x-20,y-20) | Cout 是输入脚，别接 |
+| RAM(14x32) | A(0,10) WE(0,50) EN(0,60) CLK(0,70) D(0,90) Q(240,90) | EN 悬空 Q=U |
+| ROM(14x32) | A(0,10) Q(240,60) | contents 不能为空 |
+
+整机语义：stp 要 `cpu_clk=clk&~stopped` 且 `PC.en=run&~(stopped|Stp)`；
+周期计数用 16 位寄存器 +4 位十六进制显示；RAM 初值不随 `.circ` 保存。
+详见 `skills/logisim-circuit-design/references/logisim39-cpu-casebook.md`。

@@ -65,7 +65,7 @@ Logisim-evolution 是纯 Java Swing 桌面程序，没有任何脚本或网络�
 | 多拍仿真 | 逐拍推进，逐触发器/寄存器检测各自的时钟沿——同步与行波级联都算得对 |
 | 几何与交叉复核 | 生成/布线/解析统一按 5.0 源码公式；`selftest` 再用 Logisim 真值表做外部复核 |
 | 失败显性 | 寄存器 / 多路选择器 / 译码器 / 比较器已纳入网表；仍不认识的元件由 `circ_audit` 标 `partial` 并列出名字与位置，不再当作成功 |
-| 经验库 | 随包 83 条实测坑（`circ_kb` 可增补；技能里另有 A~K 组坑表，含 2.7.1 / 2.15）；含 3.2 存储器实战：RAM/ROM 几何、低位交叉、字节使能、connect 连通性盲区 |
+| 经验库 | 随包 148 条实测坑（`circ_kb` 可增补；技能里另有 A~K 组坑表，含 2.7.1 / 2.15）；含 3.2 存储器实战：RAM/ROM 几何、低位交叉、字节使能、connect 连通性盲区 |
 | Java 桥 | 把 `CircuitAppearance` 等进程内 API 暴露成回环 NDJSON 命令，GUI 内实时改外观、截图、保存 |
 | 零依赖 | 纯 Python 标准库；Java 只在跑 Logisim 原生能力与外观编辑时需要 |
 
@@ -429,6 +429,8 @@ Java 桥是可选通道：没有 JDK、没有编译产物或启动失败时，`c
 ## 已知限制
 
 - `-w` 不能验时序：Logisim 每行都重置状态。时序请用 `circ_sim`，或把触发器换成引脚做组合镜像。
+- RAM 初值不随 `.circ` 保存：3.9 的 RAM 没有 contents 属性，运行前需 Edit Contents→Load Image；无头场景用 `Ram.getContents()` 预装。
+- `Simulator.tick()` 在无头环境会走 Swing（ComponentSelector/JTable）抛异常：测试副本请把 Clock 换成 clk 引脚手动打拍。
 - stdio 单线程：一次长真值表会挡住后续调用。这是 stdio 的常态，未引入线程池（会带来子进程回收问题）。
 - GUI 自动化只覆盖外观编辑：Java 桥能切电路、切视图、改外观、截图与保存；画布上的鼠标拖拽、
   连线仍只能人工。`circuit_open_gui` 只负责把文件打开。
@@ -450,7 +452,7 @@ Java 桥是可选通道：没有 JDK、没有编译产物或启动失败时，`c
 │   ├── java/src/logisim/bridge/     Java 桥：BridgeMain / BridgeServer / Commands / LogisimAdapter / Edt / Json
 │   └── circuit_kit/                geometry / router / netlist / builder / audit / knowledge / appearance / logisim_bridge / circ271
 ├── runtime/bridge/                 编译产物 logisim-bridge.jar（gitignore）；会话状态与日志的兜底目录
-├── skills/logisim-circuit-design/  随包技能：SKILL.md + 14 份参考 + 30 个脚本 + 示例电路
+├── skills/logisim-circuit-design/  随包技能：SKILL.md + 15 份参考 + 33 个脚本 + 示例电路
 ├── tools/                          selftest / build_bridge / build_zip / install / sync_skill / check_release
 ├── docs/                           架构说明、插件规范、截图
 └── examples/                       可直接打开的示例电路（含两位 13 进制计数器）
@@ -466,6 +468,7 @@ Java 桥是可选通道：没有 JDK、没有编译产物或启动失败时，`c
 | [`docs/DESIGN-NOTES.md`](docs/DESIGN-NOTES.md) | 从 0 到 1 的取舍：为什么不用隧道、为什么失败要显性 |
 | `skills/.../references/counter13-casebook.md` | 十三进制计数器复盘：13 个坑 + 排查决策树 |
 | `skills/.../references/memory-casebook.md` | 64KB ROM/RAM 低位交叉：结构、RAM/ROM 端口、生成器、37/37 验证、12 坑 |
+| `skills/.../references/logisim39-cpu-casebook.md` | 3.9 单周期 MIPS CPU 复盘：复用 3.1/3.3/3.4 部件、stp 停机与周期计数、18 条 3.9 坑、6 个程序验证矩阵 |
 | `skills/.../references/pitfalls.md` | 实测坑表（A-L 组；J 组为 Logisim 2.7.1，K 组为 ITA 2.15，L 组为 ITA 2.16 的数码管/文本/GUI 键盘） |
 | `skills/.../references/cpu271-casebook.md` | 2.7.1 32 位 CPU 纠错复盘：DM 三错、ROM、验证链与 10 条语义坑 |
 | `skills/.../references/alu215-casebook.md` | 2.15 8 位 ALU（带比较器）复盘：结构、标志语义、16604 行验证、K12~K19 与布局压缩 |

@@ -1,6 +1,6 @@
 {
  "schema_version": 2,
- "version": 4,
+ "version": 5,
  "geometry": {
   "_note": "端口偏移相对元件 loc，单位像素。来源：logisim-evolution v5.0.0 源码 + 实测复核。",
   "gate": {
@@ -1216,6 +1216,114 @@
    "title": "S-Regs 位序：CREG=7:6、SA=5:4、SB=3:2",
    "detail": "多分支 Splitter b0 在最右（x+off-10i）；CREG/SB 互换会让寄存器写错位置。",
    "evidence": "实验4 系统连接：MOV R0,4 后 RA 读到 3"
+  },
+  {
+   "id": "g39-pin-output-attr",
+   "title": "3.9 Pin 输出属性是 output=\"true\"，写 type=\"output\" 会变成输入",
+   "detail": "3.9 的 Pin 输出脚必须写 <a name=\"output\" val=\"true\"/>。写成 <a name=\"type\" val=\"output\"/> 不报错，但加载后被当成输入引脚：子电路输出脚反而去驱动内部导线，整条网络显示 E/U，父电路读到的全是未知值。",
+   "evidence": "单周期 CPU 首次生成：IM.DOUT 与所有 dbg_* 全部 U；改属性后恢复"
+  },
+  {
+   "id": "g39-circ-anchor",
+   "title": "自定义外观缺 <circ-anchor> 会让实例端口整体偏移",
+   "detail": "带 <appear> 的子电路必须补 <circ-anchor facing=\"east\" x=\"0\" y=\"0\"/>。缺省锚点落在包围盒右中：实测 IM 的端口从 loc+(0,30) 变成 loc-(270,30)，父电路导线全部脱开，子电路内部输入变 U。",
+   "evidence": "G39Inst 读 IM 实例端口 (250,120)，而 loc=(520,150)"
+  },
+  {
+   "id": "g39-inst-port-offset",
+   "title": "子电路实例端口 = loc + circ-port(x,y)",
+   "detail": "3.9/5.0 外观端口用 <circ-port dir pin x y>，实例端口恰好是 loc+(x,y)（pin 指向内部 Pin 绝对坐标）。新做外观后必须用 circ39_debug insts 或 Instance.getPortLocation 逐口核对，再布父电路。",
+   "evidence": "Controller/IM/DM/Bank8 四类子电路实测一致"
+  },
+  {
+   "id": "g39-port-map-swap",
+   "title": "按内部 PIN 列表顺序猜外观端口会三口错位",
+   "detail": "3.1 FourEights 的内部 PIN 是 raddr1(140,300)/raddr2(140,420)/waddr(140,540)，但 <circ-port> 的符号坐标是 (0,30)/(0,50)/(0,70)。照 PIN 顺序猜成 waddr=(0,30) 会让 rs/rt/waddr 三者错位，表现为“写 $2 改到 $1”。",
+   "evidence": "单周期 T2：addu 的 rdata2 读到垃圾值，核对 circ-port 后修复"
+  },
+  {
+   "id": "g39-offgrid-port",
+   "title": "lib8 A* 只走 10px 网格：y+45 的端口必须加 5px 短桩",
+   "detail": "ALUwith9ins 的 ALUResult 在 (x+220,y+45)，不在网格上。A* 会把线走到 y+40，留下 5px 断口：端口本身读到 0，但子电路内部是 U/E。先用一段 (x,y+45)-(x,y+40) 的短桩把端口拉到网格点，再从网格点布线。",
+   "evidence": "单周期首版：@1770,645=0 而 ALU 内部 ALUResult=U；加短桩后正常"
+  },
+  {
+   "id": "g39-router-samename",
+   "title": "lib8 b.w 的 T 接：干线+分支必须同名网络",
+   "detail": "b.w/route8 会把“端点落在另一条线上”判为共线重叠错误，除非两条线同 net 名。干线 + 多条 tap 要用同一个网络名调用多次 b.w，否则每个 T 接都报错。",
+   "evidence": "RegFile 干线 r1/r2/wdata/clk/reset 与 tap 同名后一次通过"
+  },
+  {
+   "id": "g39-rom-empty-contents",
+   "title": "3.9 ROM 的 contents 不能为空",
+   "detail": "<a name=\"contents\"/> 空值时 3.9 加载直接 NullPointerException: MemContents is null。空白工程至少写 \"addr/data: 14 32\\n00000000\"。",
+   "evidence": "生成空白 CPU 时 CLI 加载崩溃栈指向 Rom.configureNewInstance"
+  },
+  {
+   "id": "g39-ram-no-persist",
+   "title": "RAM 初值不随 .circ 保存",
+   "detail": "3.9 的 RAM 没有 contents 属性（RamAttributes 只有 addr/data width、trigger、clearpin 等），把 <a name=\"contents\"> 写进去会被忽略。运行前需 GUI 右键 RAM→Edit Contents→Load Image；无头探针用 ((Ram)factory).getContents(InstanceState).set(i,v) 预装。",
+   "evidence": "raminit.circ 写 contents 后 Q 仍为 0；改用 getContents 后正常"
+  },
+  {
+   "id": "g39-ram32-geometry",
+   "title": "3.9 RAM(14x32)/ROM(14x32) 端口坐标",
+   "detail": "RAM：A(0,10) WE(0,50) EN(0,60) CLK(0,70) D(0,90) Q(240,90)，body 240x250；EN 是 OE，悬空会让 Q 变 U。ROM：A(0,10) Q(240,60)，body 240x220。地址宽度 14、数据宽度 32。",
+   "evidence": "G39Inst 实测 + 单周期 IM/DM 读写"
+  },
+  {
+   "id": "g39-decoder5-geometry",
+   "title": "3.9 5 位 Decoder 与 32:1 MUX 端口",
+   "detail": "Decoder(n)：输出 (20,-10*(2^n-i))（out0 在最上），sel(0,0)、en(-10,0)，disabled=0 才能 en=0 时输出 0。32:1 MUX：输入 (x-40,y-160..150)，sel(-20,160)，out(0,0)。32 个寄存器 + 2 片 32:1 是可行的最小寄存器堆。",
+   "evidence": "geomtest.circ：select=5 的 Decoder/MUX 均可加载"
+  },
+  {
+   "id": "g39-propagate-until-stable",
+   "title": "propagate 一次不够：循环到返回 false 再采样",
+   "detail": "无头设值后只调 1~3 次 propagate 可能停在中途，会读到 ALU/子电路的瞬态 E。应 for(20) if(!propagate()) break; 再读输出。",
+   "evidence": "同一电路 3 次 propagate 读到 EEEEEEEE，循环稳定后为 0"
+  },
+  {
+   "id": "g39-pin-set-dirty",
+   "title": "无头设引脚必须 markComponentAsDirty",
+   "detail": "只调 InstanceState.setPort 会被 Pin.propagate 用旧的 intendedValue 覆盖（设 0 仍读 1）。正确顺序：Pin.setValue(st,val) → st.setPort(0,val,1) → cs.markComponentAsDirty(instance.getComponent()) → propagate。",
+   "evidence": "Reset/WE 设 0 无效；补 markComponentAsDirty 后生效"
+  },
+  {
+   "id": "g39-subcircuit-pin-unreliable",
+   "title": "子电路当根电路时引脚驱动不可靠",
+   "detail": "把子电路名传给探针直接设引脚，初始化时序会让设值丢失（引脚读到 0/U）。功能验证一律走顶层 main；要看子电路内部值，用 cs.getSubStates() 找到对应状态的坐标 getValue。",
+   "evidence": "3.3 main 与 ALUwith9ins 两种跑法，后者永远读到 0"
+  },
+  {
+   "id": "g39-clock-headless",
+   "title": "有 Clock 组件时 Simulator.tick() 无头会抛异常",
+   "detail": "3.9 的 tick() 会走 ComponentSelector→JTable，headless 下抛 HeadlessException。测试副本把 Clock 换成 clk 输入引脚手动 0→1→0；或直接 Propagator.toggleClocks() 连调两次。",
+   "evidence": "Probe39 用 sim.tick(1) 崩溃栈落在 JTable.setDragEnabled"
+  },
+  {
+   "id": "g39-stp-freeze",
+   "title": "stp 只门控时钟不够，PC.en 也要受 ~Stp 控制",
+   "detail": "stp 那一拍的上升沿会先让 PC 前进，再被停机触发器关掉时钟；结果 PC 停在 stp 的下一条，控制信号不为 0。PC.en = run & ~(stopped | Stp)，才能把 PC 冻结在 stp 指令上。",
+   "evidence": "T1 首版：stp 后 PC=0x0C 且 MemWrite 仍为 1；加 PC.en 后停在 0x08"
+  },
+  {
+   "id": "g39-cycle-hex",
+   "title": "周期数码管是十六进制",
+   "detail": "16 位计数器接 4 个 Hex Digit Display，程序 5 的 583 拍显示为 0247。读报告时不要按十进制写。",
+   "evidence": "T5 实测 cycle=0x0247"
+  },
+  {
+   "id": "g39-rf-writethrough",
+   "title": "3.1 FourEights 写穿透会让单周期 CPU 出现组合环",
+   "detail": "FourEights 在 wen=1 且 raddr==waddr 时 rdata 直接等于 wdata。单周期里 addu $2,$1,$2 形成 ALU→wdata→rdata→ALU 环，结果随传播顺序漂移（ALUResult 甚至不等于 src1+src2）。解决：同接口重建 RegFile（4×Bank8，上升沿写、组合读、无穿透）。",
+   "evidence": "T2 实测 0x002ebb8d / 0x34dda9 等漂移值；重建 RegFile 后 0x3333"
+  },
+  {
+   "id": "g39-mux-select-polarity",
+   "title": "2:1 MUX 的 sel 极性要实测，别凭语义猜",
+   "detail": "3.9 2:1 MUX：sel=0 选上输入 in0（(x-30,y-10)），sel=1 选下输入 in1。修写穿透时若把 sel 接反，读口仍会拿到 wdata；改完必须读 mux 输入/输出坐标确认。",
+   "evidence": "FourEights 转发 mux：sel=1 时 out=wdata，sel=0 时 out=Q"
   }
  ]
 }

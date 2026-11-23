@@ -1,5 +1,22 @@
 # 更新记录
 
+## 未发布 — 3.9 单周期 MIPS CPU（复用 3.1/3.3/3.4 部件）沉淀
+
+- pitfalls 新增 18 条 g39-*：Pin 输出属性、circ-anchor、实例端口公式、端口映射错位、
+  y+45 端口要加 5px 短桩、b.w 同名 T 接、ROM 空 contents NPE、RAM 初值不随文件保存、
+  RAM/ROM/Decoder/MUX 3.9 端口、propagate 到稳定、markComponentAsDirty、子电路引脚不可靠、
+  Clock 无头 tick 异常、stp 要冻结 PC.en、周期显示十六进制、3.1 寄存器堆写穿透组合环、
+  2:1 MUX 的 sel 极性
+- knowledge.json +18 条（3.9 单周期整机语义），版本 4 → 5
+- 新增 `references/logisim39-cpu-casebook.md`：数据通路、指令/ALU 码表、stp 与周期计数、
+  6 个测试程序的周期与 RAM 结果、18 条坑、无头探针骨架、验收清单
+- 新工具：
+  - `scripts/v39/gen_cpu39.py`：从 3.3/3.4 的 .circ 提取 ALU/Controller，生成
+    `Bank8/RegFile/IM/DM/main`，可批量生成 6 个测试程序版本（含 hex→contents）
+  - `scripts/v39/Probe39.java` + `probe39.py`：3.9 内核无头整机探针（设引脚/打拍/读输出/
+    RAM 预装与导出）
+- README：文档表、目录结构、已知限制（RAM 不持久、tick 无头限制）同步
+
 ## 未发布 — 实验7 I/O 接口（2.15）与“两个总电路”重构沉淀
 
 - pitfalls 新增 K61~K72：引脚只贴 label 不并网、门遇 U 输出 E、TTY 位宽只 7/16、

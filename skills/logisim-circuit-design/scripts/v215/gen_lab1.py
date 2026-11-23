@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """实验1「熟悉 Logisim 的基本使用」电路生成器（Logisim-ITA 2.15.0.2）。
 
 覆盖文档里的 1~9 个练习：
@@ -23,8 +23,9 @@ import os
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-TPL = r"d:\Prigect\logism桥接\待修\全套210\实验2 构建加法器.circ"
-OUT = r"d:\Prigect\logism桥接\待修\全套210\实验1 熟悉logisim的基本使用.circ"
+ARC = os.environ.get("LAB_ARC_DIR", HERE)
+TPL = os.path.join(ARC, "实验2 构建加法器.circ")
+OUT = os.path.join(ARC, "实验1 熟悉logisim的基本使用.circ")
 
 WIRING, GATES, PLEXERS, ARITH, MEMORY, IO, BASE = "0", "1", "2", "3", "4", "5", "6"
 APPEAR = 0 if "--no-appear" in sys.argv else 1

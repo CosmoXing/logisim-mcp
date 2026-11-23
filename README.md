@@ -168,7 +168,7 @@ Java       : /usr/bin/java
 网表仿真   : a=1,b=1 → y=1（应为 1）
 ```
 
-## 工具一览（18 个）
+## 工具一览（22 个）
 
 工具按 **Logisim 版本**分三组，**不要跨版本混用**（几何互不兼容）：
 
@@ -177,6 +177,7 @@ Java       : /usr/bin/java
 | `logisim_info` | 通用 | 1 | 探测 jar / Java / 无头能力 |
 | `circuit_*` / `circ_*` | **5.0（evolution）** | 14 | 真值表、向量、几何、体检、仿真、生成、外观、经验库 |
 | `circ271_*` | **2.7.1 / 2.16（Logisim-ITA）** | 3 | 独立的 2.7.1 语义层：端口 / 体检 / 仿真 |
+| `circ39_*` | **3.9（evolution 3.9.0）** | 4 | 3.9 本体内核：体检 / 重存 / 多拍时序 / 布线级调试 |
 
 版本判定看 `.circ` 头部的 `source=`。完整对照（含 3.9、几何差异、skill 脚本归属）见
 **[docs/VERSIONS.md](docs/VERSIONS.md)**。
@@ -448,7 +449,7 @@ Java 桥是可选通道：没有 JDK、没有编译产物或启动失败时，`c
 ├── .mcp.json                       MCP 服务声明（stdio）
 ├── bin/                            启动器（自动定位 python）
 ├── server/
-│   ├── server.py                   18 个工具 + --doctor
+│   ├── server.py                   22 个工具 + --doctor
 │   ├── java/src/logisim/bridge/     Java 桥：BridgeMain / BridgeServer / Commands / LogisimAdapter / Edt / Json
 │   └── circuit_kit/                geometry / router / netlist / builder / audit / knowledge / appearance / logisim_bridge / circ271
 ├── runtime/bridge/                 编译产物 logisim-bridge.jar（gitignore）；会话状态与日志的兜底目录

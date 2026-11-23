@@ -930,6 +930,23 @@ TOOLS = [
         },
     },
     {
+        "name": "circ271_ports",
+        "description": (
+            "Logisim 2.7.1 / ITA 2.15·2.16 端口几何：列出电路内元件的真实端口坐标/位宽/方向"
+            "（Splitter 分支、门输入、RAM 五控制脚、Decoder/Mux、子电路实例等）。"
+            "component 按元件名子串过滤，留空列出全部。"
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "file": {"type": "string", "description": ".circ 文件绝对路径（2.7.1/2.15/2.16）"},
+                "circuit": {"type": "string", "description": "电路名，默认 main"},
+                "component": {"type": "string", "description": "元件名子串过滤，如 RAM / Splitter"},
+            },
+            "required": ["file"],
+        },
+    },
+    {
         "name": "circ39_check",
         "description": (
             "用 Logisim 3.9 内核（无头）真实加载 .circ：报错与 GUI 弹窗同款（如 5.0 文件的"

@@ -152,9 +152,9 @@ R0~R3/PC/IR/RAMQ/FLAGS）：
 ## 7. 复现命令
 
 ```bat
-cd /d "D:\Prigect\logism桥接\待修\全套210"
-python "D:\Prigect\logism桥接\logisim-mcp\skills\logisim-circuit-design\scripts\v215\gen_lab5.py" ^
+cd /d "<课程素材目录>"
+python "skills\logisim-circuit-design\scripts\v215\gen_lab5.py" ^
   --src "实验3 ALU设计.circ" --out "实验5 指令分析.circ"
-python "D:\Prigect\logism桥接\logisim-mcp\skills\logisim-circuit-design\scripts\v215\verify_lab5.py" ^
+python "skills\logisim-circuit-design\scripts\v215\verify_lab5.py" ^
   --circ "实验5 指令分析.circ"
 ```

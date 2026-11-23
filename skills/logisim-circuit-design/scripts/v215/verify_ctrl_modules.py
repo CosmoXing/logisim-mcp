@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 import os, sys, tempfile
-sys.path.insert(0, r"c:\Users\ASUS\.trae-cn\skills\logisim-circuit-design\scripts\v271")
-os.environ["LOGISIM_ITA_JAR"] = r"D:\Prigect\logism桥接\tools\Logisim-ITA-2.15.0.2.jar"
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "v271"))
+if not os.environ.get("LOGISIM_ITA_JAR"):
+    sys.exit("请先设置 LOGISIM_ITA_JAR 指向 Logisim-ITA-2.15.0.2.jar")
+
 import ita_probe
 
 CIRC = r"实验4 控制器模块.circ"

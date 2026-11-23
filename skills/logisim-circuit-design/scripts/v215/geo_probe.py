@@ -33,8 +33,7 @@ def find_jar() -> str:
             except Exception:
                 pass
         d = os.path.dirname(d)
-    for p in (os.environ.get("LOGISIM_ITA_JAR", ""),
-              r"D:\Prigect\logism桥接\tools\Logisim-ITA-2.15.0.2.jar"):
+    for p in (os.environ.get("LOGISIM_ITA_JAR", ""),):
         if p and os.path.isfile(p):
             return p
     raise SystemExit("找不到 Logisim-ITA jar，请设置 LOGISIM_ITA_JAR")

@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """实验7 第一组：LED计数器、按键编码器、七段显示驱动、主链电路。"""
+import os
 import sys
 
-sys.path.insert(0, r"c:\Users\ASUS\.trae-cn\skills\logisim-circuit-design\scripts\v215")
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from board215 import Board, Appearance
 
 CIRC = r"实验7 IO接口实验.circ"

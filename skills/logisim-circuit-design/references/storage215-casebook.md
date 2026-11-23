@@ -118,9 +118,9 @@ Clock → 4 位 Counter → 16×16 ROM（机内码）→ 例：机内转区位�
 ## 6. 复现
 
 ```bat
-cd /d "D:\Prigect\logism桥接\待修\全套210"
-python "D:\Prigect\logism桥接\logisim-mcp\skills\logisim-circuit-design\scripts\v215\gen_lab6.py" ^
+cd /d "<课程素材目录>"
+python "skills\logisim-circuit-design\scripts\v215\gen_lab6.py" ^
   --src "需求/实验6 汉字显示（素材）.circ" --out "实验6 存储器实验.circ"
-python "D:\Prigect\logism桥接\logisim-mcp\skills\logisim-circuit-design\scripts\v215\verify_lab6.py" ^
+python "skills\logisim-circuit-design\scripts\v215\verify_lab6.py" ^
   --circ "实验6 存储器实验.circ"
 ```

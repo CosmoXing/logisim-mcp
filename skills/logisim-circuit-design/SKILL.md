@@ -118,7 +118,7 @@ python server/server.py --doctor      # 插件：报依赖与自检
 | 无头读 TTY | `Simulator.tick()` 不产生 `TtyState`；Clock 换 `CLK` Pin 打拍，反射 `TtyState.getRowString`（K65，`tty_read.py`） |
 | 验证 | 2.15 **没有** `-t stats` / `-w`；用 `scripts/v271/ita_probe.py`、`scripts/v215/verify_adder_lab2.py`、`verify_alu_lab3.py`、`verify_lab7_io.py`、`tty_read.py` |
 | 构建 | `scripts/v215/board215.py`（实测几何 + Board + 六项自检）+ `gen_adder_lab2.py` / `gen_alu_lab3.py` / `gen_ctrl_lab4.py` / `gen_lab7_io.py` |
-| 元件几何 | `scripts/v215/geo_probe.py --file X.circ --comp TTY`（任意内置元件 bounds/端口/属性，K61 排查用） |
+| 元件几何 | `scripts/v215/geo_probe.py`（用法 `--file X.circ --comp TTY`）（任意内置元件 bounds/端口/属性，K61 排查用） |
 
 `circ271_check` / `netcheck.py` 对 2.15 有两类固定误报：前者按原始 2.7.1（门输入 x-50）
 建模，会把 20px 输入短线判成「导线穿元件体」；后者把 Probe 当 0 位宽。

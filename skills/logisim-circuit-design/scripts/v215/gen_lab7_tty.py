@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """实验7 第二组：哑终端（TTY）——存储器内容、姓名显示、键盘输入。"""
+import os
 import sys
 
-sys.path.insert(0, r"c:\Users\ASUS\.trae-cn\skills\logisim-circuit-design\scripts\v215")
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from board215 import Board, cnt_ports
 
 CIRC = r"实验7 IO接口实验.circ"

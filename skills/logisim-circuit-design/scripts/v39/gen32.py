@@ -1,10 +1,13 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """按 3.2 手册重建 ram64k / rom64k / main，并新增 rom_test（ROM 测试台）。"""
+import os
 import re
 import sys
+import tempfile
 
-SRC = r"C:\Users\ASUS\AppData\Local\Temp\ev\32.circ"
-DST = sys.argv[1] if len(sys.argv) > 1 else r"C:\Users\ASUS\AppData\Local\Temp\ev\32_new.circ"
+_EV = os.path.join(tempfile.gettempdir(), "ev")
+SRC = os.environ.get("GEN32_SRC", os.path.join(_EV, "32.circ"))
+DST = sys.argv[1] if len(sys.argv) > 1 else os.path.join(_EV, "32_new.circ")
 
 
 class C:

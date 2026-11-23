@@ -2,8 +2,10 @@
 """实验7 重构第一步：把「系统连接」拆成纯 CPU（去掉程序 ROM、RAM、Prog），
 并把这四片 ROM / 4:1 选择器 / RAM 的接线信息导出给整机测试使用。"""
 import json
+import os
 import re
 import sys
+import tempfile
 
 LAB7 = r"实验7 IO接口实验.circ"
 
@@ -28,7 +30,7 @@ for mm in re.finditer(r'<comp lib="4" loc="\((\d+),(\d+)\)" name="ROM">(.*?)</co
     })
 print("roms:", [(r["loc"], r["addrWidth"], r["dataWidth"], (r["contents"] or "").split("\n")[0]) for r in roms])
 assert len(roms) == 4
-json.dump(roms, open(r"C:\Users\ASUS\AppData\Local\Temp\lab7_roms.json", "w", encoding="utf-8"),
+json.dump(roms, open(os.path.join(tempfile.gettempdir(), "lab7_roms.json"), "w", encoding="utf-8"),
           ensure_ascii=False, indent=1)
 
 # 2) 删掉 4 片 ROM

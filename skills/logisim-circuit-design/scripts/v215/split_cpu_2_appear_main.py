@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 """实验7 重构第二步：给 CPU 加外观，用实验5 的程序 ROM 重建「整机测试」主电路。"""
 import re
+import os
 import sys
 
-sys.path.insert(0, r"c:\Users\ASUS\.trae-cn\skills\logisim-circuit-design\scripts\v215")
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from board215 import Board, Appearance
 
 LAB5 = r"实验5 指令分析.circ"

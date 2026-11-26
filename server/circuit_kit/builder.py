@@ -18,7 +18,8 @@
 from . import geometry, router, vprofile
 
 GATE_TYPES = {"AND", "OR", "NAND", "NOR", "XOR", "XNOR", "NOT"}
-SPECIAL = {"DFF", "TFF", "SPLITTER4", "CLOCK", "LED", "DISPLAY", "GROUND"}
+SPECIAL = {"DFF", "TFF", "SPLITTER4", "SPLITTER4W", "SPLITTER3", "CLOCK", "LED", "DISPLAY", "SEG7",
+           "GROUND", "CONST", "DECODER3"}
 
 IN_PORTS = {"a", "b", "c", "d", "e", "f", "g", "h", "D", "T", "R", "S"}
 OUT_PORTS = {"out", "Q", "NQ"}
@@ -54,16 +55,23 @@ def _norm_pins(circ):
         if p.get("at"):
             _check_grid(x, y, f"引脚 {label}")
         pins.append({"label": label, "dir": "output" if kind == "output" else "input",
-                     "x": x, "y": y, "facing": facing, "width": int(p.get("width", 1))})
+                     "x": x, "y": y, "facing": facing, "width": int(p.get("width", 1)),
+                     "initial": p.get("initial")})
     return pins
 
 
 def _port_width(port, comp, child_pins, pin_width=1):
     t = comp["_type"]
-    if t in GATE_TYPES or t in ("DFF", "TFF", "CLOCK", "LED", "GROUND", "PIN"):
+    if t in GATE_TYPES or t in ("DFF", "TFF", "CLOCK", "LED", "GROUND", "PIN", "SEG7"):
         return 1
-    if t == "SPLITTER4":
+    if t == "CONST":
+        return int(comp.get("width", 1))
+    if t == "DECODER3":
+        return int(comp.get("select", 3)) if port == "sel" else 1
+    if t in ("SPLITTER4", "SPLITTER4W"):
         return 4 if port == "in" else 1
+    if t == "SPLITTER3":
+        return 3 if port == "in" else 1
     if t == "DISPLAY":
         return 4
     for p in child_pins:
@@ -78,11 +86,13 @@ def _dir_of(port, comp, child_pins):
         return "out" if port == "out" else "in"
     if t in ("DFF", "TFF"):
         return "out" if port in ("Q", "NQ") else "in"
-    if t == "SPLITTER4":
+    if t in ("SPLITTER4", "SPLITTER4W", "SPLITTER3"):
         return "out" if port == "in" else "in"
-    if t in ("CLOCK", "GROUND"):
+    if t in ("CLOCK", "GROUND", "CONST"):
         return "out"
-    if t in ("LED", "DISPLAY"):
+    if t == "DECODER3":
+        return "out" if port.startswith("out") else "in"
+    if t in ("LED", "DISPLAY", "SEG7"):
         return "in"
     if t in ("PIN",):
         return "in"
@@ -190,7 +200,7 @@ def build(spec, write=True):
                     continue
                 cid, port = ref.split(".", 1)
                 comp = by_id.get(cid)
-                if comp is None or comp["_type"] == "SPLITTER4":
+                if comp is None or comp["_type"] in ("SPLITTER4", "SPLITTER4W", "SPLITTER3"):
                     continue          # 不存在的元件留给后面的解析报错；分线器方向由接线决定
                 try:
                     if _dir_of(port, comp, comp.get("_child_pins", [])) == "out":
@@ -251,7 +261,7 @@ def build(spec, write=True):
 
         # 引脚（放在布局之后，因为输出引脚的 x 此时才确定）
         for p in pins:
-            b.pin((p["x"], p["y"]), p["label"], p["dir"], p["width"])
+            b.pin((p["x"], p["y"]), p["label"], p["dir"], p["width"], p.get("initial"))
 
         # 冒烟：类型对应的几何必须存在
         for comp in comps:
@@ -265,12 +275,22 @@ def build(spec, write=True):
                 comp["_ports"] = b.tff(loc, comp.get("label") or comp["id"])
             elif t == "SPLITTER4":
                 comp["_ports"] = b.splitter4(loc)
+            elif t == "SPLITTER4W":
+                comp["_ports"] = b.splitter4w(loc)
+            elif t == "SPLITTER3":
+                comp["_ports"] = b.splitter3(loc)
             elif t == "CLOCK":
                 comp["_ports"] = {"p": b.clock(loc)}
             elif t == "LED":
                 comp["_ports"] = {"p": b.led(loc)}
             elif t == "DISPLAY":
                 comp["_ports"] = {"p": b.display(loc, comp.get("label") or comp["id"])}
+            elif t == "SEG7":
+                comp["_ports"] = b.seg7(loc, comp.get("label") or "")
+            elif t == "CONST":
+                comp["_ports"] = b.constant(loc, comp.get("value", 1), comp.get("width", 1))
+            elif t == "DECODER3":
+                comp["_ports"] = b.decoder3(loc, int(comp.get("select", 3)))
             elif t == "GROUND":
                 comp["_ports"] = {"p": b.ground(loc)}
             else:

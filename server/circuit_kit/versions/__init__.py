@@ -6,6 +6,7 @@
 | 版本 | 实现模块 | 关键差异 |
 |---|---|---|
 | 3.9 | `..geometry`（实测与 5.0 一致） | 无差异；仅 CLI 顺序不同 |
+| 4.1 | `..geometry` | 门/触发器/分线器同 5.0；**子电路符号**固定 220 宽、20px 间距 |
 | 5.0（evolution） | `..geometry` | 门宽 50/60/70，输入口 `x-50`…`x-70` |
 | 2.7.1 / 2.16（含 Logisim-ITA） | `..circ271` | 门输入 `x-30, y±10`；Splitter `b0` 是低位组；外观矩形须内缩 |
 
@@ -34,6 +35,10 @@ VERSIONS = {
     "3.9.0": v50,
     "5.0": v50,
     "5.0.0": v50,
+    # 4.1 的门 / 触发器 / 分线器 / 寄存器 / RAM 与 5.0 相同，只有子电路符号不同；
+    # 子电路几何由 vprofile.sub_geometry 按 source 单独处理
+    "4.1": v50,
+    "4.1.0": v50,
     "2.7.1": v271,
     "2.7": v271,
     "2.16": v271,
@@ -46,6 +51,8 @@ _ALIAS = {
     "3": "5.0",
     "5": "5.0",
     "5.0": "5.0",
+    "4": "4.1",
+    "4.1": "4.1",
     "2.7": "2.7.1",
     "2.16": "2.16",
 }
@@ -53,7 +60,7 @@ _ALIAS = {
 
 def supported() -> list[str]:
     """已实现的版本号（不含占位）。"""
-    return ["3.9", "5.0", "2.7.1", "2.16"]
+    return ["3.9", "4.1", "5.0", "2.7.1", "2.16"]
 
 
 def get(version: str):
@@ -81,12 +88,14 @@ def parse_circ_version(path: str) -> str:
 
 
 def detect(path: str) -> str:
-    """版本 -> 路由键（'5.0' / '2.7.1' / '2.16' / ''）。"""
+    """版本 -> 路由键（'3.9' / '4.1' / '5.0' / '2.7.1' / '2.16' / ''）。"""
     ver = parse_circ_version(path)
     if not ver:
         return ""
     if ver.startswith("5"):
         return "5.0"
+    if ver.startswith("4.1"):
+        return "4.1"
     if ver.startswith("2.16"):
         return "2.16"
     if ver.startswith("2.7"):

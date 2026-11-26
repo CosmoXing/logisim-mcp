@@ -32,8 +32,9 @@ PROFILES = {
         "note": "子电路按 facing 分边、10px 间距、动态宽度；库索引 Memory4 / I/O5 / Base8",
         "libs": {"wire": "0", "gate": "1", "plexer": "2", "arith": "3",
                  "mem": "4", "io": "5", "base": "8"},
-        "lib_decls": [("#Wiring", "0"), ("#Gates", "1"), ("#Memory", "4"),
-                      ("#I/O", "5"), ("#Base", "8")],
+        "lib_decls": [("#Wiring", "0"), ("#Gates", "1"), ("#Plexers", "2"),
+                      ("#Arithmetic", "3"), ("#Memory", "4"), ("#I/O", "5"),
+                      ("#Base", "8")],
         "sub": "classic50",       # 5.0 公式（宽 30、间距 10）
         "named_box_fixed": False,  # 是否写 circuitnamedboxfixedsize
         "pin_attr": "type",        # 引脚输出方向写法：type=output / output=true

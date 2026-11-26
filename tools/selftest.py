@@ -145,7 +145,9 @@ def test_handshake():
     need = {"logisim_info", "circuit_summary", "circuit_truth_table", "circuit_verify",
             "circuit_test_vector", "circuit_stats", "circuit_build", "circuit_open_gui",
             "circ_geometry", "circ_probe", "circ_audit", "circ_sim", "circ_build", "circ_kb",
-            "circ_appearance", "circ271_check", "circ271_sim", "circ271_ports"}
+            "circ_appearance", "circ271_check", "circ271_sim", "circ271_ports",
+            "circ39_check", "circ39_save", "circ39_run", "circ39_debug",
+            "circ41_check", "circ41_ports"}
     ok &= check("tools/list 返回 24 个工具", len(tools) == 24, f"实际 {len(tools)}")
     ok &= check("工具名齐全", need <= names, f"缺 {sorted(need - names)}" if need - names else "")
     ok &= check("ping 有响应", "result" in by_id.get(p, {}))
@@ -328,6 +330,59 @@ def test_regressions(tmp):
     return ok
 
 
+# ---------------------------------------------------------------- 5b. 扩展元件
+def test_components(tmp):
+    """译码器 / 7 段数码管 / 3·4 位分线器 / 引脚初值的生成、体检与仿真。
+
+    这些元件是 4.1 适配期间补进 builder 的；几何按 3.9/4.1 真机实测，
+    Decoder 还需要工程里声明 #Plexers 库（否则加载报「找不到库 2」）。
+    """
+    c = Client()
+    f = os.path.join(tmp, "components.circ")
+    spec = {"file": f, "circuits": [
+        {"name": "main",
+         "pins": [{"label": "s", "dir": "in", "width": 3},
+                  {"label": "en", "dir": "in", "initial": 1}] +
+                 [{"label": f"o{i}", "dir": "out"} for i in range(8)],
+         "components": [{"id": "d1", "type": "DECODER3"}],
+         "nets": [{"name": "ns", "connect": ["pin:s", "d1.sel"]},
+                  {"name": "nen", "connect": ["pin:en", "d1.en"]}] +
+                 [{"name": f"no{i}", "connect": [f"d1.out{i}", f"pin:o{i}"]}
+                  for i in range(8)]},
+        {"name": "seg",
+         "pins": [{"label": x, "dir": "in"} for x in "abcdefg"],
+         "components": [{"id": "s1", "type": "SEG7"}],
+         "nets": [{"name": f"n{x}", "connect": [f"pin:{x}", f"s1.{x}"]} for x in "abcdefg"]},
+        {"name": "sp",
+         "pins": [{"label": "b3", "dir": "in", "width": 3},
+                  {"label": "b4", "dir": "in", "width": 4}] +
+                 [{"label": f"p{i}", "dir": "out"} for i in range(3)] +
+                 [{"label": f"q{i}", "dir": "out"} for i in range(4)],
+         "components": [{"id": "s3", "type": "SPLITTER3"},
+                        {"id": "s4", "type": "SPLITTER4W"}],
+         "nets": [{"name": "nb3", "connect": ["pin:b3", "s3.in"]},
+                  {"name": "nb4", "connect": ["pin:b4", "s4.in"]}] +
+                 [{"name": f"np{i}", "connect": [f"s3.b{i}", f"pin:p{i}"]} for i in range(3)] +
+                 [{"name": f"nq{i}", "connect": [f"s4.b{i}", f"pin:q{i}"]} for i in range(4)]},
+    ]}
+    b = c.tool("circ_build", {"spec": spec})
+    a = c.tool("circ_audit", {"file": f})
+    s = c.tool("circ_sim", {"file": f, "inputs": {"s": 5, "en": 1},
+                            "watch": ["o4", "o5"]})
+    by_id, _ = c.run(timeout=120)
+
+    ok = check("扩展元件可生成", os.path.isfile(f), text_of(by_id.get(b))[:90])
+    at = text_of(by_id.get(a))
+    ok &= check("扩展元件体检 ok", "体检结论: ok" in at, at.replace("\n", " ")[:90])
+    ok &= check("扩展元件无 unsupported", "不在网表支持范围" not in at, at[:90])
+    st = text_of(by_id.get(s))
+    last = st.splitlines()[-1] if st else ""
+    ok &= check("译码器 s=5 → o5=1", last.endswith("0\t1"), last[:80])
+    text = open(f, encoding="utf-8").read()
+    ok &= check("引脚初值写入 initial", 'name="initial" val="1"' in text)
+    return ok
+
+
 # ---------------------------------------------------------------- 6. 外观编辑（无 GUI）
 def test_appearance(tmp):
     sys.path.insert(0, os.path.join(ROOT, "server"))
@@ -371,6 +426,16 @@ def test_logisim(tmp, circ):
     c = Client()
     t = c.tool("circuit_truth_table", {"file": circ})
     s = c.tool("circuit_stats", {"file": circ})
+    # 4 输入门：几何按 10px 间距（y=-20/-10/+10/+20），用真引擎复核一遍
+    four = os.path.join(tmp, "and4.circ")
+    spec4 = {"file": four, "circuits": [{
+        "name": "main",
+        "pins": [{"label": x, "dir": "in"} for x in "abcd"] + [{"label": "y", "dir": "out"}],
+        "components": [{"id": "g1", "type": "AND", "inputs": 4}],
+        "nets": [{"name": f"n{x}", "connect": [f"pin:{x}", f"g1.{x}"]} for x in "abcd"] +
+                [{"name": "ny", "connect": ["g1.out", "pin:y"]}]}]}
+    c.tool("circ_build", {"spec": spec4})
+    t4 = c.tool("circuit_truth_table", {"file": four})
     by_id, err = c.run(timeout=180)
     txt = text_of(by_id.get(t))
     if not txt or "未找到" in txt or "仿真失败" in txt:
@@ -382,6 +447,13 @@ def test_logisim(tmp, circ):
     data_rows = max(len(lines) - 2, 0)
     ok &= check("真值表 4 行", data_rows == 4, f"{data_rows} 行")
     ok &= check("circuit_stats 有输出", bool(text_of(by_id.get(s))))
+    t4txt = text_of(by_id.get(t4))
+    l4 = [l for l in t4txt.splitlines() if l.strip()]
+    ok &= check("4 输入门真值表 16 行", max(len(l4) - 2, 0) == 16, f"{max(len(l4) - 2, 0)} 行")
+    ok &= check("4 输入门仅全 1 输出 1",
+                len(l4) >= 3 and l4[-1].strip().endswith("1")
+                and all(x.strip().endswith("0") for x in l4[2:-1]),
+                (l4[-1][:40] if l4 else ""))
     return ok
 
 
@@ -412,6 +484,7 @@ def main():
         allok &= ok
         allok &= test_failures(tmp)
         allok &= test_regressions(tmp)
+        allok &= test_components(tmp)
         allok &= test_appearance(tmp)
         allok &= test_protocol()
         if quick:

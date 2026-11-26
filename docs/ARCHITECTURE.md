@@ -8,7 +8,7 @@ MCP 客户端通过 stdio 发 JSON-RPC，服务端把请求翻译成"读 XML / �
 ## 分层
 
 ```
-server.py                 18 个工具的定义与分发；jar/java 探测；调用 Logisim CLI
+server.py                 24 个工具的定义与分发；jar/java 探测；调用 Logisim CLI
   └── circuit_kit/
         geometry.py       元件端口偏移与包围盒（生成侧唯一数据源）
         router.py         10px 网格 A* 布线 + 元件发射 + 线段合并 + .circ 输出

@@ -36,6 +36,7 @@
 | `label` | 必填 | 引脚名，必须唯一；顶层引脚名就是 MCP 仿真时的信号名 |
 | `dir` | `"in"` | `in` / `out`（也接受 `input` / `output`） |
 | `width` | `1` | 位宽。4 位引脚要接分线器才能进 1 位门 |
+| `initial` | 不写 | 引脚初值（上电时的值）。多位引脚按 16 进制写整数 |
 | `at` | 自动 | `[x, y]`。省略时输入排在左列 `x=120`、输出排在最右列 |
 
 ## components
@@ -59,7 +60,12 @@
 | `AND` `OR` `NAND` `NOR` `XOR` `XNOR` `NOT` | 门 | `a` `b` `c`… 输入，`out` 输出 |
 | `DFF` | D 触发器（上升沿） | `D` `CLK` 输入，`Q` `NQ` 输出，`R` `S` 悬空可用 |
 | `TFF` | T 触发器（上升沿，T=1 翻转） | `T` `CLK` 输入，`Q` `NQ` 输出 |
-| `SPLITTER4` | 4 位分线器 | `in` 是 4 位总线，`b0`~`b3` 是单线（`b0` 最低位） |
+| `SPLITTER4` | 4 位分线器（位口在右） | `in` 是 4 位总线，`b0`~`b3` 是单线（`b0` 最低位） |
+| `SPLITTER4W` | 4 位分线器（facing=west，位口在左） | 端口同 `SPLITTER4` |
+| `SPLITTER3` | 3 位分线/并线器（`appear=center`） | `in` 是 3 位总线，`b0`~`b2` 是单线 |
+| `CONST` | 常量 | `out` 输出；`value`（默认 1）与 `width`（默认 1）可配 |
+| `DECODER3` | 3-8 译码器（`select` 可改，默认 3） | `sel` 输入（n 位）、`en` 输入、`out0`~`out{2^n-1}` 输出 |
+| `SEG7` | 7 段数码管（`decimalPoint=false`） | `a`~`g` 输入，各 1 位；`label` 可选 |
 | `CLOCK` | 时钟源 | `p` 输出 |
 | `LED` | 指示灯 | `p` 输入 |
 | `DISPLAY` | 4 位十六进制数码管 | `p` 输入（4 位） |

@@ -20,7 +20,16 @@
   `-w` 判定从 “5.0+” 改为 “evolution 3.x+”
 - 文档：新增 `references/logisim41.md`（实测端口表、220 规则、1120.circ 对照、
   排错顺序），SKILL.md / README 增加 4.1 档位与工具入口
-- 自检 42 项全部通过（含 4.1 引擎的真值表 / -w / 加载交叉复核）
+- 门输入几何修正（3.9 / 4.1 / 5.0 实测一致）：n≥4 改为 10px 间距、偶数输入跳过 0
+  （4 输入 `-20/-10/+10/+20`，6 输入 `±10/±20/±30`）；生成 / 布线 / 解析三处同步。
+  旧公式把 4 输入排在 `±10/±30` 而门体只有 50 高，真值表会因导线接不到端口而算错
+- `circ_build` 新增 `CONST` / `DECODER3` / `SPLITTER3` / `SPLITTER4W` / `SEG7`，引脚支持
+  `initial`；`netlist` 增加 `7-Segment Display` 语义（7 段脚 + 可选 dp），体检与仿真不再报 unsupported
+- 5.0 / 3.9 工程补声明 `#Plexers` / `#Arithmetic` 库：此前生成含 Decoder 的工程，
+  Logisim 加载会报「找不到库 2」
+- `circuit_kit/versions` 增加 4.1 路由（门级复用 5.0 实现，子电路仍按 `source` 走 vprofile）
+- `g41probe` 新增 `G41Render`：在 4.1 内核里无头把整张电路渲染成 PNG（实验报告截图用）
+- 自检 49 项全部通过（含 4.1 引擎的真值表 / -w / 加载交叉复核）
 
 ## 未发布 — 3.9 单周期 MIPS CPU（复用 3.1/3.3/3.4 部件）沉淀
 

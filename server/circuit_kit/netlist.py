@@ -20,10 +20,14 @@ def gate_ports(kind, inputs):
         return {"out": (0, 0), "a": (-w, 0)}
     if inputs == 2:
         return {"out": (0, 0), "a": (-w, -20), "b": (-w, 20)}
-    top = -10 * (inputs - 1)
+    if inputs == 3:
+        return {"out": (0, 0), "a": (-w, -20), "b": (-w, 0), "c": (-w, 20)}
+    # n>=4：10px 间距，半高 10*(n//2)，偶数输入跳过 0（4.1 源码/实测）
+    half = 10 * (inputs // 2)
+    ys = [y for y in range(-half, half + 1, 10) if not (inputs % 2 == 0 and y == 0)]
     pts = {"out": (0, 0)}
     for i, nm in enumerate("abcdefgh"[:inputs]):
-        pts[nm] = (-w, top + 20 * i)
+        pts[nm] = (-w, ys[i])
     return pts
 
 
@@ -256,8 +260,13 @@ SUPPORTED = {
     "Pin", "Splitter", "Tunnel", "Clock", "LED", "Ground", "Constant",
     "Hex Digit Display", "D Flip-Flop", "T Flip-Flop", "Text",
     "AND Gate", "OR Gate", "NOT Gate", "NAND Gate", "NOR Gate", "XOR Gate", "XNOR Gate",
-    "Multiplexer", "Decoder", "Register", "Comparator",
+    "Multiplexer", "Decoder", "Register", "Comparator", "7-Segment Display",
 }
+
+# I/O 库 7 段数码管：每个段脚 1 位；decimalPoint=true 时多一个 dp 脚
+# （3.9 / 5.0 / 2.16 实测坐标一致，见 docs/VERSIONS.md）
+SEG7_PORTS = {"a": (20, 0), "b": (30, 0), "c": (20, 60), "d": (10, 60),
+              "e": (0, 60), "f": (10, 0), "g": (0, 0), "dp": (30, 60)}
 
 # 纯注释元件：没有电气端口，.circ 里可能不带 lib 属性
 ANNOTATIONS = {"Text", "Label", "Anchor"}
@@ -479,6 +488,11 @@ class Sim:
             return REGISTER_PORTS
         if n == "Comparator":
             return COMPARATOR_PORTS
+        if n == "7-Segment Display":
+            pts = dict(SEG7_PORTS)
+            if str(c.attrs.get("decimalPoint", "true")).lower() in ("false", "0"):
+                pts.pop("dp")
+            return pts
         if n == "Tunnel":
             return {"p": (0, 0)}
         if n in ("Clock", "LED", "Ground", "Constant", "Hex Digit Display", "Probe"):
@@ -504,6 +518,8 @@ class Sim:
             return d
         if n == "Ground":
             return {"p": 1}
+        if n == "7-Segment Display":
+            return {k: 1 for k in SEG7_PORTS}
         if n == "Constant":
             return {"p": int(c.attrs.get("width", 1))}
         if n == "Tunnel":

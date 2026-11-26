@@ -15,18 +15,29 @@ def gate_width(kind):
 
 
 def gate_ports(kind, inputs=2):
-    """返回 {端口名: (dx, dy)}；输出口固定在 (0,0)。"""
+    """返回 {端口名: (dx, dy)}；输出口固定在 (0,0)。
+
+    4.1 实测：2 输入 ±20；3 输入 -20/0/+20；n>=4 为 10px 间距、半高 10*(n//2)，
+    偶数输入跳过 0（4 输入 -20/-10/+10/+20，6 输入 -30..-10/+10..+30）。
+    """
     w = gate_width(kind)
-    h = max(10 * inputs, 50)
     if inputs == 1:
         pts = {"out": (0, 0), "a": (-w, 0)}
+        h = 50
     elif inputs == 2:
         pts = {"out": (0, 0), "a": (-w, -20), "b": (-w, 20)}
+        h = 50
+    elif inputs == 3:
+        pts = {"out": (0, 0), "a": (-w, -20), "b": (-w, 0), "c": (-w, 20)}
+        h = 50
     else:
-        top = -10 * (inputs - 1)
+        half = 10 * (inputs // 2)
+        ys = [y for y in range(-half, half + 1, 10)
+              if not (inputs % 2 == 0 and y == 0)]
         pts = {"out": (0, 0)}
         for i, nm in enumerate("abcdefgh"[:inputs]):
-            pts[nm] = (-w, top + 20 * i)
+            pts[nm] = (-w, ys[i])
+        h = 2 * half + 10
     body = (-w, -h // 2, 0, h // 2)
     return pts, body
 

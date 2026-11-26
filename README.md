@@ -167,7 +167,7 @@ LOGISIM_JAR 环境变量
 
 ```bash
 python server/server.py --doctor     # 环境体检：python / java / jar / 知识库 / 清单
-python tools/selftest.py             # 29 项端到端回归（含失败路径与 Logisim 交叉复核）
+python tools/selftest.py             # 49 项端到端回归（含失败路径与 Logisim 交叉复核）
 python tools/check_release.py        # 开源发布检查：版本一致 / 无本机痕迹 / 打包内容
 ```
 
@@ -187,9 +187,9 @@ Java       : /usr/bin/java
 网表仿真   : a=1,b=1 → y=1（应为 1）
 ```
 
-## 工具一览（22 个）
+## 工具一览（24 个）
 
-工具按 **Logisim 版本**分三组，**不要跨版本混用**（几何互不兼容）：
+工具按 **Logisim 版本**分四组，**不要跨版本混用**（几何互不兼容）：
 
 | 前缀 | 版本 | 数量 | 说明 |
 |---|---|---|---|
@@ -197,6 +197,7 @@ Java       : /usr/bin/java
 | `circuit_*` / `circ_*` | **5.0（evolution）** | 14 | 真值表、向量、几何、体检、仿真、生成、外观、经验库 |
 | `circ271_*` | **2.7.1 / 2.16（Logisim-ITA）** | 3 | 独立的 2.7.1 语义层：端口 / 体检 / 仿真 |
 | `circ39_*` | **3.9（evolution 3.9.0）** | 4 | 3.9 本体内核：体检 / 重存 / 多拍时序 / 布线级调试 |
+| `circ41_*` | **4.1（evolution 4.1.0）** | 2 | 4.1 本体内核：真机加载 / 真机端口与包围盒 |
 
 版本判定看 `.circ` 头部的 `source=`。完整对照（含 3.9、几何差异、skill 脚本归属）见
 **[docs/VERSIONS.md](docs/VERSIONS.md)**。
@@ -225,6 +226,8 @@ Java       : /usr/bin/java
 | `circ39_save` | **3.9** 内核重存：5.0 存盘 → 原生 3.9 格式（元件/导线数不变，out 留空原子覆盖） |
 | `circ39_run` | **3.9** 内核脚本化多拍时序测试：`pin=val` / `t` 打拍 / `r` 读输出，watch 坐标逐点观察 |
 | `circ39_debug` | **3.9** 布线级调试箱：wires（加载后导线）/ onet（单网成员）/ multi（多驱动网）/ nets（未接线端口）/ insts / ends / bounds / pins / vals / **overlap**（共线重叠扫描） |
+| `circ41_check` | **4.1** 内核真实加载：报错与 GUI 弹窗同款 + 电路清单 |
+| `circ41_ports` | **4.1** 内核端口 / 包围盒：可按 `factory` 精确到某个元件（如 `HA`、`D Flip-Flop`） |
 
 ## 版本支持：5.0 / 2.7.1 / 2.16 / 2.15
 
@@ -434,7 +437,7 @@ java -Dfile.encoding=UTF-8 \
 三处目前是同源拷贝，改几何常量必须同步；只改一处会让生成、体检、仿真对不上。
 
 Java 桥是可选通道：没有 JDK、没有编译产物或启动失败时，`circ_appearance` 会报明确错误码或
-降级到 `mode="xml"`，其余 13 个工具完全不受影响。
+降级到 `mode="xml"`，其余 23 个工具完全不受影响。
 
 ## 兼容性
 
@@ -468,7 +471,7 @@ Java 桥是可选通道：没有 JDK、没有编译产物或启动失败时，`c
 ├── .mcp.json                       MCP 服务声明（stdio）
 ├── bin/                            启动器（自动定位 python）
 ├── server/
-│   ├── server.py                   22 个工具 + --doctor
+│   ├── server.py                   24 个工具 + --doctor
 │   ├── java/src/logisim/bridge/     Java 桥：BridgeMain / BridgeServer / Commands / LogisimAdapter / Edt / Json
 │   └── circuit_kit/                geometry / router / netlist / builder / audit / knowledge / appearance / logisim_bridge / circ271
 ├── runtime/bridge/                 编译产物 logisim-bridge.jar（gitignore）；会话状态与日志的兜底目录
@@ -538,7 +541,7 @@ and saves are verified by reloading with `java -jar … -t stats`. Build it with
 ```bash
 python tools/install.py --mcp-only     # or register the bundled plugin marketplace
 python tools/build_bridge.py           # optional: build the Java bridge (JDK 21+)
-python tools/selftest.py               # 29 end-to-end checks
+python tools/selftest.py               # 49 end-to-end checks
 ```
 
 MIT licensed.

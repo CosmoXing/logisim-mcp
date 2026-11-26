@@ -35,17 +35,25 @@ def _gate_geom(kind, inputs):
         bonus = 10 if kind in ("XOR", "XNOR") else 0
         neg = 10 if kind in ("NAND", "NOR", "XNOR") else 0
         w = 50 + bonus + neg
-    h = max(10 * inputs, 50)
+    # 4.1 实测：2 输入 ±20；3 输入 -20/0/+20；n>=4 用 10px 间距、
+    # 半高 = 10*(n//2)，偶数输入跳过 0（4 输入 -20/-10/+10/+20）。
     if inputs == 1:
         pts = {"out": (0, 0), "a": (-w, 0)}
+        h = 50
     elif inputs == 2:
         pts = {"out": (0, 0), "a": (-w, -20), "b": (-w, 20)}
+        h = 50
+    elif inputs == 3:
+        pts = {"out": (0, 0), "a": (-w, -20), "b": (-w, 0), "c": (-w, 20)}
+        h = 50
     else:
-        step = 20
-        top = -10 * (inputs - 1)
+        half = 10 * (inputs // 2)
+        ys = [y for y in range(-half, half + 1, 10)
+              if not (inputs % 2 == 0 and y == 0)]
         pts = {"out": (0, 0)}
         for i, nm in enumerate("abcdefgh"[:inputs]):
-            pts[nm] = (-w, top + step * i)
+            pts[nm] = (-w, ys[i])
+        h = 2 * half + 10
     return dict(body=(-w, -h // 2, 0, h // 2), ports=pts)
 
 
@@ -65,6 +73,40 @@ def _splitter4_geom():
     return dict(body=(0, -20, 20, 20),
                 ports={"in": (0, 0), "b0": (20, -20), "b1": (20, -10),
                        "b2": (20, 0), "b3": (20, 10)})
+
+
+def _splitter4w_geom():
+    """4 位分线器，facing=west、appear=center：位口在左，总线口在右。"""
+    return dict(body=(-20, -20, 1, 11),
+                ports={"in": (0, 0), "b0": (-20, -20), "b1": (-20, -10),
+                       "b2": (-20, 0), "b3": (-20, 10)})
+
+
+def _splitter3_geom():
+    """3 位分线/并线器（fanout=3, incoming=3, appear=center）：in 为 3 位总线，b0..b2 为位。"""
+    return dict(body=(0, -10, 21, 11),
+                ports={"in": (0, 0), "b0": (20, -10), "b1": (20, 0), "b2": (20, 10)})
+
+
+def _seg7_geom():
+    """I/O/7-Segment Display（decimalPoint=false，7 个段脚）。
+    A(20,0) B(30,0) C(20,60) D(10,60) E(0,60) F(10,0) G(0,0)；框 (-5,0,35,60)。
+    """
+    return dict(body=(-5, 0, 35, 60),
+                ports={"a": (20, 0), "b": (30, 0), "c": (20, 60),
+                       "d": (10, 60), "e": (0, 60), "f": (10, 0), "g": (0, 0)})
+
+
+def _const_geom():
+    return dict(body=(-35, -8, 35, 16), ports={"out": (0, 0)})
+
+
+def _decoder_geom(select=3):
+    n = 1 << select
+    pts = {"sel": (0, 0), "en": (-10, 0)}
+    for i in range(n):
+        pts[f"out{i}"] = (20, -10 * (n - i))
+    return dict(body=(-20, -10 * (n + 1), 20, 10), ports=pts)
 
 
 def sub_geom(pins):
@@ -114,17 +156,47 @@ class Board:
         self._blocked_cache = None
         return pts
 
-    def pin(self, loc, label, kind="input", width=1):
+    def pin(self, loc, label, kind="input", width=1, initial=None):
         x, y = loc
         face = "east" if kind == "input" else "west"
         w = f'<a name="width" val="{width}"/>' if width != 1 else ""
+        if initial is None:
+            ini = ""
+        elif int(width) > 1:
+            ini = f'<a name="initial" val="0x{int(initial) & ((1 << int(width)) - 1):x}"/>'
+        else:
+            ini = ('<a name="initial" val="1"/>'
+                   if str(initial).lower() in ("1", "true", "high") else
+                   '<a name="initial" val="0"/>')
         xml = (f'    <comp lib="{_lib("wire")}" loc="({x},{y})" name="Pin">'
-               f'<a name="type" val="{kind}"/><a name="facing" val="{face}"/>{w}'
+               f'<a name="type" val="{kind}"/><a name="facing" val="{face}"/>{w}{ini}'
                f'<a name="label" val="{_esc(label)}"/></comp>\n')
         self.comps.append(xml)
         self.all_ports.add((x // GRID, y // GRID))
         self._blocked_cache = None
         return (x, y)
+
+    def seg7(self, loc, label=""):
+        """7 段数码管（共高有效，7 个段脚）。"""
+        geom = _seg7_geom()
+        lab = f'<a name="label" val="{_esc(label)}"/>' if label else ""
+        xml = (f'    <comp lib="{_lib("io")}" loc="({loc[0]},{loc[1]})" name="7-Segment Display">'
+               f'<a name="decimalPoint" val="false"/>{lab}</comp>\n')
+        return self._add(xml, loc, geom)
+
+    def constant(self, loc, value=1, width=1):
+        geom = _const_geom()
+        xml = (f'    <comp lib="{_lib("wire")}" loc="({loc[0]},{loc[1]})" name="Constant">'
+               f'<a name="width" val="{int(width)}"/>'
+               f'<a name="value" val="0x{int(value) & ((1 << int(width)) - 1):x}"/></comp>\n')
+        return self._add(xml, loc, geom)
+
+    def decoder3(self, loc, select=3):
+        """3-8 译码器（Plexers/Decoder），sel 与 en 在底边，out0 在最上。"""
+        geom = _decoder_geom(int(select))
+        xml = (f'    <comp lib="{_lib("plexer")}" loc="({loc[0]},{loc[1]})" name="Decoder">'
+               f'<a name="select" val="{int(select)}"/></comp>\n')
+        return self._add(xml, loc, geom)
 
     def gate(self, loc, kind, inputs=None):
         if inputs is None:
@@ -155,6 +227,24 @@ class Board:
                f'<a name="appear" val="center"/>'
                f'<a name="bit0" val="0"/><a name="bit1" val="1"/>'
                f'<a name="bit2" val="2"/><a name="bit3" val="3"/></comp>\n')
+        return self._add(xml, loc, geom)
+
+    def splitter4w(self, loc):
+        geom = _splitter4w_geom()
+        xml = (f'    <comp lib="{_lib("wire")}" loc="({loc[0]},{loc[1]})" name="Splitter">'
+               f'<a name="fanout" val="4"/><a name="incoming" val="4"/>'
+               f'<a name="appear" val="center"/><a name="facing" val="west"/>'
+               f'<a name="bit0" val="0"/><a name="bit1" val="1"/>'
+               f'<a name="bit2" val="2"/><a name="bit3" val="3"/></comp>\n')
+        return self._add(xml, loc, geom)
+
+    def splitter3(self, loc):
+        geom = _splitter3_geom()
+        xml = (f'    <comp lib="{_lib("wire")}" loc="({loc[0]},{loc[1]})" name="Splitter">'
+               f'<a name="fanout" val="3"/><a name="incoming" val="3"/>'
+               f'<a name="appear" val="center"/>'
+               f'<a name="bit0" val="0"/><a name="bit1" val="1"/>'
+               f'<a name="bit2" val="2"/></comp>\n')
         return self._add(xml, loc, geom)
 
     def clock(self, loc):

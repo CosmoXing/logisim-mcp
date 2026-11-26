@@ -11,9 +11,10 @@ head -3 xxx.circ | grep -o 'source="[^"]*"'
 | `source=` 开头 | 版本 | 用哪套 |
 |---|---|---|
 | `5.0` | Logisim-evolution 5.0 | **5.0** 几何（默认） |
+| `4.1` | Logisim-evolution 4.1 | **4.1** 几何（子电路固定 220 宽；`circ41_*` 真机探针） |
+| `3.9` | Logisim 3.9 | **3.9** 几何（`circ39_*` 无头探针，见下表与第七节） |
 | `2.16` | Logisim-ITA 2.16.1.0 | **2.7.1** 几何 |
 | `2.7` | 经典 Logisim 2.7.1 | **2.7.1** 几何 |
-| `3.9` | Logisim 3.9 | **3.9** 几何（`circ39_*` 无头探针，见下表与第八节） |
 
 代码里也可以直接路由：
 
@@ -40,16 +41,25 @@ ver = detect("xxx.circ")  # -> '5.0' / '2.16' / '2.7.1'
 > Counter/D Flip-Flop/Constant/Clock 逐项比对端口坐标，全部相同；`-n` / `-t tty --save` 也在）。
 > 早前此表把 3.9 写成「门 size=40、输入口 x-20」，实为 2.7.1 的数值，已作废。
 > `source="5.0.0"` 的 `.circ` 可被 3.9 直接打开、无版本告警。
+>
+> **4.1 的差异只在子电路符号**：门 / 触发器 / 分线器 / 寄存器 / RAM / ROM 端口与 5.0 相同；
+> 子电路实例固定 220 宽、端口 20px 间距、锚点在东边第一个输出口（详见
+> `skills/logisim-circuit-design/references/logisim41.md`）。
+>
+> **多输入门纵向排布（3.9 / 4.1 / 5.0 实测一致）**：2 输入 `y±20`；3 输入 `y-20 / y / y+20`；
+> n≥4 用 10px 间距、偶数输入跳过 0（4 输入 `y-20/-10/+10/+20`，6 输入 `y±10/±20/±30`）。
 
 ## 三、工具归属
 
-### MCP 服务器（`server/server.py`，16 个工具）
+### MCP 服务器（`server/server.py`，24 个工具）
 
 | 前缀 | 版本 | 工具 |
 |---|---|---|
 | `circuit_*` | 5.0（老接口） | `truth_table` `test_vector` `verify` `stats` `summary` `build` `open_gui` |
 | `circ_*` | 5.0 | `geometry` `probe` `audit` `build` `sim` `appearance` `kb` |
 | `circ271_*` | **2.7.1 / 2.16** | `ports` `check` `sim` |
+| `circ39_*` | **3.9** | `check` `save` `run` `debug` |
+| `circ41_*` | **4.1** | `check` `ports` |
 
 ### 库层（`server/circuit_kit/`）
 
@@ -87,6 +97,8 @@ ver = detect("xxx.circ")  # -> '5.0' / '2.16' / '2.7.1'
    时序电路必须用 `ita_probe.py`（`-tty table` 只能跑组合）。
 4. **3.9** → 几何与 5.0 实测一致，`versions.get("3.9")` 直接路由到 5.0 实现；
    向量 CLI 与 5.0 相同：`-w <电路> <向量> <circ>`（两个版本实测都接受）。
+5. **4.1** → 门/触发器/分线器/寄存器同 5.0；只有**子电路符号**是 220 宽 / 20px 间距，
+   生成时用 `LOGISIM_PROFILE=4.1`，真机校验用 `circ41_check` / `circ41_ports`。
 
 ## 五、2.16 实测补充（本文档新增）
 
@@ -127,7 +139,7 @@ ver = detect("xxx.circ")  # -> '5.0' / '2.16' / '2.7.1'
 
 ---
 
-## 八、3.9 内核探针（circ39_*，2026-11-18 沉淀）
+## 七、3.9 内核探针（circ39_*，2026-11-18 沉淀）
 
 3.9 几何与 5.0 实测一致（见上表），但格式迁移与布线陷阱有独立坑（pitfalls L14 + M 组）。
 新增 `server/java/src/g39probe/` 12 个 Java 探针（首次调用自动 javac）+ `circuit_kit/g39probe.py` 封装：
@@ -143,7 +155,7 @@ jar 定位：`LOGISIM39_JAR` → `logisim.local.json` 的 `logisim39_jar` → �
 `overlap` 为纯 XML 扫描（真短路 / 冗余重叠分类）；`multi` 已把 Splitter/Tunnel 端按 io 计。
 关键实测：Register 端口 D=+30、en=+50、clk=+70；WireRepair 会裁穿体线、合并共线重叠、拆 T 结点。
 
-## 七、3.9 存储器实验（3.2）实测补充
+## 八、3.9 存储器实验（3.2）实测补充
 
 - **大端**：32→4 分线器 bit24-31→bank0 … bit0-7→bank3，字读拼回才是 `12345678`。
 - **字节写**：每个 bank 的 D 恒取自己那一路字节，用 `A[1:0]` 经 2→4 译码分别选通写使能；
@@ -169,7 +181,7 @@ jar 定位：`LOGISIM39_JAR` → `logisim.local.json` 的 `logisim39_jar` → �
 - 工具：`scripts/v215/geo_probe.py`、`tty_read.py`、`patch_clock.py`；
   生成/拆分：`gen_lab7_io.py`、`gen_lab7_tty.py`、`split_cpu_1/2/3_*.py`。
 
-## 九、3.9 单周期 MIPS CPU（2026-11 实测补充）
+## 十、3.9 单周期 MIPS CPU（2026-11 实测补充）
 
 | 对象 | 端口/宽度 | 备注 |
 |---|---|---|

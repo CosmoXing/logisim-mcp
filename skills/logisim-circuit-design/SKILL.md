@@ -249,8 +249,12 @@ python server/server.py --doctor      # 插件：报依赖与自检
 ```
 
 - 引用只有两种：`pin:<标签>`、`<元件id>.<端口名>`；子电路用它自己的引脚标签当端口名。
-- 元件类型：`AND OR NAND NOR XOR XNOR NOT`、`DFF TFF`、`SPLITTER4`、`CLOCK`、`LED`、`DISPLAY`，或任意已定义子电路名。
-- 端口名：门 `a/b/c…` + `out`；触发器 `D/T/CLK/Q/NQ/R/S`；分线器 `in` + `b0..b3`；时钟/LED/数码管 `p`。
+- 元件类型：`AND OR NAND NOR XOR XNOR NOT`、`DFF TFF`、`SPLITTER4 SPLITTER4W SPLITTER3`、
+  `CONST`（`value` / `width`）、`DECODER3`（`sel` + `en` + `out0..out7`）、`SEG7`（七段数码管）、
+  `CLOCK`、`LED`、`DISPLAY`，或任意已定义子电路名。
+- 端口名：门 `a/b/c…` + `out`；触发器 `D/T/CLK/Q/NQ/R/S`；分线器 `in` + `b0..b3`；
+  译码器 `sel/en` + `out0…`；数码管 `a..g`；时钟/LED/`DISPLAY` `p`。
+- 引脚可写 `initial`（上电初值，多位按整数写），用于给 `en` / 常数类信号定态。
 - 每个网络 ≥2 个连接点；位宽必须一致（4 位接 1 位门输入会被拒）。
 - `at` 可省略，按依赖深度分列排布。
 

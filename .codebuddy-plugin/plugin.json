@@ -1,8 +1,8 @@
 {
   "name": "logisim-mcp",
   "version": "1.2.0",
-  "description": "Logisim 数字电路设计插件：18 个 MCP 工具覆盖「查几何 → 声明式生成 → 静态体检 → 网表仿真 → Logisim 真值表复核 → 子电路外观编辑 → 经验沉淀」全链路，并含 Logisim 2.7.1 独立语义层（circ271_check / circ271_sim / circ271_ports）。布线器按 5.0 源码几何自动走线，不使用隧道；外观工具在 Logisim 自己的 JVM 内修改 CircuitAppearance 并实时预览。适用于门级作业、计数器/寄存器/加法器搭建、32 位 CPU 与数据存储器，以及「不许用现成芯片」这类限制。",
-  "description_en": "Logisim circuit design plugin: 18 MCP tools covering geometry lookup, declarative generation with maze routing, static netlist audit, cycle-accurate simulation, Logisim truth-table cross-check, subcircuit appearance editing inside the running Logisim JVM, a growing pitfall knowledge base, and a dedicated Logisim 2.7.1 semantic layer (check / simulate / ports).",
+  "description": "Logisim 数字电路设计插件：24 个 MCP 工具覆盖「查几何 → 声明式生成 → 静态体检 → 网表仿真 → Logisim 真值表复核 → 子电路外观编辑 → 经验沉淀」全链路，并含 Logisim 2.7.1 独立语义层（circ271_check / circ271_sim / circ271_ports）与 3.9 / 4.1 真机内核探针（circ39_* / circ41_*）。布线器按 5.0 源码几何自动走线，不使用隧道；外观工具在 Logisim 自己的 JVM 内修改 CircuitAppearance 并实时预览。适用于门级作业、计数器/寄存器/加法器搭建、32 位 CPU 与数据存储器，以及「不许用现成芯片」这类限制。",
+  "description_en": "Logisim circuit design plugin: 24 MCP tools covering geometry lookup, declarative generation with maze routing, static netlist audit, cycle-accurate simulation, Logisim truth-table cross-check, subcircuit appearance editing inside the running Logisim JVM, a growing pitfall knowledge base, a dedicated Logisim 2.7.1 semantic layer (check / simulate / ports), and real-kernel probes for Logisim 3.9 and 4.1.",
   "author": {
     "name": "logisim-mcp contributors"
   },

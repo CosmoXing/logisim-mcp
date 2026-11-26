@@ -5,7 +5,7 @@ PY ?= python
 
 help:
 	@echo "make doctor    环境体检（python / java / jar / 知识库）"
-	@echo "make test      全量回归（29 项）"
+	@echo "make test      全量回归（49 项）"
 	@echo "make test-quick 跳过依赖 Java 的用例"
 	@echo "make bridge    编译 Java 外观桥（需要 JDK 21+）"
 	@echo "make release   发布检查 + 生成 dist zip"

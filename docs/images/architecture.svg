@@ -27,7 +27,7 @@
   <!-- MCP 客户端 -->
   <rect class="box-lead" x="190" y="24" width="540" height="56" rx="10"/>
   <text class="t h1" x="460" y="46" text-anchor="middle">MCP 客户端</text>
-  <text class="t small muted" x="460" y="65" text-anchor="middle">server.py · stdio JSON-RPC · 14 tools</text>
+  <text class="t small muted" x="460" y="65" text-anchor="middle">server.py · stdio JSON-RPC · 24 tools</text>
 
   <!-- 分支箭头 -->
   <path class="flow" d="M300,80 L300,144"/>
@@ -88,5 +88,5 @@
   <text class="t small muted" x="105" y="706">截图：canvas（只画布）/ window（含侧栏）· close 后进程退出，不留后台 Java</text>
 
   <!-- 底部说明 -->
-  <text class="t small muted" x="460" y="772" text-anchor="middle">Java 桥是可选通道：无 JDK / 未编译 / 启动失败时自动降级 mode="xml"，其余 13 个工具不受影响</text>
+  <text class="t small muted" x="460" y="772" text-anchor="middle">Java 桥是可选通道：无 JDK / 未编译 / 启动失败时自动降级 mode="xml"，其余 23 个工具不受影响</text>
 </svg>

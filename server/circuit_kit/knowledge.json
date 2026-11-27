@@ -1,6 +1,6 @@
 {
  "schema_version": 2,
- "version": 5,
+ "version": 6,
  "geometry": {
   "_note": "端口偏移相对元件 loc，单位像素。来源：logisim-evolution v5.0.0 源码 + 实测复核。",
   "gate": {
@@ -1324,6 +1324,96 @@
    "title": "2:1 MUX 的 sel 极性要实测，别凭语义猜",
    "detail": "3.9 2:1 MUX：sel=0 选上输入 in0（(x-30,y-10)），sel=1 选下输入 in1。修写穿透时若把 sel 接反，读口仍会拿到 wdata；改完必须读 mux 输入/输出坐标确认。",
    "evidence": "FourEights 转发 mux：sel=1 时 out=wdata，sel=0 时 out=Q"
+  },
+  {
+   "id": "v41-ttl-lib",
+   "title": "4.1 TTL 库：索引 7，组件名 74163/74151/74138（不是 TTL74163）",
+   "detail": "工程头写 <lib desc=\"#TTL\" name=\"7\"/>，实例写 <comp lib=\"7\" loc=\"...\" name=\"74163\"/>。库 _ID=\"TTL\"，组件 _ID=\"74163\"；写成 TTL74163 会报“库7中缺少组件”。74163/74161/74151/74153/74138/74139 都在 TTL 库。lib 索引数字本身可任意（按 name 映射），但工具条/解析常按 7 认 TTL，建议用 7。",
+   "evidence": "2026-11-27，180(4.1) 序列/顺序脉冲，4.1 实测；javap TtlLibrary/Ttl74163 的 _ID"
+  },
+  {
+   "id": "v41-ttl-pins",
+   "title": "4.1 TTL 芯片端口：DIP 底边 7 脚 + 顶边 7 脚，隐藏 VCC/GND",
+   "detail": "loc=(x,y)，包围盒 (x,y-30) 160x60。底边 y+30：x+10+20i（引脚 1..7）；顶边 y-30：x+30+20i（引脚 9..15，x 递增方向与底边相反）。74163 端口：nCLR(10,30) CLK(30,30) A/B/C/D(50/70/90/110,30) EnP(130,30)；nLOAD(150,-30) EnT(130,-30) QD/QC/QB/QA(110/90/70/50,-30) RC0(30,-30)。74151：D3/D2/D1/D0(10/30/50/70,30) Y(90) W(110) G(130)；C(150,-30) B(130) A(110) D7/D6/D5/D4(90/70/50/30,-30)。74138：A/B/C(10/30/50,30) G2A/G2B/G1(70/90/110) Y7(130,30)；Y6..Y0(150..30,-30)。用 circ41_ports 复核。",
+   "evidence": "180(4.1) 探针电路 circ41_ports 实测"
+  },
+  {
+   "id": "v41-74163-sync-clear",
+   "title": "74163 是同步清零：模 N 要译码 N-1，模7用 NAND(QC,QB)",
+   "detail": "74163 在时钟上升沿采样 nCLR（同步），74161 才是异步。做模7（状态0~6）：nCLR=¬(QC·QB)，状态6的下一个沿回0；这个式子同时覆盖状态7，上电落7也能自恢复。做模8：nCLR=¬(QC·QB·QA)，状态7下一个沿回0。若按74161习惯译码7做模7，会多出状态7（序列多一位/脉冲错位）。EnP、EnT、nLOAD 接1，A~D 接0。",
+   "evidence": "180 题目1/题目2，18+18 逐拍向量通过"
+  },
+  {
+   "id": "v41-74138-half-pulse",
+   "title": "74138 出半周期脉冲：G2A 接 CP，G2B=0、G1=1",
+   "detail": "低有效输出 nY0~nY7 加非门得正脉冲。把 CP 接低有效使能 G2A（G2B 接地、G1 接1），输出只在 CP 低半周有效，宽度=CP/2，且 P0 先出。若 CP 接 G1、G2A/G2B 接地，脉冲在 CP 高半周，但相对计数状态右移一位（首个出现 P1）。两种都满足“半周期”，按老师要求的相位选。",
+   "evidence": "180 题目2，P0→P7 逐拍 18/18"
+  },
+  {
+   "id": "v41-toolbar-required",
+   "title": "4.1 .circ 必须写 <toolbar>，否则打开后绘图工具条是空的",
+   "detail": "工具条随工程文件保存，不是全局设置。缺 <toolbar> 不报错，但上方四个绘图工具消失（用户会以为软件坏了）。正确写法：<toolbar><tool lib=\"9\" name=\"Poke Tool\"/><tool lib=\"9\" name=\"Edit Tool\"/><tool lib=\"9\" name=\"Wiring Tool\"/><tool lib=\"9\" name=\"Text Tool\"/><sep/></toolbar>。Poke/Edit/Wiring/Text 四个工具都在 Base 库 lib=9（BaseLibrary 里确实注册了 WiringTool）；Wiring Tool 写 lib=0 会报 Tool not found in library。",
+   "evidence": "180 3.circ 用户反馈“操作栏没了”，补段后 4.1 截图确认恢复"
+  },
+  {
+   "id": "v41-led-label",
+   "title": "4.1 LED 的 color 值非法 / 重复 label 让 -w 找不到引脚",
+   "detail": "<a name=\"color\" val=\"green\"/> 会报“属性值（green）对 color 无效”，直接删掉该属性用默认色。LED 与输出 Pin 同名（如都叫 P0）时，-w 报 Column P0 has no matching pin：label→组件映射被先创建的 LED 占用。所有组件/Pin 的 label 保持唯一；测试副本里尤其注意。",
+   "evidence": "180 题目2 初次 -w 失败，LED 改 L0..L7 后 18/18"
+  },
+  {
+   "id": "v41-ttl-label-suffix",
+   "title": "给 4.1 TTL 芯片写 label 会显示随机后缀蓝字",
+   "detail": "<a name=\"label\" val=\"U1 74LS163\"/> 在 4.1 界面会显示成 U1 74LS163_c12a10b5f 之类的蓝字（自动加唯一后缀），很难看且遮挡布线。去掉 TTL 组件的 label，芯片体内部本来就会画 74163/74138；需要标注 U1/U2 时用 Base 库 Text 单独写。",
+   "evidence": "180 4.1 截图，去掉 label 后画面干净"
+  },
+  {
+   "id": "v41-msi-install-path",
+   "title": "4.1 不在本机时：从 MSI 解包，并放到 D:/logisim4.1/app 供 MCP 识别",
+   "detail": "msiexec /a logisim-evolution-4.1.0-amd64.msi /qn TARGETDIR=D:\\logisim4.1 会得到 D:\\logisim4.1\\logisim-evolution\\app\\logisim-evolution-4.1.0-all.jar。circ41_check 自动搜 D:/logisim4.1/app，需把 app 目录复制/移动到该路径；沙箱允许列表禁止 Move 时用非沙箱 Copy-Item -Recurse。也可在 logisim.local.json 写 logisim41_jar 或设 LOGISIM41_JAR（改环境变量需重启 MCP）。",
+   "evidence": "2026-11-27 本机仅 4.0，按此路径后 circ41_check 正常"
+  },
+  {
+   "id": "v41-vector-bom",
+   "title": "-w 向量首列变成 ?CP：PowerShell 写文件带了 BOM",
+   "detail": "报错 Column ?CP has no matching pin 不是列名错，而是文件开头有 UTF-8 BOM。用 [IO.File]::WriteAllLines(path, lines, New-Object System.Text.UTF8Encoding($false)) 写无 BOM；Set-Content 在 PowerShell 5 下可能带 BOM 或用 ANSI。生成器本身用 Python 写 UTF-8 无 BOM 最稳。",
+   "evidence": "180 负向对照首次写入 seq_bad.vec 时报 ?CP"
+  },
+  {
+   "id": "v41-b-hangs",
+   "title": "4.1 的 -b <file> 会起 GUI 挂住，无头加载用 circ41_check",
+   "detail": "-b/--test-circuit 在 4.1 上会启动窗口（打印 FlatLaf 警告后不返回），不适合脚本化。交付前加载检查统一用 MCP 的 circ41_check；真值表/向量仍可用 -t table / -w。",
+   "evidence": "180 最终检查时 -b 超时转后台，改用 circ41_check 秒过"
+  },
+  {
+   "id": "v41-timing-negative-control",
+   "title": "-w 时序向量要做负向对照，防止“列名不匹配静默跳过”的假通过",
+   "detail": "带 <set>/<seq> 的 -w 确实能逐拍保留状态（180 两个电路均 18 行）。但列名/Pin 不匹配时可能直接报错或空跑。正确自检：把某一行的期望值故意改错，确认输出 Failed:1 且打印 expected，再改回；同时断言通过数==行数。",
+   "evidence": "180 题目1 改首行期望 1→0 得到 Passed:17 Failed:1"
+  },
+  {
+   "id": "v41-clock-testcopy",
+   "title": "交付用 Clock，验证用“CP 输入引脚”测试副本",
+   "detail": "题面要求 CP 控制，交付文件里用 Clock 组件（label=CP）自动打拍最直观；但 -w 无法驱动 Clock。用同一生成器再产一份测试副本：同位置把 Clock 换成 type=input 的 Pin CP，其余坐标/网络完全不变，再跑 <set>/<seq> 向量。双份电路只差一个元件，保证电气一致。",
+   "evidence": "180 seq.circ/pulse.circ 与 seq_test.circ/pulse_test.circ 双工程策略"
+  },
+  {
+   "id": "v41-74151-wiring",
+   "title": "74151 八选一接线：A/B/C=pin11/10/9、Y=pin5、G=pin7 接地",
+   "detail": "选择端 A 是最低位，对应计数器的 QA。数据端引脚：D0=4、D1=3、D2=2、D3=1（底边）；D4=15、D5=14、D6=13、D7=12（顶边）。G（pin7）低有效，接地。Y=pin5 输出，W=pin6 为反相输出可悬空。序列发生器：D0..D6 按序列置 1/0，D7 无关。",
+   "evidence": "180 题目1，1011010 循环验证通过"
+  },
+  {
+   "id": "v41-real-gui-check",
+   "title": "布局验收必须用 Logisim 本体截图，自绘预览不算",
+   "detail": "自绘/PNG 预览只能证明“你以为的几何”，看不到总线粗细、E/U 红字、芯片真实外形、Toolbar 是否为空。180 的 A* 自动布线电气全对，但本体截图看出一堆无意义小拐弯和贴边线，改手工阶梯布线后明显更整齐。截图流程：java -jar 4.1.jar --no-splash -m 1700x1020+0+0 file.circ → 等窗口 → Ctrl+滚轮缩到 0.5/0.6 → CopyFromScreen 截屏。",
+   "evidence": "180 自绘预览 vs 4.1 本体截图差异；用户明确要求以本体截图为准"
+  },
+  {
+   "id": "v41-manual-route-checks",
+   "title": "手工正交布线交付前的四项校验",
+   "detail": "1) 并查集连通性：每条线的端点落在另一条线内部即导通，纯内点十字交叉不导通；每个端口必须与同网其它端子同根，不同网不能同根。2) 共线重叠：不同网同方向同坐标重叠加必然短路。3) 端口碰撞：导线格子不得落在任何“别的网”的端口上（T 接会连）。4) 穿体：导线格子不得落在芯片/门体的严格内部（边界允许，常量/地/引脚的小体可豁免，因为端口就在体中心）。四项全过才落盘。",
+   "evidence": "180 build180_manual.py 的 check_manual，两电路均 OK"
   }
  ]
 }

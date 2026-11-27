@@ -57,6 +57,7 @@ from circuit_kit import g39probe as kit_g39  # noqa: E402
 from circuit_kit import knowledge as kit_kb  # noqa: E402
 from circuit_kit import logisim_bridge as kit_bridge  # noqa: E402
 from circuit_kit import netlist as kit_net  # noqa: E402
+from circuit_kit import g40probe as kit_40  # noqa: E402
 from circuit_kit import v41probe as kit_41  # noqa: E402
 from circuit_kit import vprofile as kit_vp  # noqa: E402
 
@@ -130,6 +131,7 @@ def find_all_jars():
     """
     cfg = _local_config()
     local_cfg = cfg.get("jar", "")
+    jar40 = str(cfg.get("logisim40_jar", "")).strip()
     jar41 = str(cfg.get("logisim41_jar", "")).strip()
     prog = os.environ.get("ProgramFiles", r"C://Program Files")
     progx = os.environ.get("ProgramFiles(x86)", r"C://Program Files (x86)")
@@ -140,7 +142,9 @@ def find_all_jars():
     roots = [
         LOGISIM_HOME_HINT,
         os.path.dirname(local_cfg) if local_cfg else "",
+        os.path.dirname(jar40) if jar40 else "",
         os.path.dirname(jar41) if jar41 else "",
+        "D:/logisim4.0/app",
         "D:/logisim4.1/app",
         os.path.join(PLUGIN_ROOT, "runtime"),
         os.path.join(data_dir, "runtime") if data_dir else "",
@@ -152,7 +156,7 @@ def find_all_jars():
         os.getcwd(),
     ]
     seen, out = set(), []
-    for pref in (local_cfg, jar41):
+    for pref in (local_cfg, jar41, jar40):
         if pref and os.path.isfile(pref):
             real = os.path.abspath(pref)
             if real not in seen:
@@ -203,12 +207,18 @@ def find_java() -> str:
 def find_launcher() -> str:
     """jpackage 启动器（带 GUI），用于 Open GUI。
 
-    4.1 档位优先用 logisim.local.json 的 launcher41，其次 D:/logisim4.1/logisim-evolution.exe；
-    其余情况用 launcher / Program Files 下的安装。
+    4.0/4.1 档位优先用 logisim.local.json 的 launcher40/launcher41，
+    其次 D:/logisim4.0/ 或 D:/logisim4.1/ 下的安装。
     """
     cfg = _local_config()
     prog = os.environ.get("ProgramFiles", r"C:\Program Files")
     candidates = []
+    if kit_vp.is_40():
+        candidates += [
+            str(cfg.get("launcher40", "")),
+            "D:/logisim4.0/logisim-evolution.exe",
+            os.path.join(prog, "logisim-evolution", "logisim-evolution.exe"),
+        ]
     if kit_vp.is_41():
         candidates += [
             str(cfg.get("launcher41", "")),
@@ -1088,6 +1098,56 @@ TOOLS = [
             "required": ["file"],
         },
     },
+    {
+        "name": "circ40_check",
+        "description": (
+            "用 Logisim-evolution 4.0 内核（无头）真实加载 .circ：返回加载错误、主电路与电路清单。"
+            "4.0 的库索引是 Wiring0/Gates1/Memory2/I/O3/Base4，toolbar 里的 <tool> 必须带 lib 属性；"
+            "元件几何与 5.0 经典布局一致（子电路动态宽度、10px 间距）。交付前用这个工具确认文件真能打开。"
+            "需要 4.0 jar（LOGISIM40_JAR / logisim.local.json 的 logisim40_jar / D:/logisim4.0/app 自动搜索）。"
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {"file": {"type": "string", "description": ".circ 文件绝对路径"}},
+            "required": ["file"],
+        },
+    },
+    {
+        "name": "circ40_ports",
+        "description": (
+            "用 4.0 内核读取元件的真实端口坐标与包围盒（factory 留空列全部）。"
+            "用途：核对生成的连线是否落在端口上、子电路实例是否按经典布局（30 宽/10px 间距）排布、"
+            "元件体是否压线。返回每行形如 name@(x,y) bounds=(x,y): w,h : #0=(x,y) w1OUT ..."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "file": {"type": "string"},
+                "circuit": {"type": "string", "description": "电路名，默认 main"},
+                "factory": {"type": "string",
+                            "description": "精确工厂名（如 'AND Gate'、'HA'、'Register'）；留空=全部"},
+                "mode": {"type": "string", "enum": ["ports", "bounds"],
+                         "description": "ports=端口+包围盒（默认）；bounds=只要包围盒"},
+            },
+            "required": ["file"],
+        },
+    },
+    {
+        "name": "circ40_save",
+        "description": (
+            "用 4.0 内核重新加载并保存 .circ，产出原生 4.0 格式"
+            "（source=4.0.0、库索引改成 0~4、toolbar/mappings 的 tool 带 lib 属性）。"
+            "out 省略时写成 <原名>-40.circ。"
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "file": {"type": "string"},
+                "out": {"type": "string", "description": "输出路径（可选）"},
+            },
+            "required": ["file"],
+        },
+    },
 ]
 
 
@@ -1344,7 +1404,7 @@ def call_tool(name, args):
                 "写入版本": kit_vp.version_string(),
                 "子电路符号": kit_vp.get("note"),
                 "库索引": kit_vp.get("libs"),
-                "切换": "环境变量 LOGISIM_PROFILE=4.1 / 5.0，或让 LOGISIM_JAR 指向对应 jar",
+                "切换": "环境变量 LOGISIM_PROFILE=4.0 / 4.1 / 5.0，或让 LOGISIM_JAR 指向对应 jar",
             },
             "当前选用": JAR or "未找到（设置 LOGISIM_JAR）",
             "本机其他内核": [j for j in find_all_jars() if os.path.abspath(j) != os.path.abspath(JAR)] or "无",
@@ -1358,7 +1418,18 @@ def call_tool(name, args):
                          "circ_kb", "circ_appearance",
                          "circ271_check", "circ271_sim", "circ271_ports",
                          "circ39_check", "circ39_save", "circ39_run", "circ39_debug",
+                         "circ40_check", "circ40_ports", "circ40_save",
                          "circ41_check", "circ41_ports"],
+            "4.0支持": {
+                "工具": ["circ40_check", "circ40_ports", "circ40_save"],
+                "内核": (kit_40.find_jar40()
+                         or "未找到（设 LOGISIM40_JAR 或在 logisim.local.json 写 logisim40_jar）"),
+                "几何": "门/触发器/分线器/引脚/时钟/子电路与 5.0 经典布局相同"
+                        "（子电路动态宽度、10px 间距；不是 4.1 的 220 宽）",
+                "格式": "source=4.0.0；lib 索引 Wiring0/Gates1/Memory2/I/O3/Base4；"
+                        "toolbar/mappings 的 <tool> 必须带 lib 属性，否则加载报「在库中找不到工具」",
+                "生成": "设 LOGISIM_PROFILE=4.0 后 circ_build 直接输出 4.0 格式",
+            },
             "4.1支持": {
                 "工具": ["circ41_check", "circ41_ports"],
                 "内核": (kit_41.find_jar41()
@@ -1708,6 +1779,27 @@ def call_tool(name, args):
             return False, str(exc)
         except subprocess.TimeoutExpired:
             return False, f"探针超时（> {args.get('timeout', 300)}s）"
+        return True, out.strip()
+
+    if name in ("circ40_check", "circ40_ports", "circ40_save"):
+        f = os.path.abspath(args["file"])
+        if not os.path.isfile(f):
+            return False, f"文件不存在: {f}"
+        try:
+            if name == "circ40_check":
+                out = kit_40.check(f)
+            elif name == "circ40_save":
+                out = kit_40.save(f, args.get("out", "") or "")
+            else:
+                cn = args.get("circuit", "main") or "main"
+                if (args.get("mode") or "ports") == "bounds":
+                    out = kit_40.bounds(f, cn)
+                else:
+                    out = kit_40.ports(f, cn, args.get("factory", "") or "")
+        except RuntimeError as exc:
+            return False, str(exc)
+        except subprocess.TimeoutExpired:
+            return False, "4.0 探针超时"
         return True, out.strip()
 
     if name in ("circ41_check", "circ41_ports"):

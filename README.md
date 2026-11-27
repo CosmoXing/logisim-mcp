@@ -187,7 +187,7 @@ Java       : /usr/bin/java
 网表仿真   : a=1,b=1 → y=1（应为 1）
 ```
 
-## 工具一览（24 个）
+## 工具一览（27 个）
 
 工具按 **Logisim 版本**分四组，**不要跨版本混用**（几何互不兼容）：
 
@@ -197,6 +197,7 @@ Java       : /usr/bin/java
 | `circuit_*` / `circ_*` | **5.0（evolution）** | 14 | 真值表、向量、几何、体检、仿真、生成、外观、经验库 |
 | `circ271_*` | **2.7.1 / 2.16（Logisim-ITA）** | 3 | 独立的 2.7.1 语义层：端口 / 体检 / 仿真 |
 | `circ39_*` | **3.9（evolution 3.9.0）** | 4 | 3.9 本体内核：体检 / 重存 / 多拍时序 / 布线级调试 |
+| `circ40_*` | **4.0（evolution 4.0.0）** | 3 | 4.0 本体内核：真机加载 / 真机端口与包围盒 / 重存为原生 4.0 |
 | `circ41_*` | **4.1（evolution 4.1.0）** | 2 | 4.1 本体内核：真机加载 / 真机端口与包围盒 |
 
 版本判定看 `.circ` 头部的 `source=`。完整对照（含 3.9、几何差异、skill 脚本归属）见
@@ -228,6 +229,9 @@ Java       : /usr/bin/java
 | `circ39_debug` | **3.9** 布线级调试箱：wires（加载后导线）/ onet（单网成员）/ multi（多驱动网）/ nets（未接线端口）/ insts / ends / bounds / pins / vals / **overlap**（共线重叠扫描） |
 | `circ41_check` | **4.1** 内核真实加载：报错与 GUI 弹窗同款 + 电路清单 |
 | `circ41_ports` | **4.1** 内核端口 / 包围盒：可按 `factory` 精确到某个元件（如 `HA`、`D Flip-Flop`） |
+| `circ40_check` | **4.0** 内核真实加载：报错与 GUI 弹窗同款 + 电路清单 |
+| `circ40_ports` | **4.0** 内核端口 / 包围盒（几何同 5.0：子电路动态宽度、10px 间距） |
+| `circ40_save` | **4.0** 内核重存：产出原生 4.0 格式（`source=4.0.0`、库索引 0~4），并补齐 toolbar 的 `lib` 属性 |
 
 ## 版本支持：5.0 / 2.7.1 / 2.16 / 2.15
 
@@ -240,6 +244,7 @@ Java       : /usr/bin/java
 | `2.16` / `2.7` | 2.7.1 几何 | `circuit_kit/circ271.py`，工具 `circ271_*` |
 | `2.15` | ITA 几何：AND/OR 输入 `x-30`、XOR `x-40`、**NOT `x-20`**、偶数输入中间 20px 空档；MUX 需 `enable=false`，Comparator/BitExtender/Shifter/南向 Splitter 见技能 `references/geometry.md` 第 11 节 | 静态检查用 `circ271_*`；功能验证用 `scripts/v271/ita_probe.py`，构建用 `scripts/v215/board215.py`，实验1 用 `gen_lab1.py`，ALU 用 `gen_alu_lab3.py` + `verify_alu_lab3.py` |
 | `3.9` | 3.9 几何 | `circuit_kit/g39probe.py` + `circ39_check / circ39_save / circ39_run / circ39_debug`（3.9 本体内核无头探针；迁移格式见 pitfalls L14，布线陷阱见 M 组） |
+| `4.0` | 与 5.0 同一套几何（子电路动态宽度、10px 间距） | `circuit_kit/g40probe.py` + `circ40_check / circ40_ports / circ40_save`；生成时设 `LOGISIM_PROFILE=4.0`（库索引 0~4、toolbar 的 tool 必须带 lib） |
 
 > 2.15 说明：`circ271_check` 的门体模型按原始 2.7.1（输入 x-50）建模，对 2.15/2.16 会把
 > 20px 输入短线误判为“导线穿元件体”，属已知误报；以 Logisim 自身 `ERRCOUNT` 与
@@ -437,7 +442,7 @@ java -Dfile.encoding=UTF-8 \
 三处目前是同源拷贝，改几何常量必须同步；只改一处会让生成、体检、仿真对不上。
 
 Java 桥是可选通道：没有 JDK、没有编译产物或启动失败时，`circ_appearance` 会报明确错误码或
-降级到 `mode="xml"`，其余 23 个工具完全不受影响。
+降级到 `mode="xml"`，其余 26 个工具完全不受影响。
 
 ## 兼容性
 
@@ -471,7 +476,7 @@ Java 桥是可选通道：没有 JDK、没有编译产物或启动失败时，`c
 ├── .mcp.json                       MCP 服务声明（stdio）
 ├── bin/                            启动器（自动定位 python）
 ├── server/
-│   ├── server.py                   24 个工具 + --doctor
+│   ├── server.py                   27 个工具 + --doctor
 │   ├── java/src/logisim/bridge/     Java 桥：BridgeMain / BridgeServer / Commands / LogisimAdapter / Edt / Json
 │   └── circuit_kit/                geometry / router / netlist / builder / audit / knowledge / appearance / logisim_bridge / circ271
 ├── runtime/bridge/                 编译产物 logisim-bridge.jar（gitignore）；会话状态与日志的兜底目录

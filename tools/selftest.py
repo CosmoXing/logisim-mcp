@@ -147,8 +147,9 @@ def test_handshake():
             "circ_geometry", "circ_probe", "circ_audit", "circ_sim", "circ_build", "circ_kb",
             "circ_appearance", "circ271_check", "circ271_sim", "circ271_ports",
             "circ39_check", "circ39_save", "circ39_run", "circ39_debug",
+            "circ40_check", "circ40_ports", "circ40_save",
             "circ41_check", "circ41_ports"}
-    ok &= check("tools/list 返回 24 个工具", len(tools) == 24, f"实际 {len(tools)}")
+    ok &= check("tools/list 返回 27 个工具", len(tools) == 27, f"实际 {len(tools)}")
     ok &= check("工具名齐全", need <= names, f"缺 {sorted(need - names)}" if need - names else "")
     ok &= check("ping 有响应", "result" in by_id.get(p, {}))
     return ok

@@ -57,6 +57,23 @@ PROFILES = {
         "speed": False,
         "w": True,
     },
+    "4.0": {
+        "label": "4.0",
+        "version": "4.0.0",
+        "note": "元件/子电路几何与 5.0 经典布局相同（动态宽度、10px 间距）；"
+                "库索引 Wiring0 / Gates1 / Memory2 / I/O3 / Base4；"
+                "toolbar/mappings 的 <tool> 必须带 lib 属性",
+        "libs": {"wire": "0", "gate": "1", "plexer": "5", "arith": "6",
+                 "mem": "2", "io": "3", "base": "4"},
+        "lib_decls": [("#Wiring", "0"), ("#Gates", "1"), ("#Memory", "2"),
+                      ("#I/O", "3"), ("#Base", "4"), ("#Plexers", "5"),
+                      ("#Arithmetic", "6")],
+        "sub": "classic50",
+        "named_box_fixed": False,
+        "pin_attr": "type",
+        "speed": False,
+        "w": True,
+    },
 }
 
 # 3.9 与 5.0 的生成几何一致（门 50、触发器 classic、分线器 20），
@@ -65,6 +82,7 @@ PROFILES["3.9"] = dict(PROFILES["5.0"], label="3.9", version="3.9.0",
                        note="与 5.0 同一套几何；source 写 3.9.0")
 
 _ALIASES = {"3.9": "3.9", "3.9.0": "3.9", "5": "5.0", "5.0": "5.0", "5.0.0": "5.0",
+            "4.0": "4.0", "4.0.0": "4.0",
             "4": "4.1", "4.1": "4.1", "4.1.0": "4.1"}
 
 _ACTIVE = None
@@ -139,6 +157,13 @@ def sub_style(key: str = "") -> str:
 
 def is_41(key: str = "") -> bool:
     return sub_style(key) == "evolution41"
+
+
+def is_40(key: str = "") -> bool:
+    k = normalize(key) if key else ""
+    if not k:
+        k = active_key()
+    return k == "4.0"
 
 
 # --------------------------------------------------------------------------

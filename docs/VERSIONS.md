@@ -12,6 +12,7 @@ head -3 xxx.circ | grep -o 'source="[^"]*"'
 |---|---|---|
 | `5.0` | Logisim-evolution 5.0 | **5.0** 几何（默认） |
 | `4.1` | Logisim-evolution 4.1 | **4.1** 几何（子电路固定 220 宽；`circ41_*` 真机探针） |
+| `4.0` | Logisim-evolution 4.0 | **5.0** 几何（子电路动态宽度；`circ40_*` 真机探针） |
 | `3.9` | Logisim 3.9 | **3.9** 几何（`circ39_*` 无头探针，见下表与第七节） |
 | `2.16` | Logisim-ITA 2.16.1.0 | **2.7.1** 几何 |
 | `2.7` | 经典 Logisim 2.7.1 | **2.7.1** 几何 |
@@ -51,7 +52,7 @@ ver = detect("xxx.circ")  # -> '5.0' / '2.16' / '2.7.1'
 
 ## 三、工具归属
 
-### MCP 服务器（`server/server.py`，24 个工具）
+### MCP 服务器（`server/server.py`，27 个工具）
 
 | 前缀 | 版本 | 工具 |
 |---|---|---|
@@ -59,6 +60,7 @@ ver = detect("xxx.circ")  # -> '5.0' / '2.16' / '2.7.1'
 | `circ_*` | 5.0 | `geometry` `probe` `audit` `build` `sim` `appearance` `kb` |
 | `circ271_*` | **2.7.1 / 2.16** | `ports` `check` `sim` |
 | `circ39_*` | **3.9** | `check` `save` `run` `debug` |
+| `circ40_*` | **4.0** | `check` `ports` `save` |
 | `circ41_*` | **4.1** | `check` `ports` |
 
 ### 库层（`server/circuit_kit/`）
@@ -99,6 +101,10 @@ ver = detect("xxx.circ")  # -> '5.0' / '2.16' / '2.7.1'
    向量 CLI 与 5.0 相同：`-w <电路> <向量> <circ>`（两个版本实测都接受）。
 5. **4.1** → 门/触发器/分线器/寄存器同 5.0；只有**子电路符号**是 220 宽 / 20px 间距，
    生成时用 `LOGISIM_PROFILE=4.1`，真机校验用 `circ41_check` / `circ41_ports`。
+6. **4.0** → 几何与 5.0 完全一致；只有文件格式不同（`source=4.0.0`、库索引
+   Wiring0/Gates1/Memory2/I/O3/Base4、toolbar 的 `<tool>` 必须带 `lib` 属性）。
+   生成时用 `LOGISIM_PROFILE=4.0`，真机校验用 `circ40_check` / `circ40_ports`，
+   老文件转存用 `circ40_save`。
 
 ## 五、2.16 实测补充（本文档新增）
 

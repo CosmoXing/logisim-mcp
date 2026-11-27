@@ -52,6 +52,15 @@ public final class BridgeMain {
       System.exit(1);
     }
     server.log("Logisim 主入口已返回，桥继续驻留");
-    Thread.currentThread().join();
+    // 不能 Thread.currentThread().join()（等于永久阻塞且语义不清）；
+    // 这里显式驻留，直到 close 命令触发 System.exit(0)。
+    while (true) {
+      try {
+        Thread.sleep(60_000L);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        break;
+      }
+    }
   }
 }

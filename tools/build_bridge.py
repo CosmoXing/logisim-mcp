@@ -20,7 +20,9 @@ import sys
 import zipfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SRC_DIR = os.path.join(ROOT, "server", "java", "src")
+# 只编译桥本身；g39/g40/g41 探针由 circuit_kit 中各自的模块按对应内核单独编译，
+# 混在一起会让“只装了 4.1”的机器无法构建（探针用了其它版本才有的 API）。
+SRC_DIR = os.path.join(ROOT, "server", "java", "src", "logisim", "bridge")
 CLASS_DIR = os.path.join(ROOT, "server", "java", "build", "classes")
 OUT_DIR = os.path.join(ROOT, "runtime", "bridge")
 OUT_JAR = os.path.join(OUT_DIR, "logisim-bridge.jar")
@@ -100,6 +102,7 @@ def build(force=False, logisim_jar=None):
                 return OUT_JAR
         except (OSError, ValueError):
             pass
+    shutil.rmtree(CLASS_DIR, ignore_errors=True)   # 避免上次构建的探针 class 混进桥 jar
     os.makedirs(CLASS_DIR, exist_ok=True)
     os.makedirs(OUT_DIR, exist_ok=True)
     sources = []

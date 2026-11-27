@@ -92,7 +92,12 @@ public final class BridgeServer {
           new Thread(
                   () -> {
                     sleep(300);
-                    adapter.dispose();
+                    try {
+                      adapter.dispose();
+                    } catch (Throwable t) {
+                      // 窗口可能已被用户关掉；无论如何都要退出，避免残留 Java 进程
+                      log("关闭窗口失败（忽略）：" + t);
+                    }
                     System.exit(0);
                   },
                   "logisim-bridge-exit")

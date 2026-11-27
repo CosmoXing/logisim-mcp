@@ -349,7 +349,7 @@ public final class LogisimAdapter {
           Path destPath = dest.toPath().toAbsolutePath();
           Path tmp = destPath.resolveSibling(destPath.getFileName() + ".bridge-tmp");
           try (OutputStream out = new FileOutputStream(tmp.toFile())) {
-            file.write(out, file.getLoader(), destPath.toFile());
+            writeLogisimFile(file, out, destPath.toFile());
           } catch (Exception e) {
             try {
               Files.deleteIfExists(tmp);
@@ -376,6 +376,37 @@ public final class LogisimAdapter {
           return m;
         },
         30000);
+  }
+
+  /**
+   * Logisim 4.1 的 LogisimFile.write 第三个参数是 String（目标路径），5.0/4.0 是 File；
+   * 且第二个参数的类型（LibraryLoader）在各版本里并非 public，不能在源码里直接引用。
+   * 这里按运行时方法表动态挑选 String 重载、再退回 File 重载，桥才能兼容两类内核。
+   */
+  private static void writeLogisimFile(LogisimFile file, OutputStream out, File dest)
+      throws Exception {
+    Object loader = file.getLoader();
+    java.lang.reflect.Method strMethod = null;
+    java.lang.reflect.Method fileMethod = null;
+    for (java.lang.reflect.Method m : LogisimFile.class.getMethods()) {
+      if (!"write".equals(m.getName())) continue;
+      Class<?>[] p = m.getParameterTypes();
+      if (p.length != 3 || p[0] != OutputStream.class || !p[1].isInstance(loader)) continue;
+      if (p[2] == String.class) strMethod = m;
+      else if (p[2] == File.class) fileMethod = m;
+    }
+    java.lang.reflect.Method method = strMethod != null ? strMethod : fileMethod;
+    if (method == null) {
+      throw new NoSuchMethodException("LogisimFile.write(OutputStream, LibraryLoader, String|File)");
+    }
+    Object target = method.getParameterTypes()[2] == String.class ? dest.getAbsolutePath() : dest;
+    try {
+      method.invoke(file, out, loader, target);
+    } catch (java.lang.reflect.InvocationTargetException e) {
+      Throwable cause = e.getCause();
+      if (cause instanceof Exception ex) throw ex;
+      throw e;
+    }
   }
 
   public Map<String, Object> screenshot(File out, String kind) {

@@ -242,6 +242,23 @@ JAR = find_jar()
 PROFILE = kit_vp.set_from_jar(JAR)
 
 
+def _ensure_jar():
+    """返回当前真实可用的内核 jar。
+
+    进程启动后 jar 可能被删除/移动；缓存的路径不能盲信。这里在文件消失时
+    重新解析一次（LOGISIM_JAR / logisim.local.json / 常见安装位置），
+    避免某个外部改动让所有 Java 能力一直报 “Unable to access jarfile”。
+    """
+    global JAR, PROFILE
+    if JAR and os.path.isfile(JAR):
+        return JAR
+    found = find_jar()
+    JAR = found if found and os.path.isfile(found) else ""
+    if JAR:
+        PROFILE = kit_vp.set_from_jar(JAR)
+    return JAR
+
+
 def _decode(raw):
     """Logisim 输出可能是 UTF-8 也可能是系统本地编码（GBK），逐个回退。"""
     for enc in ("utf-8", "gbk", "latin-1"):
@@ -258,8 +275,10 @@ def run_logisim(args, timeout=180, headless=True):
     headless=False 用于 5.0 的 -w 测试向量：那条路径内部会 new Frame，强制 headless 会抛
     HeadlessException，所以必须借真实显示环境（本机是桌面会话，跑完即退出，不会弹窗阻塞）。
     """
-    if not JAR:
-        return False, "未找到 logisim-evolution-*-all.jar，请设置环境变量 LOGISIM_JAR"
+    jar = _ensure_jar()
+    if not jar:
+        return False, ("未找到可用的 logisim-evolution-*-all.jar：请设置 LOGISIM_JAR，"
+                       "或让 logisim.local.json 的 \"jar\" 指向真实存在的 jar")
     cmd = [
         JAVA,
         "-Dstdout.encoding=UTF-8",
@@ -267,7 +286,7 @@ def run_logisim(args, timeout=180, headless=True):
     ]
     if headless:
         cmd.append("-Djava.awt.headless=true")
-    cmd += ["-jar", JAR, *args]
+    cmd += ["-jar", jar, *args]
     try:
         proc = subprocess.run(
             cmd, capture_output=True, timeout=timeout
@@ -285,10 +304,13 @@ def run_logisim(args, timeout=180, headless=True):
 
 
 def version_text() -> str:
+    """返回内核版本号；jar 不可用或执行失败时返回空串（不要把错误文本当版本）。"""
     ok, txt = run_logisim(["-v"], timeout=60)
+    if not ok:
+        return ""
     first = txt.splitlines()[0] if txt else ""
-    m = re.search(r"v?(\d+\.\d+\.\d+)", first)
-    return m.group(1) if m else (first or "unknown")
+    m = re.search(r"(?<![\w.-])v?(\d+\.\d+\.\d+)(?![\w.-])", first)
+    return m.group(1) if m else ""
 
 
 # --------------------------------------------------------------------------
@@ -453,6 +475,9 @@ def run_test_vector(file_path, circuit_name, vectors):
     if not os.path.isfile(file_path):
         return False, f"文件不存在: {file_path}"
     ver = version_text()
+    if not ver:
+        return False, ("无法读取 Logisim 内核版本：jar 不可用或执行失败。"
+                       "请检查 LOGISIM_JAR / logisim.local.json 的 \"jar\" 路径")
     m = re.match(r"(\d+)", ver or "")
     major = int(m.group(1)) if m else 0
     # 3.9 起就有 -w，且解析顺序与 5.0 相同：-w <电路名> <向量文件> <电路文件>
@@ -1362,8 +1387,23 @@ def _circ_appearance(args):
         return True, _json_text({"via": "xml", "appearance": "logisim_evolution"})
 
     if action == "close":
+        ok = True
+        note = ""
+        if args.get("save"):
+            sess = kit_bridge.peek_session(f)
+            if sess is None:
+                return False, "save=true 但没有打开的 GUI 会话，无法保存"
+            backup = _backup(f)
+            try:
+                sess.send("save")
+            except kit_bridge.BridgeError as exc:
+                return False, f"{exc.code}: {exc}\n{exc.hint}".strip()
+            ok, report = _verify_saved(f, circuit, pins)
+            note = ("\n已保存并通过校验" if ok else "\n已保存但校验未通过") + f"；备份: {backup}"
+            if not ok:
+                note += "\n" + _json_text(report)
         kit_bridge.close_session(f)
-        return True, "已关闭 Logisim 外观会话"
+        return ok, "已关闭 Logisim 外观会话" + note
 
     return False, f"未知 action {action}"
 
@@ -1377,28 +1417,31 @@ def call_tool(name, args):
                                           timeout=30).stderr).splitlines()[0]
         except Exception:
             java_ver = "未知"
-        caps = ["-t table 真值表", "-t stats 统计"]
-        if kit_vp.get("speed"):
-            caps.append("-t speed 仿真速度")
+        if not ver:
+            caps = ["内核不可用：先让 LOGISIM_JAR / logisim.local.json 的 \"jar\" 指向真实存在的 jar"]
         else:
-            caps.append("-t speed 该版本无控制台输出（已标记不支持）")
-        caps.append("-t tty 需电路含 TTY 组件")
-        major = 0
-        try:
-            major = int(ver.split(".")[0])
-        except Exception:
-            pass
-        if major >= 3:
-            caps.append("-w 原生测试向量（只能验组合逻辑：每行都从初始状态重算）")
-        else:
-            caps.append("-w 需要 evolution 3.x+，当前版本不支持")
+            caps = ["-t table 真值表", "-t stats 统计"]
+            if kit_vp.get("speed"):
+                caps.append("-t speed 仿真速度")
+            else:
+                caps.append("-t speed 该版本无控制台输出（已标记不支持）")
+            caps.append("-t tty 需电路含 TTY 组件")
+            major = 0
+            try:
+                major = int(ver.split(".")[0])
+            except Exception:
+                pass
+            if major >= 3:
+                caps.append("-w 原生测试向量（只能验组合逻辑：每行都从初始状态重算）")
+            else:
+                caps.append("-w 需要 evolution 3.x+，当前版本不支持")
         ita_jar = str(_local_config().get("ita_jar", "")).strip()
         if ita_jar and not os.path.isfile(ita_jar):
             ita_jar = f"{ita_jar}（文件不存在）"
         if not ita_jar:
             ita_jar = "未配置（在 logisim.local.json 写 ita_jar，或设 LOGISIM_ITA_JAR）"
         info = {
-            "版本": ver,
+            "版本": ver or "不可用（找不到可用的内核 jar）",
             "几何档位": {
                 "profile": kit_vp.active_key(),
                 "写入版本": kit_vp.version_string(),

@@ -173,8 +173,10 @@ def auto_layout(pins, circuit, options=None, current_ports=None):
             for p in ports:
                 p["x"] += dx
                 p["y"] += dy
-            width = max(min_width, _ceil_grid(max_x, grid))
-            height = _ceil_grid(max_y + margin_bottom + plate_h, grid)
+            # 端口已整体平移 dx/dy，框体必须按平移后的极值算，
+            # 否则负坐标/大幅偏移的现有外观会把端口画到框外。
+            width = max(min_width, _ceil_grid(max_x + dx, grid))
+            height = _ceil_grid(max_y + dy + margin_bottom + plate_h, grid)
             layout["strict_ports"] = False
             return _spec(circuit, layout, 0, 0, width, height, ports, pins)
     rows = max(len(left), len(right), 1)
